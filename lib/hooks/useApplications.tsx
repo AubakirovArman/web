@@ -9,6 +9,8 @@ import { getStoredRules } from '@/lib/rules/store';
 
 const STORAGE_KEY = 'ndda-applications-v3';
 
+const validStatuses: Application['status'][] = ['draft', 'submitted', 'checking', 'checked', 'expert-review'];
+
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
@@ -29,6 +31,25 @@ function createDemoApplication(): Application {
 
   app.findings = runPreCheck(app, getStoredRules());
   return app;
+}
+
+function normalizeApplication(app: Partial<Application>): Application {
+  const status = validStatuses.includes(app.status as Application['status'])
+    ? (app.status as Application['status'])
+    : 'draft';
+
+  return {
+    id: app.id || uid(),
+    createdAt: app.createdAt || new Date().toISOString(),
+    status,
+    values: {
+      ...defaultApplicationValues,
+      ...(app.values || {}),
+    },
+    files: Array.isArray(app.files) ? app.files : [],
+    checklist: Array.isArray(app.checklist) ? app.checklist : [],
+    findings: Array.isArray(app.findings) ? app.findings : [],
+  };
 }
 
 interface ApplicationContextValue {
@@ -63,7 +84,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
       if (raw) {
         const parsed = JSON.parse(raw) as Application[];
-        setApplications(parsed);
+        const normalized = Array.isArray(parsed) ? parsed.map(normalizeApplication) : [];
+        setApplications(normalized.length > 0 ? normalized : [createDemoApplication()]);
       } else {
         const demo = createDemoApplication();
         setApplications([demo]);
@@ -104,8 +126,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         return app;
       },
       importApplication: (app) => {
-        setApplications((prev) => [app, ...prev]);
-        setCurrentId(app.id);
+        const normalized = normalizeApplication(app);
+        setApplications((prev) => [normalized, ...prev]);
+        setCurrentId(normalized.id);
       },
       updateValues: (id, values) =>
         updateApp(id, (app) => ({
