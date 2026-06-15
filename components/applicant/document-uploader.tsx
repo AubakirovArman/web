@@ -58,7 +58,7 @@ export function DocumentUploader({ documentTypeId, files, onUpload, onRemove }: 
   };
 
   return (
-    <Card className={files.length > 0 ? 'border-primary/30' : ''}>
+    <Card data-testid={`document-uploader-${documentTypeId}`} className={files.length > 0 ? 'border-primary/30' : ''}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">

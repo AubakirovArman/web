@@ -33,14 +33,14 @@ test('admin can review and modify rule metadata', async ({ page }) => {
   await page.goto('/admin');
 
   await expect(page.getByRole('heading', { name: 'Панель администратора' })).toBeVisible();
-  await expect(page.getByText('Общий пакет документов для регистрации')).toBeVisible();
+  await expect(page.getByText('Общий пакет документов для регистрации', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Включено' }).first().click();
   await expect(page.getByRole('button', { name: 'Выключено' }).first()).toBeVisible();
 
   await page.getByRole('tab', { name: 'Документы' }).click();
-  await expect(page.getByText('Заявление на экспертизу')).toBeVisible();
-  await expect(page.getByText('Документ об оплате')).toBeVisible();
+  await expect(page.getByText('Заявление на экспертизу', { exact: true })).toBeVisible();
+  await expect(page.getByText('Документ об оплате', { exact: true })).toBeVisible();
 
   await page.getByRole('tab', { name: 'НПА' }).click();
   await expect(page.getByText('Приказ ҚР ДСМ-10').first()).toBeVisible();

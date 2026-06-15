@@ -33,8 +33,11 @@ export interface DocumentType {
 export interface Parameter {
   id: string;
   label: string;
-  type: 'select' | 'text' | 'multiselect' | 'boolean';
+  type: 'select' | 'text' | 'textarea' | 'date' | 'multiselect' | 'boolean';
   options?: { value: string; label: string }[];
+  section?: string;
+  sourceNpa?: string;
+  sourceFieldRef?: string;
 }
 
 export interface RuleCondition {

@@ -28,7 +28,7 @@ test('legacy browser storage does not blank the wizard', async ({ page }) => {
 
   await page.goto('/wizard');
   await expect(page.getByRole('heading', { name: 'Создание заявки' })).toBeVisible();
-  await expect(page.getByLabel('Торговое наименование')).toHaveValue('Legacy Drug');
+  await expect(page.getByRole('textbox', { name: 'Торговое наименование', exact: true })).toHaveValue('Legacy Drug');
 
   await page.getByTestId('wizard-step-check').click();
   await expect(page.getByTestId('wizard-check-step')).toBeVisible();

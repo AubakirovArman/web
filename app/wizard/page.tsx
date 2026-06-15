@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { CheckCircle2, FileStack, Settings2, Sparkles, ArrowLeft, ArrowRight, Send, Save, Loader2 } from 'lucide-react';
@@ -202,6 +203,8 @@ export default function WizardPage() {
                   return (
                     <button
                       key={s.id}
+                      data-testid={`wizard-step-${s.id}`}
+                      aria-label={`Перейти к разделу ${s.title}`}
                       onClick={() => handleStepChange(i)}
                       className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors ${
                         active
@@ -283,41 +286,62 @@ function ParamsStep({ values, onChange }: { values: Application['values']; onCha
     values as Record<string, string>
   );
   const visibleParams = parameters.filter((p) => visibleParamIds.includes(p.id));
+  const groupedParams = visibleParams.reduce<Record<string, typeof visibleParams>>((acc, param) => {
+    const section = param.section || 'Основные параметры';
+    acc[section] = acc[section] || [];
+    acc[section].push(param);
+    return acc;
+  }, {});
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Параметры заявки</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-6 sm:grid-cols-2">
-        {visibleParams.map((param) => (
-          <div key={param.id} className="space-y-2">
-            <Label htmlFor={param.id}>{param.label}</Label>
-            {param.type === 'select' ? (
-              <Select value={(values[param.id] as string) || ''} onValueChange={(v) => onChange(param.id, v)}>
-                <SelectTrigger id={param.id}>
-                  <SelectValue placeholder="Выберите..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {param.options?.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                id={param.id}
-                value={(values[param.id] as string) || ''}
-                onChange={(e) => onChange(param.id, e.target.value)}
-                placeholder={param.label}
-              />
-            )}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="space-y-6" data-testid="wizard-params-step">
+      {Object.entries(groupedParams).map(([section, sectionParams]) => (
+        <Card key={section}>
+          <CardHeader>
+            <CardTitle>{section}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 sm:grid-cols-2">
+            {sectionParams.map((param) => (
+              <div key={param.id} className="space-y-2">
+                <Label htmlFor={param.id}>{param.label}</Label>
+                {param.sourceFieldRef && (
+                  <p className="text-xs text-muted-foreground">{param.sourceFieldRef}</p>
+                )}
+                {param.type === 'select' ? (
+                  <Select value={(values[param.id] as string) || ''} onValueChange={(v) => onChange(param.id, v)}>
+                    <SelectTrigger id={param.id} className="w-full">
+                      <SelectValue placeholder="Выберите..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {param.options?.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : param.type === 'textarea' ? (
+                  <Textarea
+                    id={param.id}
+                    value={(values[param.id] as string) || ''}
+                    onChange={(e) => onChange(param.id, e.target.value)}
+                    placeholder={param.label}
+                  />
+                ) : (
+                  <Input
+                    id={param.id}
+                    type={param.type === 'date' ? 'date' : 'text'}
+                    value={(values[param.id] as string) || ''}
+                    onChange={(e) => onChange(param.id, e.target.value)}
+                    placeholder={param.label}
+                  />
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 
@@ -355,7 +379,7 @@ function DocsStep({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="wizard-docs-step">
       <Card>
         <CardHeader>
           <CardTitle>Загрузка документов</CardTitle>
@@ -421,7 +445,7 @@ function CheckStep({
   }, [app.findings]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="wizard-check-step">
       <Card>
         <CardHeader>
           <CardTitle>Предварительная экспертиза</CardTitle>

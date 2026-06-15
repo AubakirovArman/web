@@ -3,7 +3,7 @@ import { expect, openWizard, selectOption, test } from './fixtures';
 test('wizard initializes, saves draft, and moves between sections with warnings', async ({ page }) => {
   await openWizard(page);
 
-  await expect(page.getByLabel('Торговое наименование')).toHaveValue('Парацетамол-Тева');
+  await expect(page.getByRole('textbox', { name: 'Торговое наименование', exact: true })).toHaveValue('Парацетамол-Тева');
 
   await page.getByRole('button', { name: 'Сохранить черновик' }).first().click();
   await expect(page.getByText('Черновик сохранен')).toBeVisible();
@@ -35,10 +35,10 @@ test('procedure and domain controls expose MI variation fields', async ({ page }
   await selectOption(page, '#param-object-type', 'Медицинское изделие');
   await selectOption(page, '#param-procedure', 'Внесение изменений');
 
-  await expect(page.getByLabel('Номер регистрационного удостоверения МИ')).toBeVisible();
-  await expect(page.getByText('Класс изменений МИ')).toBeVisible();
-  await expect(page.getByLabel('Текущее значение (МИ)')).toBeVisible();
-  await expect(page.getByLabel('Новое значение (МИ)')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Номер регистрационного удостоверения МИ', exact: true })).toBeVisible();
+  await expect(page.locator('#param-mi-variation-class')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Текущее значение (МИ)', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Новое значение (МИ)', exact: true })).toBeVisible();
 });
 
 test('documents section lists required upload cards', async ({ page }) => {

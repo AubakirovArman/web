@@ -85,13 +85,23 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as Application[];
         const normalized = Array.isArray(parsed) ? parsed.map(normalizeApplication) : [];
-        setApplications(normalized.length > 0 ? normalized : [createDemoApplication()]);
+        if (normalized.length > 0) {
+          setApplications(normalized);
+          setCurrentId((current) => current || normalized[0].id);
+        } else {
+          const demo = createDemoApplication();
+          setApplications([demo]);
+          setCurrentId((current) => current || demo.id);
+        }
       } else {
         const demo = createDemoApplication();
         setApplications([demo]);
+        setCurrentId((current) => current || demo.id);
       }
     } catch {
-      setApplications([createDemoApplication()]);
+      const demo = createDemoApplication();
+      setApplications([demo]);
+      setCurrentId((current) => current || demo.id);
     }
     setLoaded(true);
   }, []);

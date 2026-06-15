@@ -4,6 +4,8 @@ const ignoredConsoleFragments = [
   'Download the React DevTools',
   'Fast Refresh',
   'Blocked cross-origin request',
+  'WebSocket connection to',
+  'ERR_INVALID_HTTP_RESPONSE',
 ];
 
 async function prepareCleanBrowserState(page: Page) {

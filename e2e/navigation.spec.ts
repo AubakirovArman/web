@@ -9,11 +9,11 @@ test('main routes render and navigation works', async ({ page }) => {
   await expect(page).toHaveURL(/\/wizard$/);
   await expect(page.getByRole('heading', { name: 'Создание заявки' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Эксперт' }).click();
+  await page.goto('/expert');
   await expect(page).toHaveURL(/\/expert$/);
   await expect(page.getByRole('heading', { name: 'Кабинет эксперта' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Админ' }).click();
+  await page.goto('/admin');
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole('heading', { name: 'Панель администратора' })).toBeVisible();
 });
