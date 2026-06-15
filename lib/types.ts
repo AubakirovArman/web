@@ -30,6 +30,23 @@ export interface NPA {
   status: 'active' | 'inactive';
 }
 
+export interface DocumentTypeRequirement {
+  id: string;
+  source: 'gemma' | 'manual';
+  previewId?: string;
+  sourceDocumentCode?: string;
+  sourceDocumentName?: string;
+  procedure?: string;
+  checkSubject?: string;
+  checkType?: string;
+  requirementText: string;
+  criticality?: string;
+  applicabilityCondition?: string;
+  sourcePoint?: string;
+  quote?: string;
+  importedAt?: string;
+}
+
 export interface DocumentType {
   id: string;
   name: string;
@@ -47,6 +64,7 @@ export interface DocumentType {
   checkIds?: string[];
   npaReferences?: string[];
   requirednessExplanation?: string;
+  importedRequirements?: DocumentTypeRequirement[];
 }
 
 export interface Parameter {
