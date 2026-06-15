@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Application, DocumentType, Finding, NPA, Parameter, Rule } from '@/lib/types';
+import { Application, DocumentType, DocumentTypeRequirement, Finding, NPA, Parameter, Rule } from '@/lib/types';
 import { defaultApplicationValues, documentTypes, npas, parameters, rules } from '@/lib/data/seed';
 
 const STORAGE_KEY = 'ndda-demo-store-v1';
@@ -22,6 +22,50 @@ const initialStore: Store = {
   rules,
 };
 
+function uniqueList<T>(values: T[] = []): T[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function mergeRequirements(
+  seedRequirements: DocumentTypeRequirement[] = [],
+  storedRequirements: DocumentTypeRequirement[] = [],
+): DocumentTypeRequirement[] {
+  const byId = new Map<string, DocumentTypeRequirement>();
+  seedRequirements.forEach((requirement) => byId.set(requirement.id, requirement));
+  storedRequirements.forEach((requirement) => byId.set(requirement.id, requirement));
+  return Array.from(byId.values());
+}
+
+function mergeDocumentTypesWithSeed(storedDocumentTypes?: DocumentType[] | null): DocumentType[] {
+  if (!Array.isArray(storedDocumentTypes)) return documentTypes;
+
+  const seedById = new Map(documentTypes.map((doc) => [doc.id, doc]));
+  const storedById = new Map(storedDocumentTypes.map((doc) => [doc.id, doc]));
+
+  const mergedSeedDocuments = documentTypes.map((seedDoc) => {
+    const storedDoc = storedById.get(seedDoc.id);
+    if (!storedDoc) return seedDoc;
+
+    return {
+      ...seedDoc,
+      ...storedDoc,
+      acceptedFormats: storedDoc.acceptedFormats?.length ? storedDoc.acceptedFormats : seedDoc.acceptedFormats,
+      requiredLanguages: uniqueList([...(seedDoc.requiredLanguages || []), ...(storedDoc.requiredLanguages || [])]),
+      expectedExtractedFields: uniqueList([
+        ...(seedDoc.expectedExtractedFields || []),
+        ...(storedDoc.expectedExtractedFields || []),
+      ]),
+      checkIds: uniqueList([...(seedDoc.checkIds || []), ...(storedDoc.checkIds || [])]),
+      npaReferences: uniqueList([...(seedDoc.npaReferences || []), ...(storedDoc.npaReferences || [])]),
+      importedRequirements: mergeRequirements(seedDoc.importedRequirements, storedDoc.importedRequirements),
+      requirednessExplanation: storedDoc.requirednessExplanation || seedDoc.requirednessExplanation,
+    };
+  });
+
+  const customDocuments = storedDocumentTypes.filter((doc) => !seedById.has(doc.id));
+  return [...mergedSeedDocuments, ...customDocuments];
+}
+
 function loadStore(): Store {
   if (typeof window === 'undefined') return initialStore;
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -31,7 +75,7 @@ function loadStore(): Store {
     return {
       applications: parsed.applications || [],
       npas: parsed.npas || npas,
-      documentTypes: parsed.documentTypes || documentTypes,
+      documentTypes: mergeDocumentTypesWithSeed(parsed.documentTypes),
       parameters: parsed.parameters || parameters,
       rules: parsed.rules || rules,
     };

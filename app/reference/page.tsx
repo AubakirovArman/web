@@ -1,19 +1,92 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn } from '@/components/shared/motion';
-import { ReferenceDocument, ReferenceDocumentKind, ReferenceSearchItem, ReferenceSection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, ArrowLeft, BookOpen, Database, FileSearch, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle, ArrowLeft, Brain, FileText, Search, Sparkles } from 'lucide-react';
 
-const kindLabels: Record<ReferenceDocumentKind, string> = {
+type ExperimentStatus = 'processed' | 'pending' | 'error';
+
+interface IntelligenceSummary {
+  short: string;
+  detailed: string;
+  project_relevance: string;
+  regulated_scope: string;
+}
+
+interface IntelligenceItem {
+  [key: string]: unknown;
+}
+
+interface ReferenceExperimentSection {
+  id: string;
+  title: string;
+  level: number;
+  anchor: string;
+  sectionType: string;
+  headingNumber?: string;
+  text: string;
+  rawCharCount?: number;
+}
+
+interface ReferenceExperimentDocument {
+  id: string;
+  domain: 'LS' | 'MI';
+  title: string;
+  fileName: string;
+  sourcePath?: string;
+  kind: string;
+  number?: string;
+  date?: string;
+  tags: string[];
+  tokenEstimate: number;
+  charCount: number;
+  sectionsCount: number;
+  status: ExperimentStatus;
+  error?: string;
+  processedAt?: string;
+  promptVersion?: string;
+  sections: ReferenceExperimentSection[];
+  intelligence?: {
+    summary: IntelligenceSummary;
+    key_points: IntelligenceItem[];
+    procedures: IntelligenceItem[];
+    document_types: IntelligenceItem[];
+    requirements: IntelligenceItem[];
+    applicant_parameters: IntelligenceItem[];
+    dependencies: IntelligenceItem[];
+    checks: IntelligenceItem[];
+    highlights: IntelligenceItem[];
+    quality_notes: string[];
+    meta?: Record<string, unknown>;
+  };
+}
+
+interface ReferenceExperimentData {
+  generatedAt: string;
+  promptVersion: string;
+  model: string | null;
+  mode: string;
+  processedCount: number;
+  targetCount: number;
+  sort: string;
+  note: string;
+  documents: ReferenceExperimentDocument[];
+}
+
+const statusLabels: Record<ExperimentStatus, string> = {
+  processed: 'Обработан',
+  pending: 'Ожидает Gemma',
+  error: 'Ошибка',
+};
+
+const kindLabels: Record<string, string> = {
   order: 'Приказ',
   decision: 'Решение',
   agreement: 'Соглашение',
@@ -24,489 +97,396 @@ const kindLabels: Record<ReferenceDocumentKind, string> = {
   other: 'Другое',
 };
 
-const navigationTypes = new Set(['heading', 'chapter', 'appendix', 'point', 'subpoint']);
-
-interface ReferenceApiResult {
-  documents: ReferenceDocument[];
-  searchItems: ReferenceSearchItem[];
-  stats: {
-    documentsCount: number;
-    sectionsCount: number;
-    databaseUrl: string;
-  };
-}
-
-interface ReferenceDetailResult {
-  document: ReferenceDocument;
-  markdown: string;
-}
-
 export default function ReferencePage() {
-  return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Загрузка справочника...</div>}>
-      <ReferencePageInner />
-    </Suspense>
-  );
-}
-
-function ReferencePageInner() {
-  const searchParams = useSearchParams();
-  const [domain, setDomain] = useState<'all' | 'LS' | 'MI'>((searchParams.get('domain') as 'LS' | 'MI') || 'all');
-  const [kind, setKind] = useState<'all' | ReferenceDocumentKind>('all');
-  const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [selectedId, setSelectedId] = useState(searchParams.get('doc') || '');
-  const [data, setData] = useState<ReferenceApiResult | null>(null);
-  const [detailDocument, setDetailDocument] = useState<ReferenceDocument | null>(null);
-  const [loadingList, setLoadingList] = useState(false);
-  const [loadingDoc, setLoadingDoc] = useState(false);
+  const [data, setData] = useState<ReferenceExperimentData | null>(null);
+  const [selectedId, setSelectedId] = useState('');
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setLoadingList(true);
-      setError(null);
-      const params = new URLSearchParams();
-      if (query.trim()) params.set('q', query.trim());
-      if (domain !== 'all') params.set('domain', domain);
-      if (kind !== 'all') params.set('kind', kind);
-
-      fetch(`/api/reference?${params.toString()}`, { signal: controller.signal })
-        .then(async (response) => {
-          const payload = await response.json();
-          if (!response.ok) throw new Error(payload.hint ? `${payload.error}. ${payload.hint}` : payload.error);
-          return payload as ReferenceApiResult;
-        })
-        .then((payload) => {
-          setData(payload);
-          if (!selectedId && payload.documents[0]) setSelectedId(payload.documents[0].id);
-        })
-        .catch((err) => {
-          if (err.name !== 'AbortError') setError(err.message || 'Reference database is unavailable');
-        })
-        .finally(() => setLoadingList(false));
-    }, 180);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [domain, kind, query, selectedId]);
-
-  const selectedDocument = useMemo(() => {
-    const documents = data?.documents || [];
-    return documents.find((doc) => doc.id === selectedId) || documents[0];
-  }, [data, selectedId]);
-
-  useEffect(() => {
-    if (!selectedDocument) return;
-
-    setSelectedId(selectedDocument.id);
-    setLoadingDoc(true);
-    fetch(`/api/reference/${encodeURIComponent(selectedDocument.id)}`)
+    fetch('/reference-intelligence/experiment.json', { cache: 'no-store' })
       .then(async (response) => {
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.hint ? `${payload.error}. ${payload.hint}` : payload.error);
-        return payload as ReferenceDetailResult;
+        if (!response.ok) throw new Error('Экспериментальный справочник еще не сгенерирован');
+        return response.json() as Promise<ReferenceExperimentData>;
       })
-      .then((payload) => setDetailDocument(payload.document))
-      .catch((err) => {
-        setDetailDocument(null);
-        setError(err.message || 'Не удалось загрузить документ из БД.');
+      .then((payload) => {
+        setData(payload);
+        setSelectedId(payload.documents.find((doc) => doc.status === 'processed')?.id || payload.documents[0]?.id || '');
       })
-      .finally(() => setLoadingDoc(false));
-  }, [selectedDocument]);
+      .catch((err) => setError(err instanceof Error ? err.message : 'Не удалось загрузить экспериментальный справочник'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const documents = data?.documents || [];
-  const searchItems = data?.searchItems || [];
-  const displayDocument = detailDocument?.id === selectedDocument?.id ? detailDocument : selectedDocument;
-  const sections = displayDocument?.sections || [];
-  const navSections = sections.filter((section) => navigationTypes.has(section.sectionType || '') || section.level <= 2);
+  const filteredDocuments = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return documents;
+    return documents.filter((doc) => {
+      const corpus = [doc.title, doc.fileName, doc.number, doc.date, ...(doc.tags || []), doc.intelligence?.summary?.short]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return corpus.includes(normalized);
+    });
+  }, [documents, query]);
+
+  const selectedDocument = documents.find((doc) => doc.id === selectedId) || filteredDocuments[0] || documents[0];
 
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1 bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_36%),linear-gradient(180deg,#f8fafc,rgba(226,232,240,0.7))] py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.16),transparent_34%),linear-gradient(180deg,#020617,#0f172a)]">
-        <div className="mx-auto max-w-[1800px] px-2 sm:px-4 2xl:px-6">
+      <main className="flex-1 bg-[radial-gradient(circle_at_top_left,rgba(13,148,136,0.16),transparent_34%),linear-gradient(180deg,#f8fafc,#e2e8f0)] py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.16),transparent_34%),linear-gradient(180deg,#020617,#0f172a)]">
+        <div className="mx-auto max-w-[1500px] px-4">
           <FadeIn>
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <div className="mb-2 inline-flex items-center gap-2 rounded-full border bg-background/85 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-                  <Database className="h-3.5 w-3.5" />
-                  {data?.stats.databaseUrl || 'Postgres reference DB'}
+                  <Brain className="h-3.5 w-3.5" />
+                  Reference Intelligence Experiment
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight">Справочник НПА: пилот DOCX</h1>
-                <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                  Первый этап: очищенный справочник с одним структурно распарсенным документом. Навигация строится по
-                  главам, пунктам и подпунктам из Word-документа, без искусственных фрагментов.
+                <h1 className="text-3xl font-bold tracking-tight">Умный справочник НПА</h1>
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+                  Экспериментальная версия: старый справочник очищен из интерфейса. Сейчас показываются только НПА ядра MVP,
+                  отсортированные от меньших к большим по оценке токенов. Gemma вытаскивает резюме, требования, параметры,
+                  зависимости и подсветки для нашего приложения.
                 </p>
               </div>
-              <Button variant="outline" asChild>
-                <Link href="/admin">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  В админку
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" asChild>
+                  <Link href="/admin">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    В админку
+                  </Link>
+                </Button>
+              </div>
             </div>
           </FadeIn>
 
+          {loading && <EmptyState title="Загружаю эксперимент" text="Читаю public/reference-intelligence/experiment.json" />}
+
           {error && (
-            <Card className="mb-6 border-amber-300 bg-amber-50 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100">
+            <Card className="border-amber-300 bg-amber-50 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100">
               <CardContent className="flex gap-3 py-4 text-sm">
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <div>
-                  <p className="font-medium">База справочника недоступна</p>
+                  <p className="font-medium">Нет данных эксперимента</p>
                   <p>{error}</p>
+                  <p className="mt-2 font-mono text-xs">npm run reference:intelligence:experiment</p>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          <div className="grid gap-4 xl:grid-cols-[330px_1fr] 2xl:grid-cols-[360px_1fr]">
-            <aside className="space-y-4">
-              <Card className="border-teal-200/70 bg-background/90 shadow-sm backdrop-blur dark:border-teal-900/60">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Search className="h-4 w-4" />
-                    Поиск по документу
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    data-testid="reference-search"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Например: ОХЛП, внесение изменений, листок-вкладыш"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {(['all', 'LS', 'MI'] as const).map((value) => (
-                      <Button
-                        key={value}
-                        size="sm"
-                        variant={domain === value ? 'default' : 'outline'}
-                        onClick={() => setDomain(value)}
-                      >
-                        {value === 'all' ? 'Все' : value === 'LS' ? 'ЛС' : 'МИ'}
-                      </Button>
-                    ))}
+          {data && (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-4">
+                <Metric label="Документы ядра" value={String(data.targetCount)} />
+                <Metric label="Обработано Gemma" value={`${data.processedCount}/${data.targetCount}`} />
+                <Metric label="Модель" value={data.model || 'metadata'} />
+                <Metric label="Сортировка" value="малые -> большие" />
+              </div>
+
+              <Card className="bg-background/90 shadow-sm backdrop-blur">
+                <CardContent className="grid gap-3 py-4 xl:grid-cols-[24rem_1fr]">
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по НПА ядра MVP" className="pl-9" />
+                    </div>
+                    <DocumentList documents={filteredDocuments} selectedId={selectedDocument?.id || ''} onSelect={setSelectedId} />
                   </div>
-                  <select
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                    value={kind}
-                    onChange={(event) => setKind(event.target.value as 'all' | ReferenceDocumentKind)}
-                    aria-label="Тип документа"
-                  >
-                    <option value="all">Все типы документов</option>
-                    {Object.entries(kindLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <Stat label="Документы" value={data?.stats.documentsCount || 0} />
-                    <Stat label="Узлы" value={data?.stats.sectionsCount || 0} />
-                    <Stat label="Найдено" value={documents.length} />
-                  </div>
+
+                  {selectedDocument ? <DocumentDetail document={selectedDocument} /> : <EmptyState title="Документ не выбран" text="Выберите НПА из списка слева." />}
                 </CardContent>
               </Card>
-
-              {searchItems.length > 0 && (
-                <Card className="bg-background/90 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-base">Совпадения ({searchItems.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-64 pr-3">
-                      <div className="space-y-2">
-                        {searchItems.map((item) => (
-                          <button
-                            key={`${item.documentId}-${item.sectionId}`}
-                            className="w-full rounded-lg border p-3 text-left text-sm transition-colors hover:border-primary hover:bg-primary/5"
-                            onClick={() => {
-                              setSelectedId(item.documentId);
-                              setTimeout(() => jumpToSection(item.anchor), 250);
-                            }}
-                          >
-                            <p className="font-medium">{item.sectionTitle || item.title}</p>
-                            <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-                              <Highlighted text={item.text} query={query} />
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="bg-background/90 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base">Документы {loadingList ? '...' : ''}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[28rem] pr-3">
-                    <div className="space-y-2">
-                      {documents.map((refDoc) => (
-                        <button
-                          key={refDoc.id}
-                          data-testid={`reference-doc-${refDoc.id}`}
-                          onClick={() => setSelectedId(refDoc.id)}
-                          className={`w-full rounded-xl border p-3 text-left transition-colors ${
-                            selectedDocument?.id === refDoc.id
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border bg-background hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="line-clamp-2 text-sm font-medium">{refDoc.title}</p>
-                            <Badge variant="outline">{refDoc.domain === 'LS' ? 'ЛС' : refDoc.domain}</Badge>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <Badge variant="secondary">{kindLabels[refDoc.kind] || refDoc.kind}</Badge>
-                            {refDoc.number && <Badge variant="outline">№ {refDoc.number}</Badge>}
-                            {refDoc.date && <Badge variant="outline">{refDoc.date}</Badge>}
-                          </div>
-                          {refDoc.sections[0]?.text && (
-                            <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{refDoc.sections[0].text}</p>
-                          )}
-                        </button>
-                      ))}
-                      {!documents.length && (
-                        <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                          Справочник очищен или документ пока не загружен.
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </aside>
-
-            <section className="min-w-0">
-              {displayDocument ? (
-                <Card className="min-h-[44rem] overflow-hidden bg-background/95 shadow-sm backdrop-blur">
-                  <CardHeader className="border-b">
-                    <div>
-                      <div>
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          <Badge>{displayDocument.domain === 'LS' ? 'ЛС' : displayDocument.domain}</Badge>
-                          <Badge variant="secondary">{kindLabels[displayDocument.kind] || displayDocument.kind}</Badge>
-                          {displayDocument.number && <Badge variant="outline">№ {displayDocument.number}</Badge>}
-                          {displayDocument.date && <Badge variant="outline">{displayDocument.date}</Badge>}
-                          <Badge variant="outline">{sections.length} узлов</Badge>
-                        </div>
-                        <CardTitle className="text-xl leading-snug">{displayDocument.title}</CardTitle>
-                        <p className="mt-2 text-xs text-muted-foreground">{displayDocument.fileName}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="border-b bg-muted/35 px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {displayDocument.tags.map((tag) => (
-                          <Badge key={tag} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    {loadingDoc ? (
-                      <div className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
-                        <FileSearch className="h-4 w-4 animate-pulse" />
-                        Загрузка структурированного документа...
-                      </div>
-                    ) : (
-                      <div className="grid min-h-[34rem] xl:grid-cols-[360px_minmax(0,1fr)] 2xl:grid-cols-[420px_minmax(0,1fr)]">
-                        <DocumentNavigation sections={navSections} query={query} />
-                        <div
-                          id="reference-document-scroll"
-                          className="h-[calc(100vh-18rem)] min-h-[34rem] overflow-y-auto scroll-smooth"
-                        >
-                          <StructuredDocumentViewer sections={sections} query={query} />
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
-                    <BookOpen className="h-6 w-6" />
-                    Выберите документ
-                  </CardContent>
-                </Card>
-              )}
-            </section>
-          </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function DocumentList({ documents, selectedId, onSelect }: { documents: ReferenceExperimentDocument[]; selectedId: string; onSelect: (id: string) => void }) {
   return (
-    <div className="rounded-lg border bg-muted/35 p-2">
-      <p className="text-lg font-semibold">{value}</p>
-      <p className="text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function DocumentNavigation({ sections, query }: { sections: ReferenceSection[]; query: string }) {
-  return (
-    <aside className="border-b bg-muted/20 p-3 xl:border-b-0 xl:border-r">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">Навигация</p>
-        <Badge variant="outline">{sections.length}</Badge>
-      </div>
-      <div className="max-h-72 overflow-y-auto pr-1 xl:sticky xl:top-4 xl:max-h-[calc(100vh-22rem)]">
-        <div className="space-y-1 pr-2">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => jumpToSection(section.anchor)}
-              className={`w-full rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10 ${
-                section.sectionType === 'subpoint' ? 'pl-5' : section.sectionType === 'point' ? 'pl-3' : 'font-medium'
-              }`}
-            >
-              <span className="mr-1 text-muted-foreground">{section.headingNumber}</span>
-              <Highlighted text={compactTitle(section.title)} query={query} />
-            </button>
-          ))}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function StructuredDocumentViewer({ sections, query }: { sections: ReferenceSection[]; query: string }) {
-  return (
-    <article className="space-y-4 p-4 text-sm leading-7 sm:p-6 2xl:p-8">
-      {sections.map((section) => (
-        <section
-          key={section.id}
-          id={section.anchor}
-          className={`scroll-mt-6 rounded-2xl border bg-background p-4 shadow-sm ${sectionClassName(section)}`}
+    <div className="max-h-[72vh] space-y-2 overflow-y-auto pr-2">
+      {documents.map((doc, index) => (
+        <button
+          key={doc.id}
+          type="button"
+          onClick={() => onSelect(doc.id)}
+          className={`w-full rounded-xl border p-3 text-left transition ${selectedId === doc.id ? 'border-primary bg-primary/5 shadow-sm' : 'bg-background hover:border-primary/50 hover:bg-muted/30'}`}
         >
-          <div className="mb-3 flex flex-wrap items-start gap-2">
-            {section.headingNumber && <Badge variant="outline">{section.headingNumber}</Badge>}
-            <Badge variant="secondary">{sectionTypeLabel(section.sectionType)}</Badge>
-            {section.formatter === 'gemma' && <Badge>Gemma</Badge>}
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">#{index + 1}</Badge>
+            <Badge variant={doc.status === 'processed' ? 'default' : doc.status === 'error' ? 'destructive' : 'outline'}>{statusLabels[doc.status]}</Badge>
+            <Badge variant="outline">~{doc.tokenEstimate.toLocaleString('ru-RU')} ток.</Badge>
           </div>
-          <h2 className={headingClassName(section)}>
-            <Highlighted text={section.title} query={query} />
-          </h2>
-          <SectionBody section={section} query={query} />
-        </section>
+          <p className="line-clamp-2 text-sm font-semibold">{doc.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{kindLabels[doc.kind] || doc.kind} · {doc.number || 'без номера'} · {doc.sectionsCount} пунктов</p>
+          {doc.intelligence?.summary?.short && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{doc.intelligence.summary.short}</p>}
+        </button>
       ))}
-    </article>
+    </div>
   );
 }
 
-function SectionBody({ section, query }: { section: ReferenceSection; query: string }) {
-  const lines = cleanupDisplayText(section.text).split('\n').map((line) => line.trim()).filter(Boolean);
-  const isListItem = section.sectionType === 'list_item';
+function DocumentDetail({ document }: { document: ReferenceExperimentDocument }) {
+  const intelligence = document.intelligence;
+  const counts = {
+    requirements: intelligence?.requirements?.length || 0,
+    documentTypes: intelligence?.document_types?.length || 0,
+    parameters: intelligence?.applicant_parameters?.length || 0,
+    dependencies: intelligence?.dependencies?.length || 0,
+  };
 
   return (
-    <div className="mt-3 space-y-2 text-foreground/90">
-      {lines.map((line, index) =>
-        isListItem ? (
-          <p key={index} className="flex gap-2">
-            <span className="mt-0.5 text-primary">•</span>
-            <span>
-              <Highlighted text={line} query={query} />
-            </span>
-          </p>
-        ) : (
-          <p key={index}>
-            <Highlighted text={line} query={query} />
-          </p>
-        )
+    <div className="min-w-0 space-y-4">
+      <Card className="border-teal-200/70 bg-gradient-to-br from-background to-teal-50/40 dark:to-teal-950/20">
+        <CardHeader>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap gap-2">
+                <Badge variant="secondary">{document.domain}</Badge>
+                <Badge variant="outline">{kindLabels[document.kind] || document.kind}</Badge>
+                <Badge variant="outline">{document.number || 'без номера'}</Badge>
+                <Badge variant="outline">~{document.tokenEstimate.toLocaleString('ru-RU')} токенов</Badge>
+              </div>
+              <CardTitle className="text-xl leading-7">{document.title}</CardTitle>
+              <p className="mt-2 text-xs text-muted-foreground">{document.fileName}</p>
+            </div>
+            <Badge variant={document.status === 'processed' ? 'default' : document.status === 'error' ? 'destructive' : 'outline'}>
+              {statusLabels[document.status]}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {document.status === 'pending' && (
+            <EmptyState title="Документ еще не обработан Gemma" text="Он уже включен в экспериментальный список. Запустите скрипт с большим --max-documents или --all." />
+          )}
+          {document.status === 'error' && <EmptyState title="Ошибка обработки" text={document.error || 'Gemma не вернула результат.'} />}
+          {intelligence && (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <Metric label="Требования" value={String(counts.requirements)} />
+                <Metric label="Типы документов" value={String(counts.documentTypes)} />
+                <Metric label="Параметры" value={String(counts.parameters)} />
+                <Metric label="Зависимости" value={String(counts.dependencies)} />
+              </div>
+              <div className="rounded-xl border bg-background/70 p-4">
+                <p className="text-sm font-semibold">О чем документ</p>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">{intelligence.summary.detailed || intelligence.summary.short}</p>
+                {intelligence.summary.project_relevance && (
+                  <p className="mt-3 text-sm leading-7"><span className="font-medium">Для проекта: </span>{intelligence.summary.project_relevance}</p>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {intelligence && (
+        <Tabs defaultValue="requirements" className="space-y-4">
+          <TabsList className="flex h-auto flex-wrap justify-start gap-2">
+            <TabsTrigger value="requirements">Требования</TabsTrigger>
+            <TabsTrigger value="documents">Типы документов</TabsTrigger>
+            <TabsTrigger value="parameters">Параметры</TabsTrigger>
+            <TabsTrigger value="dependencies">Зависимости</TabsTrigger>
+            <TabsTrigger value="checks">Проверки</TabsTrigger>
+            <TabsTrigger value="text">Полный текст</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="requirements">
+            <EntityList
+              empty="Gemma не нашла требований к документам."
+              items={intelligence.requirements}
+              fields={[
+                ['title', 'Требование'],
+                ['requirement_text', 'Описание'],
+                ['applies_to_document', 'Документ'],
+                ['procedure', 'Процедура'],
+                ['condition', 'Условие'],
+                ['criticality', 'Критичность'],
+                ['why_it_matters', 'Почему важно'],
+                ['source_point', 'Пункт'],
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="documents">
+            <EntityList
+              empty="Gemma не нашла типы документов."
+              items={intelligence.document_types}
+              fields={[
+                ['code', 'Код'],
+                ['name', 'Тип документа'],
+                ['mapped_guess', 'Похоже на наш тип'],
+                ['procedure', 'Процедура'],
+                ['requiredness', 'Обязательность'],
+                ['condition', 'Условие'],
+                ['why_needed', 'Зачем нужен'],
+                ['source_point', 'Пункт'],
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="parameters">
+            <EntityList
+              empty="Gemma не нашла параметры заявки."
+              items={intelligence.applicant_parameters}
+              fields={[
+                ['key', 'Ключ'],
+                ['label', 'Параметр'],
+                ['type', 'Тип'],
+                ['options', 'Варианты'],
+                ['why_needed', 'Зачем нужен'],
+                ['source_point', 'Пункт'],
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="dependencies">
+            <EntityList
+              empty="Gemma не нашла зависимостей."
+              items={intelligence.dependencies}
+              fields={[
+                ['condition_text', 'Если'],
+                ['if_parameters', 'Параметры'],
+                ['then_required_documents', 'Тогда документы'],
+                ['then_checks', 'Тогда проверки'],
+                ['explanation', 'Объяснение'],
+                ['source_point', 'Пункт'],
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="checks">
+            <EntityList
+              empty="Gemma не нашла проверок."
+              items={intelligence.checks}
+              fields={[
+                ['name', 'Проверка'],
+                ['check_type', 'Тип'],
+                ['target_document', 'Документ'],
+                ['automation_hint', 'Как автоматизировать'],
+                ['source_point', 'Пункт'],
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="text">
+            <FullText document={document} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
 }
 
-function Highlighted({ text, query }: { text: string; query: string }) {
-  const tokens = normalize(query).split(' ').filter((token) => token.length >= 2).slice(0, 5);
-  if (!tokens.length) return <>{text}</>;
-  const regex = new RegExp(`(${tokens.map(escapeRegExp).join('|')})`, 'ig');
+function EntityList({ items, fields, empty }: { items: IntelligenceItem[]; fields: Array<[string, string]>; empty: string }) {
+  if (!items.length) return <EmptyState title="Пусто" text={empty} />;
   return (
-    <>
-      {text.split(regex).map((part, index) =>
-        tokens.includes(normalize(part)) ? (
-          <mark key={index} className="rounded bg-amber-200 px-0.5 text-amber-950">
-            {part}
-          </mark>
-        ) : (
-          <span key={index}>{part}</span>
-        )
-      )}
-    </>
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <Card key={index} className="bg-background/90">
+          <CardContent className="space-y-2 py-4 text-sm">
+            {fields.map(([key, label]) => {
+              const value = renderValue(item[key]);
+              if (!value) return null;
+              return (
+                <p key={key} className="leading-7">
+                  <span className="font-semibold">{label}: </span>
+                  <span className="text-muted-foreground">{value}</span>
+                </p>
+              );
+            })}
+            {renderValue(item.quote) && (
+              <blockquote className="mt-3 rounded-lg border-l-4 border-primary/50 bg-muted/40 p-3 text-sm leading-7 text-muted-foreground">
+                {renderValue(item.quote)}
+              </blockquote>
+            )}
+            {Array.isArray(item.keywords) && item.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {(item.keywords as unknown[]).map((keyword) => <Badge key={String(keyword)} variant="outline">{String(keyword)}</Badge>)}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 
-function jumpToSection(anchor?: string) {
-  if (!anchor) return;
-  const target = window.document.getElementById(anchor);
-  const container = window.document.getElementById('reference-document-scroll');
-  if (!target || !container) return;
+function FullText({ document }: { document: ReferenceExperimentDocument }) {
+  const highlights = document.intelligence?.highlights || [];
+  return (
+    <div className="space-y-3">
+      {document.sections.map((section) => {
+        const related = findSectionHighlights(section, highlights);
+        return (
+          <Card key={section.id} id={section.anchor} className={related.length ? 'border-amber-300 bg-amber-50/40 dark:bg-amber-950/10' : 'bg-background/90'}>
+            <CardContent className="py-4">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{section.sectionType}</Badge>
+                {section.headingNumber && <Badge variant="secondary">{section.headingNumber}</Badge>}
+                {related.length > 0 && <Badge variant="default"><Sparkles className="mr-1 h-3 w-3" /> Gemma highlight</Badge>}
+              </div>
+              <h3 className="font-semibold leading-7">{section.title}</h3>
+              {related.length > 0 && (
+                <div className="my-3 space-y-2 rounded-lg border bg-background/80 p-3 text-sm">
+                  {related.map((item, index) => (
+                    <div key={index}>
+                      <p className="font-medium">{renderValue(item.title) || renderValue(item.kind)}</p>
+                      <p className="text-muted-foreground">{renderValue(item.importance) || renderValue(item.quote)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{section.text}</p>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
 
-  const containerRect = container.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  container.scrollTo({
-    top: container.scrollTop + targetRect.top - containerRect.top - 16,
-    behavior: 'smooth',
+function findSectionHighlights(section: ReferenceExperimentSection, highlights: IntelligenceItem[]) {
+  return highlights.filter((highlight) => {
+    const quote = renderValue(highlight.quote).toLowerCase();
+    const sourcePoint = renderValue(highlight.source_point).toLowerCase();
+    const sectionHint = renderValue(highlight.section_hint).toLowerCase();
+    const haystack = [section.title, section.headingNumber, section.text].filter(Boolean).join(' ').toLowerCase();
+    return Boolean(
+      (quote && haystack.includes(quote.slice(0, Math.min(80, quote.length)))) ||
+      (sourcePoint && haystack.includes(sourcePoint)) ||
+      (sectionHint && haystack.includes(sectionHint)),
+    );
   });
 }
 
-function compactTitle(value: string) {
-  const clean = cleanupDisplayText(value).replace(/\s+/g, ' ').trim();
-  return clean.length > 92 ? `${clean.slice(0, 89)}...` : clean;
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-background/80 p-4 shadow-sm">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-lg font-semibold">{value}</p>
+    </div>
+  );
 }
 
-function cleanupDisplayText(value: string) {
-  return value
-    .replace(/\\([().\-[\]])/g, '$1')
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+function EmptyState({ title, text }: { title: string; text: string }) {
+  return (
+    <Card className="bg-background/90">
+      <CardContent className="flex gap-3 py-5 text-sm">
+        <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <div>
+          <p className="font-medium">{title}</p>
+          <p className="mt-1 text-muted-foreground">{text}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
-function sectionTypeLabel(value?: string) {
-  const labels: Record<string, string> = {
-    heading: 'заголовок',
-    chapter: 'глава',
-    appendix: 'приложение',
-    point: 'пункт',
-    subpoint: 'подпункт',
-    list_item: 'перечень',
-    preamble: 'преамбула',
-    approval: 'гриф',
-  };
-  return labels[value || ''] || value || 'раздел';
-}
-
-function sectionClassName(section: ReferenceSection) {
-  if (section.sectionType === 'heading' || section.sectionType === 'chapter') return 'border-teal-300 bg-teal-50/50 dark:bg-teal-950/20';
-  if (section.sectionType === 'appendix') return 'border-sky-300 bg-sky-50/50 dark:bg-sky-950/20';
-  if (section.sectionType === 'list_item') return 'ml-0 lg:ml-8';
-  if (section.sectionType === 'subpoint') return 'ml-0 lg:ml-4';
-  return '';
-}
-
-function headingClassName(section: ReferenceSection) {
-  if (section.sectionType === 'heading' || section.sectionType === 'chapter') return 'text-xl font-bold tracking-tight';
-  if (section.sectionType === 'appendix') return 'text-lg font-semibold';
-  return 'text-base font-semibold';
-}
-
-function normalize(value: string) {
-  return value.toLowerCase().replace(/[^\w\u0400-\u04ff\d]+/g, ' ').trim();
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function renderValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '';
+  if (Array.isArray(value)) return value.map(renderValue).filter(Boolean).join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }

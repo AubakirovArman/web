@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn } from '@/components/shared/motion';
 import { useRules } from '@/lib/hooks/useRules';
-import { npas, parameters } from '@/lib/data/seed';
+import { getParameterLabelById, getRequiredParameterIds, npas, parameters } from '@/lib/data/seed';
 import { documentTypes as seedDocumentTypes, useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ArrowLeft, BookOpen, FileText, RotateCcw, SlidersHorizontal, ClipboardCheck, Package, ExternalLink, ChevronRight, Sparkles, Plus, Pencil, Trash2 } from 'lucide-react';
-import { DocumentType, DocumentTypeRequirement, Rule, RuleSource, Severity } from '@/lib/types';
+import { CheckDefinition, DocumentType, DocumentTypeRequirement, ObjectType, Procedure, RequiredDoc, Rule, RuleSource, Severity } from '@/lib/types';
 import { checkDefinitions } from '@/lib/checks/registry';
 import { getNpaReferenceDocumentId, getRuleSources } from '@/lib/reference/rule-sources';
 
@@ -97,6 +97,7 @@ export default function AdminPage() {
   const [rulesJson, setRulesJson] = useState('');
   const [sourceRule, setSourceRule] = useState<Rule | null>(null);
   const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType | null>(null);
+  const [selectedCheckId, setSelectedCheckId] = useState<string | null>(null);
   const [documentTypeEditor, setDocumentTypeEditor] = useState<DocumentTypeEditorState | null>(null);
   const [gemmaPreview, setGemmaPreview] = useState<NpaGemmaPreview | null>(null);
   const [gemmaPreviewLoadingId, setGemmaPreviewLoadingId] = useState<string | null>(null);
@@ -361,6 +362,8 @@ export default function AdminPage() {
     }
   };
 
+  const selectedCheck = selectedCheckId ? checkDefinitions.find((check) => check.id === selectedCheckId) : undefined;
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -608,30 +611,75 @@ export default function AdminPage() {
             </TabsContent>
 
             <TabsContent value="checks" className="space-y-3">
-              {checkDefinitions.map((check) => (
-                <Card key={check.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-base">{check.name}</CardTitle>
-                        <p className="mt-1 text-sm text-muted-foreground">{check.description}</p>
+              {selectedCheck ? (
+                <CheckDetailPanel
+                  check={selectedCheck}
+                  documentTypes={documentTypes}
+                  rules={rules}
+                  onBack={() => setSelectedCheckId(null)}
+                  onOpenDocument={(doc) => {
+                    setSelectedDocumentType(doc);
+                    setSelectedCheckId(null);
+                  }}
+                  onOpenRuleSource={setSourceRule}
+                />
+              ) : (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
+                        <div>
+                          <CardTitle className="text-base">Каталог проверок</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Каждая проверка показывает метод выполнения, связанные документы, условия правил и будущий runner: rule/parser/OCR/Gemma/hybrid.
+                          </p>
+                        </div>
+                        <Badge variant="outline">{checkDefinitions.length} проверок</Badge>
                       </div>
-                      <Badge variant="outline">{check.method}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="secondary">{check.id}</Badge>
-                    <Badge variant="outline">{check.category}</Badge>
-                    <Badge variant="outline">{severityLabels[check.defaultSeverity]}</Badge>
-                    <Badge variant="outline">{check.appliesTo.join(', ')}</Badge>
-                    {(check.npaReferences || []).map((npa) => (
-                      <Badge key={npa} variant="outline">
-                        {npa}
-                      </Badge>
-                    ))}
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                  </Card>
+                  <ApplicationCheckMapPanel
+                    rules={rules}
+                    documentTypes={documentTypes}
+                    onOpenDocument={(doc) => {
+                      setSelectedDocumentType(doc);
+                      setSelectedCheckId(null);
+                    }}
+                    onOpenCheck={(checkId) => setSelectedCheckId(checkId)}
+                  />
+                  {checkDefinitions.map((check) => {
+                    const relatedDocs = getDocumentsForCheck(check, documentTypes, rules);
+                    const relatedRules = getRulesForCheck(check, documentTypes, rules);
+                    return (
+                      <button
+                        key={check.id}
+                        type="button"
+                        onClick={() => setSelectedCheckId(check.id)}
+                        className="w-full rounded-xl border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-muted/30"
+                      >
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary">{check.method}</Badge>
+                              <Badge variant="outline">{check.category}</Badge>
+                              <Badge variant="outline">{severityLabels[check.defaultSeverity]}</Badge>
+                              <Badge variant="outline">{check.appliesTo.join(', ')}</Badge>
+                            </div>
+                            <p className="font-medium">{check.name}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{check.description}</p>
+                            <p className="mt-2 text-xs text-muted-foreground">{check.id}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2 text-xs">
+                            <Badge variant="outline">{relatedDocs.length} док.</Badge>
+                            <Badge variant="outline">{relatedRules.length} правил</Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="packages" className="space-y-4">
@@ -1024,7 +1072,7 @@ function DocumentTypeDetailPanel({
             <TabsTrigger value="requirements">Правила</TabsTrigger>
             <TabsTrigger value="conditions">Условия обязательности</TabsTrigger>
             <TabsTrigger value="checks">Проверки</TabsTrigger>
-            <TabsTrigger value="imported">Gemma-требования</TabsTrigger>
+            <TabsTrigger value="imported">Требования</TabsTrigger>
             <TabsTrigger value="sources">Источники НПА</TabsTrigger>
           </TabsList>
 
@@ -1127,7 +1175,7 @@ function DocumentTypeDetailPanel({
 
           <TabsContent value="imported" className="space-y-3">
             {!(documentType.importedRequirements || []).length && (
-              <EmptyAdminBlock text="Импортированных требований Gemma для этого типа документа пока нет." />
+              <EmptyAdminBlock text="Требований для этого типа документа пока нет." />
             )}
             {(documentType.importedRequirements || []).map((requirement) => (
               <div key={requirement.id} className="rounded-xl border bg-background p-4">
@@ -1446,6 +1494,417 @@ function GemmaDocumentTypeMappingList({
   );
 }
 
+function ApplicationCheckMapPanel({
+  rules,
+  documentTypes,
+  onOpenDocument,
+  onOpenCheck,
+}: {
+  rules: Rule[];
+  documentTypes: DocumentType[];
+  onOpenDocument: (doc: DocumentType) => void;
+  onOpenCheck: (checkId: string) => void;
+}) {
+  const rows = buildApplicationCheckMapRows(rules, documentTypes);
+  const groups = rows.reduce<Record<string, typeof rows>>((acc, row) => {
+    const key = `${row.objectLabel} · ${row.procedureLabel}`;
+    acc[key] = acc[key] || [];
+    acc[key].push(row);
+    return acc;
+  }, {});
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <CardTitle className="text-base">Карта проверки заявок</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Какая процедура включает какие документы и какие проверки будут запускаться по каждому документу.
+            </p>
+          </div>
+          <Badge variant="outline">{rows.length} связей</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Accordion type="multiple" className="space-y-2">
+          {Object.entries(groups).map(([groupName, groupRows]) => (
+            <AccordionItem key={groupName} value={groupName} className="rounded-xl border bg-background px-4">
+              <AccordionTrigger className="py-3 hover:no-underline">
+                <div className="flex w-full items-center justify-between gap-3 pr-3 text-left">
+                  <span className="font-medium">{groupName}</span>
+                  <Badge variant="outline">{groupRows.length} строк</Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[980px] border-separate border-spacing-0 text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="px-3 py-2 font-medium">Правило</th>
+                        <th className="px-3 py-2 font-medium">Документ</th>
+                        <th className="px-3 py-2 font-medium">Форматы</th>
+                        <th className="px-3 py-2 font-medium">Критичность</th>
+                        <th className="px-3 py-2 font-medium">Проверки</th>
+                        <th className="px-3 py-2 font-medium">Условие</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupRows.map((row) => (
+                        <tr key={`${row.ruleId}-${row.documentTypeId}`} className="border-b last:border-b-0">
+                          <td className="px-3 py-3 align-top">
+                            <div className="font-medium">{row.ruleName}</div>
+                            <div className="text-xs text-muted-foreground">{row.ruleId}</div>
+                          </td>
+                          <td className="px-3 py-3 align-top">
+                            {row.document ? (
+                              <button className="text-left font-medium text-primary hover:underline" onClick={() => onOpenDocument(row.document!)}>
+                                {row.document.name}
+                              </button>
+                            ) : (
+                              <span>{row.documentTypeId}</span>
+                            )}
+                            {row.alternativeDocumentName && (
+                              <div className="mt-1 text-xs text-muted-foreground">Альтернатива: {row.alternativeDocumentName}</div>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex flex-wrap gap-1">
+                              {row.formats.map((format) => (
+                                <Badge key={format} variant="secondary">
+                                  {format}
+                                </Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 align-top">{severityLabels[row.severity]}</td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex max-w-[320px] flex-wrap gap-1.5">
+                              {row.checkIds.map((checkId) => (
+                                <button
+                                  key={checkId}
+                                  type="button"
+                                  onClick={() => onOpenCheck(checkId)}
+                                  className="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
+                                >
+                                  {checkDefinitions.find((check) => check.id === checkId)?.name || checkId}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 align-top text-xs text-muted-foreground">{row.conditions}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CheckDetailPanel({
+  check,
+  documentTypes,
+  rules,
+  onBack,
+  onOpenDocument,
+  onOpenRuleSource,
+}: {
+  check: CheckDefinition;
+  documentTypes: DocumentType[];
+  rules: Rule[];
+  onBack: () => void;
+  onOpenDocument: (doc: DocumentType) => void;
+  onOpenRuleSource: (rule: Rule) => void;
+}) {
+  const relatedDocs = getDocumentsForCheck(check, documentTypes, rules);
+  const relatedRules = getRulesForCheck(check, documentTypes, rules);
+  const blueprint = getCheckImplementationBlueprint(check);
+  const requiredFieldRows = check.id === 'required_fields_check' ? buildRequiredFieldRows() : [];
+  const consistencyRows = getConsistencyMatrix(check.id);
+
+  return (
+    <div className="space-y-4">
+      <Card className="overflow-hidden border-primary/20">
+        <CardHeader>
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <Button variant="ghost" size="sm" className="-ml-2 mb-2" onClick={onBack}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Назад к проверкам
+              </Button>
+              <CardTitle className="text-xl">{check.name}</CardTitle>
+              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{check.description}</p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Badge variant="secondary">{check.method}</Badge>
+              <Badge variant="outline">{check.category}</Badge>
+              <Badge variant="outline">{severityLabels[check.defaultSeverity]}</Badge>
+              <Badge variant="outline">{check.appliesTo.join(', ')}</Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <CheckInfoBox label="Что проверяет" value={blueprint.goal} />
+          <CheckInfoBox label="Вход проверки" value={blueprint.input} />
+          <CheckInfoBox label="Результат" value={blueprint.output} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Контракт реализации</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Это техническая карта для будущего runner-скрипта или Gemma-проверки по `check.id`.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 lg:grid-cols-2">
+          <CheckInfoBox label="Метод" value={blueprint.method} />
+          <CheckInfoBox label="Алгоритм" value={blueprint.algorithm} />
+          <CheckInfoBox label="Когда нужна Gemma" value={blueprint.gemma} />
+          <CheckInfoBox label="Что считается ошибкой" value={blueprint.failure} />
+        </CardContent>
+      </Card>
+
+      {requiredFieldRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Обязательные поля заявления</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Матрица строится из профиля заявки: ЛС/МИ и три процедуры. Проверка выполняется по значениям цифровой заявки; для Word/PDF-заявления позже подключается parser/OCR/Gemma-извлечение.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-3 font-medium">Объект</th>
+                    <th className="px-4 py-3 font-medium">Процедура</th>
+                    <th className="px-4 py-3 font-medium">Поле</th>
+                    <th className="px-4 py-3 font-medium">Проверка</th>
+                    <th className="px-4 py-3 font-medium">Источник</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requiredFieldRows.map((row) => (
+                    <tr key={`${row.objectType}-${row.procedure}-${row.fieldId}`} className="border-b last:border-b-0">
+                      <td className="px-4 py-3 align-top">{row.objectLabel}</td>
+                      <td className="px-4 py-3 align-top">{row.procedureLabel}</td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-medium">{row.fieldLabel}</div>
+                        <div className="text-xs text-muted-foreground">{row.fieldId}</div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">Поле должно быть заполнено; пустое значение блокирует отправку.</td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">{row.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {consistencyRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Матрица совокупной проверки</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Такие проверки сравнивают не один файл, а несколько документов и поля заявки.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-3 font-medium">Поле/сущность</th>
+                    <th className="px-4 py-3 font-medium">Где берем</th>
+                    <th className="px-4 py-3 font-medium">С чем сверяем</th>
+                    <th className="px-4 py-3 font-medium">Ошибка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consistencyRows.map((row) => (
+                    <tr key={row.subject} className="border-b last:border-b-0">
+                      <td className="px-4 py-3 align-top font-medium">{row.subject}</td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">{row.source}</td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">{row.compareWith}</td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">{row.failure}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Документы, на которые распространяется проверка</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Для `file_format_check` здесь видно, какому документу какие форматы разрешены. Для parser/OCR/Gemma видно, какие поля можно извлекать.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {relatedDocs.length === 0 ? (
+            <div className="p-4">
+              <EmptyAdminBlock text="Пока нет документов, явно связанных с этой проверкой." />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-3 font-medium">Документ</th>
+                    <th className="px-4 py-3 font-medium">Форматы</th>
+                    <th className="px-4 py-3 font-medium">Обработка</th>
+                    <th className="px-4 py-3 font-medium">Извлекаемые поля</th>
+                    <th className="px-4 py-3 font-medium">Действие</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedDocs.map((doc) => (
+                    <tr key={doc.id} className="border-b last:border-b-0">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-medium">{doc.name}</div>
+                        <div className="text-xs text-muted-foreground">{doc.id}</div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-wrap gap-1.5">
+                          {doc.acceptedFormats.map((format) => (
+                            <Badge key={format} variant="secondary">
+                              {format}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-wrap gap-1.5">
+                          {doc.needsOcr && <Badge variant="outline">OCR</Badge>}
+                          {doc.canCheckFont && <Badge variant="outline">DOCX/font</Badge>}
+                          {doc.canCheckExpiry && <Badge variant="outline">срок</Badge>}
+                          {doc.canCheckSignature && <Badge variant="outline">подпись</Badge>}
+                          {doc.canCheckSeal && <Badge variant="outline">печать</Badge>}
+                          {doc.isPhysicalSample && <Badge variant="outline">образец</Badge>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-muted-foreground">
+                        {(doc.expectedExtractedFields || []).length ? doc.expectedExtractedFields?.join(', ') : '—'}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <Button size="sm" variant="outline" onClick={() => onOpenDocument(doc)}>
+                          Открыть тип
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Правила и условия, которые включают проверку</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Это связь “параметры заявки → правило → обязательный документ → проверка”.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {relatedRules.length === 0 ? (
+            <div className="p-4">
+              <EmptyAdminBlock text="Нет правил, которые явно включают эту проверку." />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-3 font-medium">Правило</th>
+                    <th className="px-4 py-3 font-medium">Условия</th>
+                    <th className="px-4 py-3 font-medium">Документы</th>
+                    <th className="px-4 py-3 font-medium">Источник</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedRules.map((rule) => {
+                    const docs = getRequiredDocsForCheck(check, documentTypes, rule);
+                    const sources = getRuleSources(rule);
+                    const primarySource = sources[0];
+                    return (
+                      <tr key={rule.id} className="border-b last:border-b-0">
+                        <td className="px-4 py-3 align-top">
+                          <div className="font-medium">{rule.name}</div>
+                          <div className="text-xs text-muted-foreground">{rule.id}</div>
+                        </td>
+                        <td className="px-4 py-3 align-top text-muted-foreground">{formatRuleConditions(rule)}</td>
+                        <td className="px-4 py-3 align-top text-muted-foreground">
+                          {docs.map((doc) => documentTypes.find((item) => item.id === doc.documentTypeId)?.name || doc.documentTypeId).join(', ')}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-wrap gap-2">
+                            {primarySource?.sourceDocumentId && (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={buildReferenceHref(primarySource)}>
+                                  <ExternalLink className="mr-2 h-4 w-4" />
+                                  Источник
+                                </Link>
+                              </Button>
+                            )}
+                            <Button size="sm" variant="secondary" onClick={() => onOpenRuleSource(rule)}>
+                              Детали
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Источники НПА</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 text-xs">
+          {(check.npaReferences || []).length ? (
+            (check.npaReferences || []).map((npa) => (
+              <Badge key={npa} variant="outline">
+                {npa}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm text-muted-foreground">Источники будут уточняться через справочник и Gemma-извлечение.</span>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CheckInfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm">{value}</p>
+    </div>
+  );
+}
+
 function GemmaObjectList({
   items,
   fields,
@@ -1495,6 +1954,266 @@ function PreviewMetric({ label, value }: { label: string; value: string }) {
 
 function EmptyAdminBlock({ text }: { text: string }) {
   return <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">{text}</div>;
+}
+
+function buildApplicationCheckMapRows(rules: Rule[], documentTypes: DocumentType[]) {
+  return rules.flatMap((rule) => {
+    const objectType = getConditionValue(rule.conditions, 'param-object-type') as ObjectType | undefined;
+    const procedure = getConditionValue(rule.conditions, 'param-procedure') as Procedure | undefined;
+
+    return rule.requiredDocuments.map((req) => {
+      const document = documentTypes.find((doc) => doc.id === req.documentTypeId);
+      const alternativeDocument = req.alternativeDocumentTypeId
+        ? documentTypes.find((doc) => doc.id === req.alternativeDocumentTypeId)
+        : undefined;
+      const checkIds = Array.from(
+        new Set([
+          'required_document_presence_check',
+          ...(req.checks || []),
+          ...((document?.checkIds || []).filter((checkId) => checkId !== 'required_document_presence_check')),
+        ])
+      );
+
+      return {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        objectType: objectType || 'LS',
+        objectLabel: objectType === 'MI' ? 'МИ' : objectType === 'LS' ? 'ЛС' : 'Любой объект',
+        procedure: procedure || 'registration',
+        procedureLabel: procedure ? procedureLabel(procedure) : 'Любая процедура',
+        document,
+        documentTypeId: req.documentTypeId,
+        alternativeDocumentName: alternativeDocument?.name,
+        formats: document?.acceptedFormats || ['—'],
+        severity: req.severityIfMissing,
+        checkIds,
+        conditions: formatRuleConditions(rule),
+      };
+    });
+  });
+}
+
+function getConditionValue(conditions: Rule['conditions'], parameterId: string) {
+  return conditions.find((condition) => condition.parameterId === parameterId && condition.operator === 'equals')?.value;
+}
+
+function getDocumentsForCheck(check: CheckDefinition, documentTypes: DocumentType[], rules: Rule[]) {
+  const byId = new Map<string, DocumentType>();
+
+  documentTypes.forEach((doc) => {
+    const explicit = check.documentTypeIds?.includes(doc.id);
+    const documentHasCheck = doc.checkIds?.includes(check.id);
+    const applicationFieldCheck =
+      check.id === 'required_fields_check' && ['doc-application', 'doc-mi-application'].includes(doc.id);
+
+    if (explicit || documentHasCheck || applicationFieldCheck) byId.set(doc.id, doc);
+  });
+
+  rules.forEach((rule) => {
+    rule.requiredDocuments.forEach((req) => {
+      const doc = documentTypes.find((item) => item.id === req.documentTypeId);
+      if (doc && doesCheckApplyToRequiredDoc(check, req, doc)) byId.set(doc.id, doc);
+      const alternative = req.alternativeDocumentTypeId
+        ? documentTypes.find((item) => item.id === req.alternativeDocumentTypeId)
+        : undefined;
+      if (alternative && doesCheckApplyToRequiredDoc(check, req, alternative)) byId.set(alternative.id, alternative);
+    });
+  });
+
+  return Array.from(byId.values()).sort((left, right) => left.name.localeCompare(right.name, 'ru'));
+}
+
+function getRulesForCheck(check: CheckDefinition, documentTypes: DocumentType[], rules: Rule[]) {
+  return rules.filter((rule) => getRequiredDocsForCheck(check, documentTypes, rule).length > 0);
+}
+
+function getRequiredDocsForCheck(check: CheckDefinition, documentTypes: DocumentType[], rule: Rule): RequiredDoc[] {
+  return rule.requiredDocuments.filter((req) => {
+    const doc = documentTypes.find((item) => item.id === req.documentTypeId);
+    if (!doc) return false;
+    return doesCheckApplyToRequiredDoc(check, req, doc);
+  });
+}
+
+function doesCheckApplyToRequiredDoc(check: CheckDefinition, req: RequiredDoc, doc: DocumentType) {
+  if (check.id === 'required_document_presence_check') return true;
+  if (req.checks?.includes(check.id)) return true;
+  if (doc.checkIds?.includes(check.id)) return true;
+  if (check.documentTypeIds?.includes(doc.id)) return true;
+  return false;
+}
+
+function buildRequiredFieldRows() {
+  const objectTypes: ObjectType[] = ['LS', 'MI'];
+  const procedures: Procedure[] = ['registration', 're-registration', 'variation'];
+
+  return objectTypes.flatMap((objectType) =>
+    procedures.flatMap((procedure) =>
+      getRequiredParameterIds(objectType, procedure).map((fieldId) => ({
+        objectType,
+        objectLabel: objectType === 'LS' ? 'ЛС' : 'МИ',
+        procedure,
+        procedureLabel: procedureLabel(procedure),
+        fieldId,
+        fieldLabel: getParameterLabelById(fieldId),
+        source:
+          objectType === 'LS'
+            ? 'Приказ ҚР ДСМ-10, форма заявления ЛС'
+            : 'Приказ ҚР ДСМ-10, форма заявления МИ',
+      }))
+    )
+  );
+}
+
+function getConsistencyMatrix(checkId: string) {
+  const matrices: Record<string, Array<{ subject: string; source: string; compareWith: string; failure: string }>> = {
+    core_field_consistency_check: [
+      {
+        subject: 'Торговое наименование',
+        source: 'Параметры заявки / заявление',
+        compareWith: 'ОХЛП, инструкция/ЛВ, макет, досье, CPP при наличии',
+        failure: 'Название отличается между заявкой и документами.',
+      },
+      {
+        subject: 'МНН',
+        source: 'Параметры заявки / заявление',
+        compareWith: 'ОХЛП, инструкция/ЛВ, досье',
+        failure: 'МНН отсутствует или указан по-разному.',
+      },
+      {
+        subject: 'Дозировка и лекарственная форма',
+        source: 'Параметры заявки / заявление',
+        compareWith: 'ОХЛП, инструкция, модуль 3, НД качества, стабильность',
+        failure: 'Форма/дозировка не совпадает в ключевых документах.',
+      },
+      {
+        subject: 'Производитель и площадка',
+        source: 'Заявление',
+        compareWith: 'GMP, регистрационное досье, CPP, производственная лицензия',
+        failure: 'Адрес или роль производителя расходится с подтверждающими документами.',
+      },
+    ],
+    shelf_life_consistency_check: [
+      {
+        subject: 'Срок годности',
+        source: 'Заявление / ОХЛП / инструкция',
+        compareWith: 'НД качества, модуль 3, данные стабильности',
+        failure: 'Срок годности не подтвержден стабильностью или указан по-разному.',
+      },
+      {
+        subject: 'Период после вскрытия/разведения',
+        source: 'Заявление / ОХЛП / инструкция',
+        compareWith: 'Данные стабильности и качество',
+        failure: 'Период применения после вскрытия не подтвержден или расходится.',
+      },
+    ],
+    storage_consistency_check: [
+      {
+        subject: 'Условия хранения',
+        source: 'Заявление / ОХЛП / инструкция',
+        compareWith: 'Макет, НД качества, модуль 3, стабильность',
+        failure: 'Условия хранения отличаются между документами.',
+      },
+    ],
+    ls_variation_consistency_check: [
+      {
+        subject: 'Тип изменения',
+        source: 'Параметры заявки / заявление',
+        compareWith: 'Описание изменения, обоснование, сравнительная таблица',
+        failure: 'Тип IA/IB/II или область изменения не подтверждена комплектом документов.',
+      },
+      {
+        subject: 'Редакция до и после',
+        source: 'Заявление / таблица изменений',
+        compareWith: 'Текущая и предлагаемая ОХЛП/ИМП/НД/маркировка',
+        failure: 'Нет построчного сравнения или изменение не отражено в проектах документов.',
+      },
+    ],
+    undocumented_variation_check: [
+      {
+        subject: 'Фактические отличия в документах',
+        source: 'Текущая и новая версия документа',
+        compareWith: 'Описание изменения и сравнительная таблица',
+        failure: 'Найдено изменение, которое не заявлено в ведомости изменений.',
+      },
+    ],
+  };
+
+  return matrices[checkId] || [];
+}
+
+function getCheckImplementationBlueprint(check: CheckDefinition) {
+  const generic = {
+    goal: check.description,
+    input: 'Значения заявки, загруженные документы, результаты извлечения текста и метаданные файла.',
+    output: 'Finding с уровнем критичности, документами, объяснением, рекомендацией и ссылкой на НПА.',
+    method: `${check.method}: ${methodExplanation(check.method)}`,
+    algorithm: 'Запустить runner по check.id, собрать evidence, вернуть структурированный результат проверки.',
+    gemma: 'Gemma 4 используется, когда parser/OCR не может надежно извлечь смысловое требование или нужно сравнить свободный текст.',
+    failure: 'Нарушение условия проверки, отсутствие обязательного значения или расхождение между документами.',
+  };
+
+  const overrides: Record<string, Partial<typeof generic>> = {
+    required_fields_check: {
+      input: 'Цифровые параметры заявки; позже также Word/PDF-заявление после parser/OCR/Gemma-извлечения.',
+      algorithm: 'Для выбранных objectType/procedure взять getRequiredParameterIds и проверить, что каждое поле заполнено.',
+      gemma: 'Нужна только для PDF/Word-заявления, если поля не заполнены в цифровой форме и нужно извлечь их из файла.',
+      failure: 'Обязательное поле пустое или невозможно сопоставить извлеченное поле с параметром заявки.',
+    },
+    required_document_presence_check: {
+      input: 'Параметры заявки, активные rules и список загруженных файлов.',
+      algorithm: 'Отфильтровать rules по условиям, построить requiredDocuments, проверить наличие файла или альтернативного документа.',
+      gemma: 'Не нужна для факта наличия файла; может использоваться позже для определения типа неизвестного документа.',
+      failure: 'Обязательный документ отсутствует, не загружена альтернатива или документ не распознан как нужный тип.',
+    },
+    file_format_check: {
+      input: 'Тип документа и расширение/ MIME загруженного файла.',
+      algorithm: 'Сравнить расширение файла с documentType.acceptedFormats.',
+      gemma: 'Не нужна.',
+      failure: 'Формат файла не входит в допустимые форматы для выбранного типа документа.',
+    },
+    docx_format_check: {
+      input: 'DOCX-файл и XML-структура word/document.xml, styles.xml.',
+      algorithm: 'Мини-скрипт разбирает DOCX, проверяет шрифт, размер, цвет, интервалы и проблемные run/paragraph.',
+      gemma: 'Не нужна для технической проверки шрифта; может помочь сформулировать объяснение для заявителя.',
+      failure: 'Найдены фрагменты с недопустимым шрифтом/размером/цветом или файл не DOCX.',
+    },
+    ocr_quality_check: {
+      input: 'PDF/изображение, текстовый слой, OCR-метаданные, процент извлеченного текста.',
+      algorithm: 'Проверить наличие текстового слоя, статус OCR, ошибки парсинга и минимальную плотность текста.',
+      gemma: 'Не нужна для статуса OCR; нужна только для смысловой проверки после извлечения текста.',
+      failure: 'Нет текстового слоя, OCR не выполнен, извлечение частичное или качество ниже порога.',
+    },
+    core_field_consistency_check: {
+      input: 'Поля заявки и извлеченные поля из ОХЛП, инструкции, макета, досье, GMP/CPP.',
+      algorithm: 'Нормализовать значения и сравнить ключевые поля по матрице документов.',
+      gemma: 'Нужна, если значение находится в свободном тексте и parser не смог выделить поле.',
+      failure: 'Одно и то же поле имеет разные значения в разных документах.',
+    },
+  };
+
+  return { ...generic, ...overrides[check.id] };
+}
+
+function methodExplanation(method: CheckDefinition['method']) {
+  const labels: Record<CheckDefinition['method'], string> = {
+    rule: 'детерминированная проверка по параметрам заявки и правилам',
+    parser: 'технический parser файла без LLM',
+    ocr: 'проверка текстового слоя/OCR и качества извлечения',
+    llm: 'смысловая проверка через Gemma 4',
+    manual: 'ручная экспертная проверка',
+    hybrid: 'комбинация rules/parser/OCR/Gemma',
+  };
+  return labels[method];
+}
+
+function procedureLabel(procedure: Procedure) {
+  const labels: Record<Procedure, string> = {
+    registration: 'Регистрация',
+    're-registration': 'Перерегистрация',
+    variation: 'Внесение изменений',
+  };
+  return labels[procedure];
 }
 
 function createBlankDocumentType(existing: DocumentType[]): DocumentType {

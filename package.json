@@ -16,6 +16,7 @@
     "reference:db:ingest": "node scripts/ingest-reference-db.mjs",
     "reference:db:ingest:docx88": "node scripts/ingest-reference-docx-structured.mjs",
     "reference:db:ingest:docx:all": "node scripts/ingest-reference-docx-structured.mjs --source-dirs ../ЛС,../МИ",
+    "reference:intelligence:experiment": "node scripts/reference-intelligence-experiment.mjs",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

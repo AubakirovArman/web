@@ -138,6 +138,18 @@ export const checkDefinitions: CheckDefinition[] = [
     enabledByDefault: true,
   },
   {
+    id: 'pharmacovigilance_contact_check',
+    name: 'Фармаконадзор и контактное лицо',
+    category: 'Фармаконадзор',
+    description: 'Проверяет мастер-файл/краткую характеристику системы фармаконадзора, ПУР и наличие уполномоченного контактного лица в РК.',
+    method: 'hybrid',
+    defaultSeverity: 'serious',
+    appliesTo: ['LS'],
+    documentTypeIds: ['doc-pharmacovigilance-master', 'doc-pharmacovigilance-contact', 'doc-risk-management'],
+    npaReferences: ['Решение ЕЭК №87', 'Памятка заявителю, раздел 1.6'],
+    enabledByDefault: true,
+  },
+  {
     id: 'bioequivalence_report_check',
     name: 'Отчет биоэквивалентности',
     category: 'Биоэквивалентность',
@@ -254,7 +266,11 @@ export function inferCheckerId(finding: Pick<Finding, 'category' | 'title'>): st
   if (category.includes('перевод')) return 'translation_length_check';
   if (category.includes('оформление')) return 'docx_format_check';
   if (category.includes('структура')) return 'required_sections_check';
-  if (category.includes('фармаконадзор')) return 'black_triangle_check';
+  if (category.includes('фармаконадзор')) {
+    return title.includes('контакт') || title.includes('мастер') || title.includes('пур') || title.includes('рисками')
+      ? 'pharmacovigilance_contact_check'
+      : 'black_triangle_check';
+  }
   if (category.includes('биоэквивалент')) {
     return title.includes('обоснован') || title.includes('биовейвер')
       ? 'bioequivalence_waiver_check'

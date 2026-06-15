@@ -35,8 +35,9 @@ test('admin can review and modify rule metadata', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Панель администратора' })).toBeVisible();
   await expect(page.getByText('Общий пакет документов для регистрации', { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Включено' }).first().click();
-  await expect(page.getByRole('button', { name: 'Выключено' }).first()).toBeVisible();
+  await page.getByRole('button', { name: /Общий пакет документов для регистрации/ }).first().click();
+  await page.getByRole('button', { name: 'Выключить' }).click();
+  await expect(page.getByRole('button', { name: 'Включить' })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Документы' }).click();
   await expect(page.getByText('Заявление на экспертизу', { exact: true })).toBeVisible();

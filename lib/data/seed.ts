@@ -1,4 +1,4 @@
-import { ApplicationFormSchema, DocumentType, NPA, ObjectType, Parameter, ProductType, Procedure, Rule } from '@/lib/types';
+import { ApplicationFormSchema, DocumentType, DocumentTypeRequirement, NPA, ObjectType, Parameter, ProductType, Procedure, Rule } from '@/lib/types';
 
 export const npas: NPA[] = [
   { id: 'npa-1', name: 'Соглашение о единых принципах и правилах обращения лекарственных средств в рамках ЕАЭС', number: '№ 355-V', date: '12.10.2015', direction: 'LS', status: 'active' },
@@ -74,33 +74,139 @@ const baseDocumentTypes: DocumentType[] = [
   { id: 'doc-mi-updated-instructions', name: 'Проект инструкции / эксплуатационной документации МИ с изменениями', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
 ];
 
+function req(
+  id: string,
+  requirementText: string,
+  options: Partial<DocumentTypeRequirement> = {},
+): DocumentTypeRequirement {
+  return {
+    id,
+    source: 'manual',
+    requirementText,
+    importedAt: '2026-06-15T00:00:00.000Z',
+    ...options,
+  };
+}
+
 const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
   'doc-application': {
     checkIds: ['required_fields_check', 'core_field_consistency_check'],
     expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'manufacturer', 'applicant', 'holder'],
     npaReferences: ['Приказ ҚР ДСМ-10, Приложение 1'],
+    requirednessExplanation: 'Заявление является базовым документом заявки. Поля заявления запускают условия комплектности и проверки по типу процедуры, типу ЛС, производителю, РУ и изменениям.',
+    importedRequirements: [
+      req('manual-application-procedure', 'В заявлении обязательно указывается тип процедуры: регистрация, перерегистрация или внесение изменений.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'заполненность поля заявки',
+        criticality: 'critical',
+        applicabilityCondition: 'Всегда, для любой заявки на экспертизу ЛС.',
+        sourcePoint: 'Форма Заявления, пункт 1; Поля_Экспертиза, вкладка Заявление',
+        quote: 'Тип процедуры: Регистрация, Перерегистрация, Внесение изменений.',
+      }),
+      req('manual-application-ru-info', 'При перерегистрации и внесении изменений в заявлении должны быть указаны сведения о регистрационном удостоверении.', {
+        procedure: 'перерегистрация / внесение изменений',
+        checkType: 'условная обязательность поля заявки',
+        criticality: 'critical',
+        applicabilityCondition: 'Если param-procedure = re-registration или variation.',
+        sourcePoint: 'Форма Заявления, пункт 2',
+        quote: 'Сведения о регистрационном удостоверении (при перерегистрации и внесении изменений в регистрационное досье).',
+      }),
+      req('manual-application-truth-confirmation', 'Заявитель должен подтвердить достоверность информации регистрационного досье и обязательство сообщать обо всех изменениях.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'подписание / обязательство заявителя',
+        criticality: 'serious',
+        applicabilityCondition: 'Всегда, перед подачей заявления.',
+        sourcePoint: 'Форма Заявления, заключительный блок',
+        quote: 'Гарантирую достоверность информации регистрационного досье... Обязуюсь сообщать обо всех изменениях.',
+      }),
+    ],
   },
   'doc-registration-dossier': {
     checkIds: ['required_document_presence_check'],
     npaReferences: ['Решение ЕЭК №78'],
+    requirednessExplanation: 'Формат и состав досье зависят от производителя и процедуры: для зарубежного производителя ОТД/CTD, для производителя РК части I-IV.',
+    importedRequirements: [
+      req('manual-dossier-foreign-ctd', 'Для зарубежного производителя регистрационное досье представляется в формате ОТД/CTD, модули 1-5.', {
+        procedure: 'регистрация',
+        checkType: 'условие состава досье',
+        criticality: 'critical',
+        applicabilityCondition: 'Если производитель зарубежный.',
+        sourcePoint: '1.md, ЛС - процедура и режим',
+        quote: 'Производитель зарубежный -> Досье - Приложение 3 (ОТД, Модули 1-5).',
+      }),
+      req('manual-dossier-kz-parts', 'Для производителя Республики Казахстан применяется перечень досье по частям I-IV.', {
+        procedure: 'регистрация',
+        checkType: 'условие состава досье',
+        criticality: 'critical',
+        applicabilityCondition: 'Если производитель РК.',
+        sourcePoint: '1.md, ЛС - процедура и режим',
+        quote: 'Производитель РК (отечественный) -> Досье - Приложение 2 (Части I-IV).',
+      }),
+      req('manual-dossier-reregistration-short', 'При перерегистрации комплект досье сокращается до частей/модулей I-II с дополнительными материалами по необходимости.', {
+        procedure: 'перерегистрация',
+        checkType: 'условие состава досье',
+        criticality: 'serious',
+        applicabilityCondition: 'Если param-procedure = re-registration.',
+        sourcePoint: '1.md, ЛС - процедура и режим',
+        quote: 'Перерегистрация -> Сокращенный комплект (Части I-II / Модули 1-2 + доп.).',
+      }),
+    ],
   },
   'doc-samples': {
     isPhysicalSample: true,
     needsOcr: false,
     checkIds: ['required_document_presence_check'],
     requirednessExplanation: 'Требуется, когда заявитель отмечает необходимость лабораторных испытаний.',
+    importedRequirements: [
+      req('manual-samples-lab-testing', 'Образцы препарата, стандартные образцы, реагенты и расходные материалы предоставляются, если требуются лабораторные испытания.', {
+        procedure: 'регистрация / внесение изменений',
+        checkType: 'условная комплектность',
+        criticality: 'serious',
+        applicabilityCondition: 'Если param-lab-testing-required = yes.',
+        sourcePoint: 'Форма Заявления, гарантийный блок; 1.md, ЛС - лаборатория и GMP',
+        quote: 'Представить образцы лекарственных средств, стандартные образцы лекарственных субстанций и их примесей...',
+      }),
+    ],
   },
   'doc-cpp': {
     canCheckExpiry: true,
     canCheckSeal: true,
     checkIds: ['cpp_certificate_check'],
     expectedExtractedFields: ['country', 'issueDate', 'validUntil'],
+    importedRequirements: [
+      req('manual-cpp-foreign-registration', 'CPP или документ о регистрации в стране-производителе должен подтверждать регистрацию препарата и совпадать с данными заявления и досье.', {
+        procedure: 'регистрация',
+        checkType: 'срок / сверка с заявкой',
+        criticality: 'serious',
+        applicabilityCondition: 'Если предоставляется CPP/РУ страны-производителя или есть зарубежная регистрация.',
+        sourcePoint: 'Памятка заявителю, раздел 1.2.1; Форма Заявления, пункт 19',
+        quote: 'Лекарственная форма, дозировка, качественный и количественный состав лекарственного препарата соответствует информации, изложенной в заявлении...',
+      }),
+    ],
   },
   'doc-gmp': {
     canCheckExpiry: true,
     canCheckSeal: true,
     checkIds: ['gmp_certificate_check'],
     expectedExtractedFields: ['manufacturer', 'address', 'validUntil', 'scope'],
+    importedRequirements: [
+      req('manual-gmp-site-match', 'GMP-сертификат должен быть действующим и покрывать производственную площадку, указанную в заявлении и регистрационном досье.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'срок / сверка производителя',
+        criticality: 'serious',
+        applicabilityCondition: 'Если заявлен производитель лекарственного препарата или меняется производственная площадка.',
+        sourcePoint: 'Памятка заявителю, раздел 1.2.1; Форма Заявления, пункт 22',
+        quote: 'Наименование и адрес производственной площадки лекарственного препарата соответствует информации изложенной в заявлении...',
+      }),
+      req('manual-gmp-each-site', 'Если производство осуществляется на нескольких площадках, GMP предоставляется на каждого релевантного производителя.', {
+        procedure: 'регистрация / внесение изменений',
+        checkType: 'комплектность по площадкам',
+        criticality: 'serious',
+        applicabilityCondition: 'Если в заявке несколько производственных площадок.',
+        sourcePoint: 'Памятка заявителю, раздел GMP',
+        quote: 'Если производство лекарственного препарата осуществляется на разных производственных площадках сертификат GMP представляется на каждого производителя.',
+      }),
+    ],
   },
   'doc-spc-ru': {
     requiredLanguages: ['ru'],
@@ -108,6 +214,24 @@ const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
     checkIds: ['core_field_consistency_check', 'shelf_life_consistency_check', 'storage_consistency_check', 'docx_format_check', 'required_sections_check'],
     expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'shelfLife', 'storage', 'textContent'],
     npaReferences: ['Решение ЕЭК №88'],
+    importedRequirements: [
+      req('manual-spc-core-consistency', 'ОХЛП должна содержать унифицированные данные о торговом наименовании, МНН, дозировке, лекарственной форме, сроке годности и условиях хранения.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'сверка с заявкой и досье',
+        criticality: 'serious',
+        applicabilityCondition: 'Если предоставляется ОХЛП или изменения затрагивают ОХЛП.',
+        sourcePoint: 'Форма Заявления, пункты 3-8, 16, 18; Памятка, раздел 1.3',
+        quote: 'Данная информация должна быть унифицирована во всех представленных документах.',
+      }),
+      req('manual-spc-format-88', 'Проект ОХЛП оформляется по требованиям Решения №88 и должен быть пригоден для текстовой проверки.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'формат / структура',
+        criticality: 'warning',
+        applicabilityCondition: 'Если предоставляется проект ОХЛП.',
+        sourcePoint: 'Памятка заявителю, раздел 1.3; Решение №88',
+        quote: 'Проекты ОХЛП и инструкции представляются согласно Решению №88.',
+      }),
+    ],
   },
   'doc-spc-kz': {
     requiredLanguages: ['kz'],
@@ -122,6 +246,24 @@ const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
     checkIds: ['core_field_consistency_check', 'shelf_life_consistency_check', 'storage_consistency_check', 'docx_format_check', 'required_sections_check', 'black_triangle_check'],
     expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'shelfLife', 'storage', 'hasBlackTriangle', 'textContent'],
     npaReferences: ['Решение ЕЭК №88'],
+    importedRequirements: [
+      req('manual-instruction-core-consistency', 'Инструкция/листок-вкладыш должна быть согласована с заявлением, ОХЛП, макетом и досье по ключевым данным препарата.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'сверка с заявкой и ОХЛП',
+        criticality: 'serious',
+        applicabilityCondition: 'Если предоставляется инструкция/листок-вкладыш или изменения затрагивают ИМП/ЛВ.',
+        sourcePoint: 'Форма Заявления, пункты 3-8, 16, 18; Памятка, раздел 1.3',
+        quote: 'Данные должны быть унифицированы в ИМП, ОХЛП, цветные макеты потребительских упаковок.',
+      }),
+      req('manual-instruction-black-triangle', 'Если препарат требует дополнительного мониторинга безопасности, инструкция/листок-вкладыш должна содержать соответствующую отметку и пояснение.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'условная проверка фармаконадзора',
+        criticality: 'serious',
+        applicabilityCondition: 'Если param-additional-monitoring = yes.',
+        sourcePoint: 'Решение №88; параметры заявки',
+        quote: 'Препарат требует дополнительного мониторинга безопасности.',
+      }),
+    ],
   },
   'doc-instruction-kz': {
     requiredLanguages: ['kz'],
@@ -134,6 +276,16 @@ const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
     canCheckFont: true,
     checkIds: ['module3_content_check', 'shelf_life_consistency_check', 'storage_consistency_check'],
     expectedExtractedFields: ['tradeName', 'dosage', 'shelfLife', 'storage'],
+    importedRequirements: [
+      req('manual-quality-nd-consistency', 'Нормативный документ по качеству должен быть согласован с заявлением и модулем 3 по составу, сроку годности, условиям хранения и методикам контроля.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'качество / сверка с модулем 3',
+        criticality: 'serious',
+        applicabilityCondition: 'Если предоставляется НД по качеству или изменения затрагивают качество.',
+        sourcePoint: 'Форма Заявления, пункты 7, 14, 16, 18; Памятка, модуль 3',
+        quote: 'Информация в данном разделе должна быть унифицирована во всех представленных документах на основании данных... Стабильность.',
+      }),
+    ],
   },
   'doc-module3': {
     checkIds: ['module3_content_check', 'sterility_validation_check'],
@@ -143,6 +295,16 @@ const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
     checkIds: ['bioequivalence_report_check'],
     expectedExtractedFields: ['referenceProduct', 'dosage', 'dosageForm', 'manufacturer', 'conclusion'],
     npaReferences: ['Решение ЕЭК №85'],
+    importedRequirements: [
+      req('manual-be-generic', 'Для воспроизведенного лекарственного препарата требуется отчет биоэквивалентности или применимое обоснование отсутствия исследования.', {
+        procedure: 'регистрация',
+        checkType: 'условная комплектность / содержание',
+        criticality: 'critical',
+        applicabilityCondition: 'Если param-product-type = generic и param-bioequivalence-required = yes.',
+        sourcePoint: '1.md, ЛС - тип/категория препарата; Форма Заявления, пункт 9',
+        quote: 'Генерик -> ... отчет биоэквивалентности (Реш.85).',
+      }),
+    ],
   },
   'doc-bioequivalence-waiver': {
     checkIds: ['bioequivalence_waiver_check'],
@@ -154,13 +316,83 @@ const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
     checkIds: ['ls_reregistration_consistency_check'],
     expectedExtractedFields: ['registrationNumber', 'tradeName', 'inn', 'validUntil'],
   },
+  'doc-risk-management': {
+    importedRequirements: [
+      req('manual-rmp-product-types', 'План управления рисками требуется для оригинальных, биоаналогичных, биологических, биотехнологических и иммунологических лекарственных препаратов.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'условная комплектность фармаконадзора',
+        criticality: 'serious',
+        applicabilityCondition: 'Если productType = original / biological / biosimilar или отмечен биологический/иммунобиологический препарат.',
+        sourcePoint: 'Памятка заявителю, раздел 1.6.3',
+        quote: 'План управления рисками (для оригинального лекарственного препарата, биоаналогичного, биологического, биотехнологического, а также иммунологического лекарственного препарата).',
+      }),
+    ],
+  },
+  'doc-pharmacovigilance-master': {
+    checkIds: ['required_document_presence_check', 'pharmacovigilance_contact_check'],
+    importedRequirements: [
+      req('manual-pv-master-first-registration', 'Мастер-файл системы фармаконадзора предоставляется, если держатель РУ впервые подает заявку на регистрацию лекарственного препарата.', {
+        procedure: 'регистрация',
+        checkType: 'условная комплектность фармаконадзора',
+        criticality: 'serious',
+        applicabilityCondition: 'Если ДРУ впервые подает заявку или отсутствует ранее представленный МФСФН.',
+        sourcePoint: 'Памятка заявителю, раздел 1.6.1',
+        quote: 'Мастер-файл системы фармаконадзора ... представляется в случае, если держатель регистрационного удостоверения впервые подает заявку.',
+      }),
+    ],
+  },
+  'doc-pharmacovigilance-contact': {
+    checkIds: ['required_document_presence_check', 'pharmacovigilance_contact_check'],
+    importedRequirements: [
+      req('manual-pv-contact-kz', 'Документ должен подтверждать наличие уполномоченного контактного лица по фармаконадзору на территории Республики Казахстан.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'условная комплектность / сверка контактов',
+        criticality: 'serious',
+        applicabilityCondition: 'Если заявитель подает ЛС и требуется блок фармаконадзора; при изменениях - если затрагивается раздел фармаконадзора.',
+        sourcePoint: 'Памятка заявителю, раздел 1.6.4; Форма Заявления, пункт 22',
+        quote: 'Документ, подтверждающий что держатель регистрационного удостоверения имеет уполномоченное (контактное) лицо за фармаконадзор на территории Республики Казахстан.',
+      }),
+    ],
+  },
+  'doc-spc-comparison': {
+    importedRequirements: [
+      req('manual-spc-comparison-generic', 'Для воспроизведенного, гибридного или биоаналогичного препарата предоставляется построчное сравнение действующих ОХЛП/ИМП референтного препарата и проектов заявляемого препарата с выделением отличий.', {
+        procedure: 'регистрация / перерегистрация / внесение изменений',
+        checkType: 'сравнение с референтным препаратом',
+        criticality: 'serious',
+        applicabilityCondition: 'Если productType = generic / hybrid / biosimilar.',
+        sourcePoint: 'Форма Заявления, пункт 9; Памятка заявителю, раздел 1.3.6',
+        quote: 'Построчное сравнение действующих ОХЛП и Инструкции ЛС оригинального (референтного) лекарственного препарата и проектов ОХЛП и Инструкции ЛС...',
+      }),
+    ],
+  },
   'doc-variation-description': {
     checkIds: ['ls_variation_consistency_check', 'undocumented_variation_check'],
     expectedExtractedFields: ['variationClass', 'variationArea', 'oldValue', 'newValue', 'changeDescription'],
+    importedRequirements: [
+      req('manual-variation-description', 'При внесении изменений заявитель должен указать тип изменения, текущую редакцию и предлагаемую редакцию.', {
+        procedure: 'внесение изменений',
+        checkType: 'содержание заявки / описание изменения',
+        criticality: 'critical',
+        applicabilityCondition: 'Если param-procedure = variation.',
+        sourcePoint: 'Форма Заявления, пункт 24; Поля_Экспертиза, изменения в регистрационное досье',
+        quote: 'Изменения, вносимые в регистрационное досье: Тип изменения, Редакция до внесения изменений, Вносимые изменения.',
+      }),
+    ],
   },
   'doc-variation-comparison': {
     checkIds: ['ls_variation_consistency_check', 'undocumented_variation_check'],
     expectedExtractedFields: ['oldValue', 'newValue', 'changedSection'],
+    importedRequirements: [
+      req('manual-variation-comparison', 'Для изменений должна быть представлена ведомость/сравнительная таблица текущих и предлагаемых изменений, если изменение затрагивает утвержденные тексты или документы.', {
+        procedure: 'внесение изменений',
+        checkType: 'сравнительная таблица',
+        criticality: 'serious',
+        applicabilityCondition: 'Если param-procedure = variation и изменение затрагивает ОХЛП, ИМП, маркировку, НД или разделы досье.',
+        sourcePoint: 'Памятка заявителю, раздел 1.3.7; чек-лист ВИ',
+        quote: 'Ведомость изменений с указанием построчно расположенного сравнения вносимых изменений с утвержденной версией.',
+      }),
+    ],
   },
   'doc-mi-registration-dossier': {
     checkIds: ['mi_registration_consistency_check'],
