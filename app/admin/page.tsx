@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn } from '@/components/shared/motion';
@@ -11,9 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, FileText, RotateCcw, SlidersHorizontal } from 'lucide-react';
-import { Severity } from '@/lib/types';
+import { ArrowLeft, BookOpen, FileText, RotateCcw, SlidersHorizontal, ClipboardCheck, Package } from 'lucide-react';
+import { Rule, Severity } from '@/lib/types';
+import { checkDefinitions } from '@/lib/checks/registry';
 
 const severityLabels: Record<Severity, string> = {
   critical: 'Критично',
@@ -23,7 +26,27 @@ const severityLabels: Record<Severity, string> = {
 };
 
 export default function AdminPage() {
-  const { rules, toggleRuleActive, updateDocSeverity, resetRules } = useRules();
+  const { rules, toggleRuleActive, updateDocSeverity, resetRules, importRules, exportRules } = useRules();
+  const [rulesJson, setRulesJson] = useState('');
+
+  const handleExportRules = () => {
+    const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), rules: exportRules() }, null, 2);
+    setRulesJson(payload);
+    navigator.clipboard.writeText(payload).catch(() => undefined);
+    toast.success('Rule package сформирован');
+  };
+
+  const handleImportRules = () => {
+    try {
+      const payload = JSON.parse(rulesJson) as { rules?: Rule[] } | Rule[];
+      const nextRules = Array.isArray(payload) ? payload : payload.rules;
+      if (!Array.isArray(nextRules)) throw new Error('JSON должен содержать массив rules');
+      importRules(nextRules);
+      toast.success('Rule package импортирован');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось импортировать правила');
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -52,7 +75,7 @@ export default function AdminPage() {
           </FadeIn>
 
           <Tabs defaultValue="rules">
-            <TabsList className="mb-6">
+            <TabsList className="mb-6 flex h-auto flex-wrap justify-start gap-2">
               <TabsTrigger value="rules">
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                 Правила
@@ -60,6 +83,14 @@ export default function AdminPage() {
               <TabsTrigger value="docs">
                 <FileText className="mr-2 h-4 w-4" />
                 Документы
+              </TabsTrigger>
+              <TabsTrigger value="checks">
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                Проверки
+              </TabsTrigger>
+              <TabsTrigger value="packages">
+                <Package className="mr-2 h-4 w-4" />
+                Rule package
               </TabsTrigger>
               <TabsTrigger value="npas">
                 <BookOpen className="mr-2 h-4 w-4" />
@@ -110,6 +141,9 @@ export default function AdminPage() {
                                   альт. {documentTypes.find((d) => d.id === req.alternativeDocumentTypeId)?.name}
                                 </span>
                               )}
+                              {req.checks?.length ? (
+                                <span className="text-xs text-muted-foreground">checks: {req.checks.join(', ')}</span>
+                              ) : null}
                               <Select
                                 value={req.severityIfMissing}
                                 onValueChange={(v) => updateDocSeverity(rule.id, req.documentTypeId, v as Severity)}
@@ -145,13 +179,70 @@ export default function AdminPage() {
                   <div>
                     <p className="font-medium">{doc.name}</p>
                     <p className="text-xs text-muted-foreground">{doc.description}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      checks: {(doc.checkIds || []).join(', ') || '—'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      extracted: {(doc.expectedExtractedFields || []).join(', ') || '—'}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <Badge variant="secondary">{doc.acceptedFormats.join(', ')}</Badge>
                     <Badge variant="outline">{doc.direction}</Badge>
+                    {doc.needsOcr && <Badge variant="outline">OCR</Badge>}
+                    {doc.isPhysicalSample && <Badge variant="outline">sample</Badge>}
                   </div>
                 </div>
               ))}
+            </TabsContent>
+
+            <TabsContent value="checks" className="space-y-3">
+              {checkDefinitions.map((check) => (
+                <Card key={check.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-base">{check.name}</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground">{check.description}</p>
+                      </div>
+                      <Badge variant="outline">{check.method}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2 text-xs">
+                    <Badge variant="secondary">{check.id}</Badge>
+                    <Badge variant="outline">{check.category}</Badge>
+                    <Badge variant="outline">{severityLabels[check.defaultSeverity]}</Badge>
+                    <Badge variant="outline">{check.appliesTo.join(', ')}</Badge>
+                    {(check.npaReferences || []).map((npa) => (
+                      <Badge key={npa} variant="outline">
+                        {npa}
+                      </Badge>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+
+            <TabsContent value="packages" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Экспорт / импорт правил</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleExportRules}>Экспортировать JSON</Button>
+                    <Button variant="outline" onClick={handleImportRules}>
+                      Импортировать JSON
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={rulesJson}
+                    onChange={(event) => setRulesJson(event.target.value)}
+                    placeholder="Вставьте rule package JSON или нажмите экспорт"
+                    className="min-h-80 font-mono text-xs"
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="npas" className="space-y-3">

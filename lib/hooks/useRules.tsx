@@ -9,6 +9,8 @@ interface RulesContextValue {
   rules: Rule[];
   toggleRuleActive: (ruleId: string) => void;
   updateDocSeverity: (ruleId: string, documentTypeId: string, severity: Severity) => void;
+  importRules: (rules: Rule[]) => void;
+  exportRules: () => Rule[];
   resetRules: () => void;
 }
 
@@ -45,8 +47,10 @@ export function RulesProvider({ children }: { children: ReactNode }) {
                   ),
                 }
               : r
-          )
+            )
         ),
+      importRules: (nextRules) => setRules(nextRules),
+      exportRules: () => rules,
       resetRules: () => setRules(seedRules.map((r) => ({ ...r, active: true }))),
     }),
     [rules]

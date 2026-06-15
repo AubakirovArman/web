@@ -56,7 +56,14 @@ export default function WizardPage() {
   const app = useMemo(() => applications.find((a) => a.id === currentId), [applications, currentId]);
   const requiredDocs = useMemo(() => (app ? getRequiredDocuments(app, rules) : []), [app, rules]);
   const uploadedCount = useMemo(
-    () => (app ? requiredDocs.filter((req) => app.files.some((f) => f.documentTypeId === req.documentTypeId)).length : 0),
+    () =>
+      app
+        ? requiredDocs.filter((req) =>
+            app.files.some(
+              (f) => f.documentTypeId === req.documentTypeId || f.documentTypeId === req.alternativeDocumentTypeId
+            )
+          ).length
+        : 0,
     [app, requiredDocs]
   );
   const progress = useMemo(
@@ -303,10 +310,17 @@ function ParamsStep({ values, onChange }: { values: Application['values']; onCha
           <CardContent className="grid gap-6 sm:grid-cols-2">
             {sectionParams.map((param) => (
               <div key={param.id} className="space-y-2">
-                <Label htmlFor={param.id}>{param.label}</Label>
-                {param.sourceFieldRef && (
-                  <p className="text-xs text-muted-foreground">{param.sourceFieldRef}</p>
-                )}
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={param.id}>{param.label}</Label>
+                  {param.sourceFieldRef && (
+                    <span
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] text-muted-foreground"
+                      title={`${param.sourceNpa || 'Источник'}: ${param.sourceFieldRef}`}
+                    >
+                      ?
+                    </span>
+                  )}
+                </div>
                 {param.type === 'select' ? (
                   <Select value={(values[param.id] as string) || ''} onValueChange={(v) => onChange(param.id, v)}>
                     <SelectTrigger id={param.id} className="w-full">
@@ -407,14 +421,31 @@ function DocsStep({
       <div className="grid gap-4 md:grid-cols-2">
         {requiredDocs.map((req) => {
           const files = app.files.filter((f) => f.documentTypeId === req.documentTypeId);
+          const alternativeFiles = req.alternativeDocumentTypeId
+            ? app.files.filter((f) => f.documentTypeId === req.alternativeDocumentTypeId)
+            : [];
           return (
-            <DocumentUploader
-              key={req.documentTypeId}
-              documentTypeId={req.documentTypeId}
-              files={files}
-              onUpload={onUpload}
-              onRemove={onRemove}
-            />
+            <div key={req.documentTypeId} className="space-y-2">
+              <DocumentUploader
+                documentTypeId={req.documentTypeId}
+                files={files}
+                onUpload={onUpload}
+                onRemove={onRemove}
+              />
+              {req.alternativeDocumentTypeId && (
+                <div className="space-y-2 rounded-xl border border-dashed p-2">
+                  <p className="px-1 text-xs text-muted-foreground">
+                    Альтернатива к обязательному документу. Если она загружена, документ считается закрытым.
+                  </p>
+                  <DocumentUploader
+                    documentTypeId={req.alternativeDocumentTypeId}
+                    files={alternativeFiles}
+                    onUpload={onUpload}
+                    onRemove={onRemove}
+                  />
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

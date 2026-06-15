@@ -3,6 +3,7 @@ import path from 'path';
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
 import JSZip from 'jszip';
+import { callGemmaJson } from '@/lib/llm/gemma';
 
 const EXTRACTION_PROMPTS: Record<string, string> = {
   'doc-application': `Извлеки из текста заявления на экспертизу следующие поля и верни строго JSON без пояснений: tradeName (торговое наименование), inn (МНН), dosage (дозировка), dosageForm (лекарственная форма), manufacturer (производитель), manufacturerAddress (адрес производства), applicant (заявитель), holder (держатель РУ). Если поля нет, используй пустую строку.`,
@@ -106,51 +107,15 @@ async function extractDocxStyleInfo(buffer: Buffer): Promise<DocxStyleInfo | und
   }
 }
 
-function cleanJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (match) return match[1].trim();
-  return text.trim();
-}
-
 async function callExtractionModel(prompt: string, text: string): Promise<Record<string, string>> {
-  const url = process.env.VLLM_URL;
-  const apiKey = process.env.VLLM_API_KEY;
-  const model = process.env.VLLM_MODEL;
-
-  if (!url || !apiKey || !model) {
-    throw new Error('VLLM environment variables are not configured');
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Ты помогаешь извлекать структурированные данные из фармацевтических документов. Всегда отвечай только валидным JSON.' },
-        { role: 'user', content: `${prompt}\n\nТекст документа:\n${text.slice(0, 6000)}` },
-      ],
-      temperature: 0.1,
-      max_tokens: 512,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`VLLM request failed: ${response.status} ${body}`);
-  }
-
-  const data = (await response.json()) as any;
-  const raw = data.choices?.[0]?.message?.content || '';
-  const cleaned = cleanJson(raw);
-  try {
-    return JSON.parse(cleaned) as Record<string, string>;
-  } catch {
-    return { rawText: text.slice(0, 1000), aiRaw: raw.slice(0, 1000) };
-  }
+  const result = await callGemmaJson({ prompt, text });
+  return {
+    ...result.data,
+    extractionStatus: result.status,
+    extractionProvider: result.provider,
+    extractionPromptVersion: result.promptVersion,
+    extractionErrors: result.errors.join('; '),
+  };
 }
 
 export async function extractDocumentFromBuffer(
@@ -171,10 +136,12 @@ export async function extractDocumentFromBuffer(
 
   const text = await extractTextFromBuffer(buffer, contentType, fileName);
   if (!text.trim()) {
-    return {};
+    return { extractionStatus: 'failed', extractionError: 'No text layer or OCR text was extracted' };
   }
 
   const extracted = await callExtractionModel(prompt, text);
+  extracted.textLength = String(text.length);
+  extracted.textLayer = text.trim().length > 0 ? 'да' : 'нет';
 
   if (ext === '.docx') {
     const styleInfo = await extractDocxStyleInfo(buffer);

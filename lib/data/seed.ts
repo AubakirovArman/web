@@ -15,7 +15,7 @@ export const npas: NPA[] = [
   { id: 'npa-12', name: 'Правила регистрации и экспертизы безопасности, качества и эффективности медицинских изделий', number: 'Решение № 46', date: '12.02.2016', direction: 'MI', status: 'active' },
 ];
 
-export const documentTypes: DocumentType[] = [
+const baseDocumentTypes: DocumentType[] = [
   { id: 'doc-application', name: 'Заявление на экспертизу', acceptedFormats: ['pdf', 'docx'], direction: 'both' },
   { id: 'doc-payment', name: 'Документ об оплате', acceptedFormats: ['pdf', 'jpg', 'png'], direction: 'both' },
   { id: 'doc-cover-letter', name: 'Сопроводительное письмо', acceptedFormats: ['pdf', 'docx'], direction: 'both' },
@@ -64,6 +64,8 @@ export const documentTypes: DocumentType[] = [
   { id: 'doc-mi-labeling', name: 'Текст маркировки МИ', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
   { id: 'doc-mi-mockup', name: 'Макет маркировки МИ', acceptedFormats: ['jpg', 'jpeg', 'png'], direction: 'MI' },
   { id: 'doc-mi-qms-certificate', name: 'Сертификат СМК / декларация соответствия МИ', acceptedFormats: ['pdf'], direction: 'MI' },
+  { id: 'doc-mi-sterilization-validation', name: 'Валидация стерилизации МИ', acceptedFormats: ['pdf'], direction: 'MI' },
+  { id: 'doc-mi-software-validation', name: 'Валидация программного обеспечения МИ', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
   { id: 'doc-mi-registration-certificate', name: 'Действующее регистрационное удостоверение МИ', acceptedFormats: ['pdf'], direction: 'MI' },
   { id: 'doc-mi-post-marketing', name: 'Пострегистрационные данные по безопасности/эффективности МИ', acceptedFormats: ['pdf'], direction: 'MI' },
   { id: 'doc-mi-variation-description', name: 'Описание изменений МИ', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
@@ -71,6 +73,138 @@ export const documentTypes: DocumentType[] = [
   { id: 'doc-mi-current-instructions', name: 'Действующая инструкция / эксплуатационная документация МИ', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
   { id: 'doc-mi-updated-instructions', name: 'Проект инструкции / эксплуатационной документации МИ с изменениями', acceptedFormats: ['pdf', 'docx'], direction: 'MI' },
 ];
+
+const documentTypeMetadata: Record<string, Partial<DocumentType>> = {
+  'doc-application': {
+    checkIds: ['required_fields_check', 'core_field_consistency_check'],
+    expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'manufacturer', 'applicant', 'holder'],
+    npaReferences: ['Приказ ҚР ДСМ-10, Приложение 1'],
+  },
+  'doc-registration-dossier': {
+    checkIds: ['required_document_presence_check'],
+    npaReferences: ['Решение ЕЭК №78'],
+  },
+  'doc-samples': {
+    isPhysicalSample: true,
+    needsOcr: false,
+    checkIds: ['required_document_presence_check'],
+    requirednessExplanation: 'Требуется, когда заявитель отмечает необходимость лабораторных испытаний.',
+  },
+  'doc-cpp': {
+    canCheckExpiry: true,
+    canCheckSeal: true,
+    checkIds: ['cpp_certificate_check'],
+    expectedExtractedFields: ['country', 'issueDate', 'validUntil'],
+  },
+  'doc-gmp': {
+    canCheckExpiry: true,
+    canCheckSeal: true,
+    checkIds: ['gmp_certificate_check'],
+    expectedExtractedFields: ['manufacturer', 'address', 'validUntil', 'scope'],
+  },
+  'doc-spc-ru': {
+    requiredLanguages: ['ru'],
+    canCheckFont: true,
+    checkIds: ['core_field_consistency_check', 'shelf_life_consistency_check', 'storage_consistency_check', 'docx_format_check', 'required_sections_check'],
+    expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'shelfLife', 'storage', 'textContent'],
+    npaReferences: ['Решение ЕЭК №88'],
+  },
+  'doc-spc-kz': {
+    requiredLanguages: ['kz'],
+    canCheckFont: true,
+    checkIds: ['translation_length_check', 'docx_format_check'],
+    expectedExtractedFields: ['textContent', 'textLength'],
+    npaReferences: ['Решение ЕЭК №88'],
+  },
+  'doc-instruction-ru': {
+    requiredLanguages: ['ru'],
+    canCheckFont: true,
+    checkIds: ['core_field_consistency_check', 'shelf_life_consistency_check', 'storage_consistency_check', 'docx_format_check', 'required_sections_check', 'black_triangle_check'],
+    expectedExtractedFields: ['tradeName', 'inn', 'dosage', 'dosageForm', 'shelfLife', 'storage', 'hasBlackTriangle', 'textContent'],
+    npaReferences: ['Решение ЕЭК №88'],
+  },
+  'doc-instruction-kz': {
+    requiredLanguages: ['kz'],
+    canCheckFont: true,
+    checkIds: ['translation_length_check', 'docx_format_check'],
+    expectedExtractedFields: ['textContent', 'textLength'],
+    npaReferences: ['Решение ЕЭК №88'],
+  },
+  'doc-quality-nd': {
+    canCheckFont: true,
+    checkIds: ['module3_content_check', 'shelf_life_consistency_check', 'storage_consistency_check'],
+    expectedExtractedFields: ['tradeName', 'dosage', 'shelfLife', 'storage'],
+  },
+  'doc-module3': {
+    checkIds: ['module3_content_check', 'sterility_validation_check'],
+    expectedExtractedFields: ['hasSpecification', 'hasValidation', 'hasStability'],
+  },
+  'doc-bioequivalence-report': {
+    checkIds: ['bioequivalence_report_check'],
+    expectedExtractedFields: ['referenceProduct', 'dosage', 'dosageForm', 'manufacturer', 'conclusion'],
+    npaReferences: ['Решение ЕЭК №85'],
+  },
+  'doc-bioequivalence-waiver': {
+    checkIds: ['bioequivalence_waiver_check'],
+    expectedExtractedFields: ['waiverReason', 'justified', 'referenceProduct', 'dosageForm'],
+    npaReferences: ['Решение ЕЭК №85'],
+  },
+  'doc-registration-certificate': {
+    canCheckExpiry: true,
+    checkIds: ['ls_reregistration_consistency_check'],
+    expectedExtractedFields: ['registrationNumber', 'tradeName', 'inn', 'validUntil'],
+  },
+  'doc-variation-description': {
+    checkIds: ['ls_variation_consistency_check', 'undocumented_variation_check'],
+    expectedExtractedFields: ['variationClass', 'variationArea', 'oldValue', 'newValue', 'changeDescription'],
+  },
+  'doc-variation-comparison': {
+    checkIds: ['ls_variation_consistency_check', 'undocumented_variation_check'],
+    expectedExtractedFields: ['oldValue', 'newValue', 'changedSection'],
+  },
+  'doc-mi-registration-dossier': {
+    checkIds: ['mi_registration_consistency_check'],
+    npaReferences: ['Решение ЕЭК №46'],
+  },
+  'doc-mi-technical-tests': {
+    checkIds: ['mi_registration_consistency_check'],
+    expectedExtractedFields: ['tradeName', 'model', 'conclusion', 'testDate'],
+  },
+  'doc-mi-biological-studies': {
+    checkIds: ['mi_registration_consistency_check'],
+    expectedExtractedFields: ['tradeName', 'model', 'conclusion', 'studyDate'],
+  },
+  'doc-mi-clinical-trials': {
+    checkIds: ['mi_registration_consistency_check'],
+    expectedExtractedFields: ['tradeName', 'model', 'conclusion', 'trialDate'],
+  },
+  'doc-mi-qms-certificate': {
+    canCheckExpiry: true,
+    checkIds: ['mi_registration_consistency_check'],
+    expectedExtractedFields: ['manufacturer', 'certificateNumber', 'validUntil', 'scope'],
+  },
+  'doc-mi-sterilization-validation': {
+    checkIds: ['sterility_validation_check', 'mi_registration_consistency_check'],
+  },
+  'doc-mi-software-validation': {
+    canCheckFont: true,
+    checkIds: ['mi_registration_consistency_check', 'mi_variation_consistency_check'],
+  },
+  'doc-mi-variation-description': {
+    checkIds: ['mi_variation_consistency_check', 'undocumented_variation_check'],
+  },
+};
+
+export const documentTypes: DocumentType[] = baseDocumentTypes.map((doc) => ({
+  needsOcr: doc.acceptedFormats.some((format) => ['pdf', 'jpg', 'jpeg', 'png'].includes(format)),
+  canCheckFont: doc.acceptedFormats.includes('docx') || doc.acceptedFormats.includes('doc'),
+  canCheckSignature: doc.acceptedFormats.includes('pdf'),
+  canCheckSeal: doc.acceptedFormats.includes('pdf') || doc.acceptedFormats.includes('jpg'),
+  expectedExtractedFields: [],
+  checkIds: ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'],
+  ...doc,
+  ...documentTypeMetadata[doc.id],
+}));
 
 const baseParameters: Parameter[] = [
   { id: 'param-object-type', label: 'Тип объекта', type: 'select', options: [{ value: 'LS', label: 'Лекарственное средство' }, { value: 'MI', label: 'Медицинское изделие' }] },
@@ -81,6 +215,14 @@ const baseParameters: Parameter[] = [
     { value: 'hybrid', label: 'Гибридный' },
     { value: 'biological', label: 'Биологический' },
     { value: 'biosimilar', label: 'Биоаналогичный (биосимиляр)' },
+    { value: 'vaccine', label: 'Вакцина' },
+    { value: 'herbal', label: 'Растительный препарат' },
+    { value: 'homeopathic', label: 'Гомеопатический препарат' },
+    { value: 'radiopharmaceutical', label: 'Радиофармацевтический препарат' },
+    { value: 'orphan', label: 'Орфанный препарат' },
+    { value: 'blood', label: 'Препарат крови / плазмы' },
+    { value: 'well-established', label: 'Препарат с хорошо изученным применением' },
+    { value: 'advanced-therapy', label: 'Препарат передовой терапии' },
   ] },
   { id: 'param-trade-name', label: 'Торговое наименование', type: 'text' },
   { id: 'param-inn', label: 'МНН', type: 'text' },
@@ -107,6 +249,7 @@ const baseParameters: Parameter[] = [
   { id: 'param-sterile', label: 'Стерильный препарат', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
   { id: 'param-aseptic', label: 'Асептическое производство', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
   { id: 'param-bioequivalence-required', label: 'Требуется биоэквивалентность', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
+  { id: 'param-lab-testing-required', label: 'Требуются лабораторные испытания / образцы', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
   { id: 'param-clinical-studies', label: 'Есть клинические исследования', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
   { id: 'param-additional-monitoring', label: 'Препарат требует дополнительного мониторинга безопасности', type: 'select', options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Нет' }] },
   { id: 'param-applicant', label: 'Заявитель', type: 'text' },
@@ -237,6 +380,14 @@ export const productTypeLabels: Record<ProductType, string> = {
   hybrid: 'Гибридный',
   biological: 'Биологический',
   biosimilar: 'Биоаналогичный (биосимиляр)',
+  vaccine: 'Вакцина',
+  herbal: 'Растительный препарат',
+  homeopathic: 'Гомеопатический препарат',
+  radiopharmaceutical: 'Радиофармацевтический препарат',
+  orphan: 'Орфанный препарат',
+  blood: 'Препарат крови / плазмы',
+  'well-established': 'Препарат с хорошо изученным применением',
+  'advanced-therapy': 'Препарат передовой терапии',
 };
 
 const lsBaseFields: string[] = [
@@ -288,7 +439,7 @@ const lsBaseFields: string[] = [
 ];
 
 const lsProcedureFields: Record<Procedure, string[]> = {
-  registration: ['param-product-type', 'param-sterile', 'param-aseptic', 'param-bioequivalence-required', 'param-clinical-studies', 'param-holder', 'param-additional-monitoring'],
+  registration: ['param-product-type', 'param-sterile', 'param-aseptic', 'param-bioequivalence-required', 'param-lab-testing-required', 'param-clinical-studies', 'param-holder', 'param-additional-monitoring'],
   're-registration': [
     'param-product-type',
     'param-sterile',
@@ -539,7 +690,6 @@ export const rules: Rule[] = [
       { documentTypeId: 'doc-payment', severityIfMissing: 'critical' },
       { documentTypeId: 'doc-cover-letter', severityIfMissing: 'warning' },
       { documentTypeId: 'doc-registration-dossier', severityIfMissing: 'critical' },
-      { documentTypeId: 'doc-samples', severityIfMissing: 'serious' },
       { documentTypeId: 'doc-gmp', severityIfMissing: 'critical' },
       { documentTypeId: 'doc-cpp', severityIfMissing: 'serious' },
       { documentTypeId: 'doc-foreign-registrations', severityIfMissing: 'warning' },
@@ -556,6 +706,20 @@ export const rules: Rule[] = [
     sourceNpaId: 'npa-2',
   },
   {
+    id: 'rule-lab-testing-samples',
+    name: 'Лабораторные испытания: образцы препарата',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-lab-testing-required', operator: 'equals', value: 'yes' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-samples', severityIfMissing: 'serious', checks: ['required_document_presence_check'] },
+    ],
+    sourceNpaId: 'npa-8',
+  },
+  {
     id: 'rule-generic-bioequivalence',
     name: 'Generic: биоэквивалентность или обоснование отсутствия',
     active: true,
@@ -569,7 +733,7 @@ export const rules: Rule[] = [
         documentTypeId: 'doc-bioequivalence-report',
         severityIfMissing: 'critical',
         alternativeDocumentTypeId: 'doc-bioequivalence-waiver',
-        checks: ['document_presence', 'reference_product_extraction', 'dosage_consistency'],
+        checks: ['required_document_presence_check', 'bioequivalence_report_check', 'bioequivalence_waiver_check'],
       },
       { documentTypeId: 'doc-generic-summary', severityIfMissing: 'serious' },
       { documentTypeId: 'doc-spc-comparison', severityIfMissing: 'serious' },
@@ -582,7 +746,7 @@ export const rules: Rule[] = [
     active: true,
     conditions: [
       { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
-      { parameterId: 'param-product-type', operator: 'includes', value: 'biological' },
+      { parameterId: 'param-product-type', operator: 'includes', value: 'bio' },
     ],
     requiredDocuments: [
       { documentTypeId: 'doc-risk-management', severityIfMissing: 'critical' },
@@ -629,7 +793,7 @@ export const rules: Rule[] = [
       { parameterId: 'param-sterile', operator: 'equals', value: 'yes' },
     ],
     requiredDocuments: [
-      { documentTypeId: 'doc-module3', severityIfMissing: 'critical', checks: ['sterility_validation'] },
+      { documentTypeId: 'doc-module3', severityIfMissing: 'critical', checks: ['sterility_validation_check'] },
     ],
     sourceNpaId: 'npa-4',
   },
@@ -771,10 +935,24 @@ export const rules: Rule[] = [
     conditions: [
       { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
-      { parameterId: 'param-mi-risk-class', operator: 'includes', value: 'II' },
+      { parameterId: 'param-mi-risk-class', operator: 'equals', value: 'IIb' },
     ],
     requiredDocuments: [
       { documentTypeId: 'doc-mi-biological-studies', severityIfMissing: 'serious' },
+    ],
+    sourceNpaId: 'npa-12',
+  },
+  {
+    id: 'rule-mi-biological-studies-iii',
+    name: 'МИ III: нужны исследования биологического действия',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-mi-risk-class', operator: 'equals', value: 'III' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-biological-studies', severityIfMissing: 'critical', checks: ['mi_registration_consistency_check'] },
     ],
     sourceNpaId: 'npa-12',
   },
@@ -785,10 +963,66 @@ export const rules: Rule[] = [
     conditions: [
       { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
-      { parameterId: 'param-mi-risk-class', operator: 'includes', value: 'II' },
+      { parameterId: 'param-mi-risk-class', operator: 'equals', value: 'IIb' },
     ],
     requiredDocuments: [
       { documentTypeId: 'doc-mi-clinical-trials', severityIfMissing: 'serious' },
+    ],
+    sourceNpaId: 'npa-12',
+  },
+  {
+    id: 'rule-mi-clinical-trials-iii',
+    name: 'МИ III: нужны клинические испытания',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-mi-risk-class', operator: 'equals', value: 'III' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-clinical-trials', severityIfMissing: 'critical', checks: ['mi_registration_consistency_check'] },
+    ],
+    sourceNpaId: 'npa-12',
+  },
+  {
+    id: 'rule-mi-clinical-trials-ivd',
+    name: 'IVD МИ: нужны клинические/клинико-лабораторные испытания',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-mi-ivd', operator: 'equals', value: 'yes' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-clinical-trials', severityIfMissing: 'serious', checks: ['mi_registration_consistency_check'] },
+    ],
+    sourceNpaId: 'npa-12',
+  },
+  {
+    id: 'rule-mi-sterile-validation',
+    name: 'Стерильное МИ: валидация стерилизации',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-mi-sterile', operator: 'equals', value: 'yes' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-sterilization-validation', severityIfMissing: 'critical', checks: ['sterility_validation_check'] },
+    ],
+    sourceNpaId: 'npa-12',
+  },
+  {
+    id: 'rule-mi-software-validation',
+    name: 'МИ-ПО: валидация программного обеспечения',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+      { parameterId: 'param-mi-type', operator: 'equals', value: 'software' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-software-validation', severityIfMissing: 'critical', checks: ['mi_registration_consistency_check'] },
     ],
     sourceNpaId: 'npa-12',
   },
@@ -876,6 +1110,20 @@ export const rules: Rule[] = [
     ],
     sourceNpaId: 'npa-12',
   },
+  {
+    id: 'rule-mi-variation-software',
+    name: 'Изменение ПО МИ: нужна валидация программного обеспечения',
+    active: true,
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'MI' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'variation' },
+      { parameterId: 'param-mi-variation-area', operator: 'equals', value: 'software' },
+    ],
+    requiredDocuments: [
+      { documentTypeId: 'doc-mi-software-validation', severityIfMissing: 'critical', checks: ['mi_variation_consistency_check'] },
+    ],
+    sourceNpaId: 'npa-12',
+  },
 ];
 
 export const defaultApplicationValues: Record<string, string> = {
@@ -901,6 +1149,7 @@ export const defaultApplicationValues: Record<string, string> = {
   'param-sterile': 'no',
   'param-aseptic': 'no',
   'param-bioequivalence-required': 'yes',
+  'param-lab-testing-required': 'yes',
   'param-clinical-studies': 'no',
   'param-packaging': 'Блистер ПВХ/Al, 10 таблеток; 2 блистера в пачке; GTIN указывается заявителем.',
   'param-composition': '1 таблетка содержит парацетамол 500 мг; вспомогательные вещества согласно НД.',
