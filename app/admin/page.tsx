@@ -13,10 +13,12 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, FileText, RotateCcw, SlidersHorizontal, ClipboardCheck, Package } from 'lucide-react';
-import { Rule, Severity } from '@/lib/types';
+import { ArrowLeft, BookOpen, FileText, RotateCcw, SlidersHorizontal, ClipboardCheck, Package, ExternalLink } from 'lucide-react';
+import { Rule, RuleSource, Severity } from '@/lib/types';
 import { checkDefinitions } from '@/lib/checks/registry';
+import { getRuleSources } from '@/lib/reference/rule-sources';
 
 const severityLabels: Record<Severity, string> = {
   critical: 'Критично',
@@ -28,6 +30,7 @@ const severityLabels: Record<Severity, string> = {
 export default function AdminPage() {
   const { rules, toggleRuleActive, updateDocSeverity, resetRules, importRules, exportRules } = useRules();
   const [rulesJson, setRulesJson] = useState('');
+  const [sourceRule, setSourceRule] = useState<Rule | null>(null);
 
   const handleExportRules = () => {
     const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), rules: exportRules() }, null, 2);
@@ -99,13 +102,30 @@ export default function AdminPage() {
             </TabsList>
 
             <TabsContent value="rules" className="space-y-4">
-              {rules.map((rule) => (
+              {rules.map((rule) => {
+                const sources = getRuleSources(rule);
+                const primarySource = sources[0];
+                return (
                 <Card key={rule.id} className={rule.active === false ? 'opacity-60' : ''}>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{rule.name}</CardTitle>
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0">
+                        <CardTitle className="text-base">{rule.name}</CardTitle>
+                        <RuleSourceSummary source={primarySource} />
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
                         <Badge variant="outline">{rule.id}</Badge>
+                        {primarySource?.sourceDocumentId && (
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={buildReferenceHref(primarySource)}>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Открыть источник
+                            </Link>
+                          </Button>
+                        )}
+                        <Button size="sm" variant="secondary" onClick={() => setSourceRule(rule)}>
+                          Детали
+                        </Button>
                         <Button
                           size="sm"
                           variant={rule.active === false ? 'secondary' : 'default'}
@@ -165,12 +185,11 @@ export default function AdminPage() {
                       })}
                     </ul>
                     <Separator className="my-3" />
-                    <p className="text-xs text-muted-foreground">
-                      НПА: {npas.find((n) => n.id === rule.sourceNpaId)?.number || '—'}
-                    </p>
+                    <RuleSourceStrip sources={sources} onOpenDetails={() => setSourceRule(rule)} />
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </TabsContent>
 
             <TabsContent value="docs" className="space-y-3">
@@ -259,8 +278,164 @@ export default function AdminPage() {
               ))}
             </TabsContent>
           </Tabs>
+          <RuleSourceDialog rule={sourceRule} onClose={() => setSourceRule(null)} />
         </div>
       </main>
     </div>
+  );
+}
+
+function RuleSourceSummary({ source }: { source?: RuleSource }) {
+  if (!source) {
+    return <p className="mt-2 text-xs text-muted-foreground">Источник не задан</p>;
+  }
+
+  const npa = source.npaId ? npas.find((item) => item.id === source.npaId) : undefined;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      {npa && <Badge variant="secondary">{npa.number}</Badge>}
+      {source.sourceDocumentId && <Badge variant="outline">{source.sourceDocumentId}</Badge>}
+      <span className="min-w-0 truncate">
+        {source.sourceSection || npa?.name || source.sourceQuote || 'Источник правила'}
+      </span>
+    </div>
+  );
+}
+
+function RuleSourceStrip({ sources, onOpenDetails }: { sources: RuleSource[]; onOpenDetails: () => void }) {
+  if (!sources.length) {
+    return (
+      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+        Источник правила пока не задан. Откройте детали правила и добавьте связь с НПА.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border bg-muted/25 p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-medium text-foreground">Источник правила</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {sources.map((source, index) => {
+            const npa = source.npaId ? npas.find((item) => item.id === source.npaId) : undefined;
+            return (
+              <Badge key={`${source.sourceDocumentId || source.npaId || index}-${index}`} variant="outline">
+                {npa?.number || source.sourceDocumentId || source.sourceSection || 'Источник'}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
+      <Button size="sm" variant="ghost" onClick={onOpenDetails}>
+        Все основания
+      </Button>
+    </div>
+  );
+}
+
+function buildReferenceHref(source: RuleSource) {
+  const params = new URLSearchParams();
+  if (source.sourceDocumentId) params.set('doc', source.sourceDocumentId);
+  const query = source.sourceQuote || source.sourceSection || '';
+  if (query) params.set('q', query);
+  const base = `/reference${params.toString() ? `?${params.toString()}` : ''}`;
+  return source.sourceAnchor ? `${base}#${source.sourceAnchor}` : base;
+}
+
+function RuleSourceDialog({ rule, onClose }: { rule: Rule | null; onClose: () => void }) {
+  const sources = rule ? getRuleSources(rule) : [];
+
+  return (
+    <Dialog open={!!rule} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[92vw] xl:max-w-6xl">
+        <DialogHeader>
+          <DialogTitle>{rule?.name || 'Источник правила'}</DialogTitle>
+          <DialogDescription>
+            Связка правила с НПА, документом справочника и цитатой. Из этого окна можно сразу открыть источник.
+          </DialogDescription>
+        </DialogHeader>
+
+        {rule && (
+          <div className="space-y-5">
+            <div className="grid gap-3 xl:grid-cols-[1fr_1.2fr]">
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Условия срабатывания</p>
+                <div className="space-y-1 text-sm">
+                  {rule.conditions.map((condition) => {
+                    const param = parameters.find((item) => item.id === condition.parameterId);
+                    return (
+                      <p key={`${condition.parameterId}-${condition.operator}-${condition.value}`}>
+                        {param?.label || condition.parameterId} {condition.operator} {condition.value || ''}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Требуемые документы</p>
+                <div className="space-y-1 text-sm">
+                  {rule.requiredDocuments.map((req) => {
+                    const doc = documentTypes.find((item) => item.id === req.documentTypeId);
+                    const altDoc = req.alternativeDocumentTypeId
+                      ? documentTypes.find((item) => item.id === req.alternativeDocumentTypeId)
+                      : undefined;
+                    return (
+                      <p key={req.documentTypeId}>
+                        {doc?.name || req.documentTypeId}
+                        {altDoc ? ` или ${altDoc.name}` : ''} · {severityLabels[req.severityIfMissing]}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Источники и переходы в справочник</p>
+              {sources.length === 0 && (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  Для этого правила пока не задан источник.
+                </div>
+              )}
+              {sources.map((source, index) => {
+                const npa = source.npaId ? npas.find((item) => item.id === source.npaId) : undefined;
+                const referenceHref = buildReferenceHref(source);
+                return (
+                  <div key={`${source.sourceDocumentId || source.npaId || index}-${index}`} className="rounded-xl border bg-background p-4">
+                    <div className="mb-3 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          {npa && <Badge variant="secondary">{npa.number}</Badge>}
+                          {source.sourceDocumentId && <Badge variant="outline">{source.sourceDocumentId}</Badge>}
+                          {source.sourcePage && <Badge variant="outline">стр. {source.sourcePage}</Badge>}
+                        </div>
+                        {source.sourceSection && (
+                          <p className="text-sm font-medium">{source.sourceSection}</p>
+                        )}
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={referenceHref}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Открыть источник
+                        </Link>
+                      </Button>
+                    </div>
+                    {source.sourceQuote && (
+                      <blockquote className="mt-2 whitespace-pre-wrap rounded-lg border-l-4 border-primary/50 bg-muted/50 p-4 text-sm leading-7 text-muted-foreground">
+                        {source.sourceQuote}
+                      </blockquote>
+                    )}
+                    {source.explanation && (
+                      <p className="mt-2 text-sm text-muted-foreground">{source.explanation}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

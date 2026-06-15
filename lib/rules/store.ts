@@ -20,6 +20,7 @@ function normalizeRule(rule: Partial<Rule>): Rule | null {
         })
       : [],
     sourceNpaId: source.sourceNpaId,
+    sources: Array.isArray(source.sources) ? source.sources : seed?.sources,
     active: source.active ?? true,
   };
 }

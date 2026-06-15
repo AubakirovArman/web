@@ -72,12 +72,23 @@ export interface RequiredDoc {
   checks?: string[];
 }
 
+export interface RuleSource {
+  npaId?: string;
+  sourceDocumentId?: string;
+  sourceSection?: string;
+  sourceQuote?: string;
+  sourcePage?: number;
+  sourceAnchor?: string;
+  explanation?: string;
+}
+
 export interface Rule {
   id: string;
   name: string;
   conditions: RuleCondition[];
   requiredDocuments: RequiredDoc[];
   sourceNpaId?: string;
+  sources?: RuleSource[];
   active?: boolean;
 }
 
@@ -173,6 +184,48 @@ export interface CheckDefinition {
   documentTypeIds?: string[];
   npaReferences?: string[];
   enabledByDefault?: boolean;
+}
+
+export type ReferenceDocumentKind = 'order' | 'decision' | 'agreement' | 'code' | 'form' | 'classifier' | 'dossier' | 'other';
+
+export interface ReferenceSection {
+  id: string;
+  title: string;
+  level: number;
+  anchor: string;
+  text: string;
+  rawText?: string;
+  formattedText?: string;
+  formatter?: 'gemma' | 'raw' | 'raw_empty_gemma' | 'raw_safety_short_gemma' | 'gemma_error';
+  headingNumber?: string;
+  sectionType?: string;
+  rawCharCount?: number;
+  page?: number;
+}
+
+export interface ReferenceDocument {
+  id: string;
+  domain: 'LS' | 'MI';
+  title: string;
+  fileName: string;
+  sourcePath?: string;
+  kind: ReferenceDocumentKind;
+  number?: string;
+  date?: string;
+  tags: string[];
+  markdownPath: string;
+  sections: ReferenceSection[];
+}
+
+export interface ReferenceSearchItem {
+  documentId: string;
+  domain: 'LS' | 'MI';
+  title: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  text: string;
+  tags: string[];
+  anchor?: string;
 }
 
 export interface Application {

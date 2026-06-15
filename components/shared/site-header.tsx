@@ -29,6 +29,9 @@ export function SiteHeader() {
             <Link href="/expert">Эксперт</Link>
           </Button>
           <Button variant="ghost" asChild>
+            <Link href="/reference">Справочник</Link>
+          </Button>
+          <Button variant="ghost" asChild>
             <Link href="/admin">Админ</Link>
           </Button>
         </nav>
