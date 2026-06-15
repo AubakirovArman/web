@@ -2,6 +2,8 @@ export type Role = 'applicant' | 'expert' | 'admin';
 
 export type Procedure = 'registration' | 're-registration' | 'variation';
 
+export type ObjectType = 'LS' | 'MI';
+
 export type ProductType =
   | 'original'
   | 'generic'
@@ -56,6 +58,16 @@ export interface Rule {
   sourceNpaId?: string;
   active?: boolean;
 }
+
+export type ProcedureFieldsByObject = Record<Procedure, string[]>;
+
+export interface ApplicationFormProfile {
+  baseFields: string[];
+  requiredFields: ProcedureFieldsByObject;
+  procedureFields: ProcedureFieldsByObject;
+}
+
+export type ApplicationFormSchema = Record<ObjectType, ApplicationFormProfile>;
 
 export interface UploadedFile {
   id: string;

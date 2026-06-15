@@ -1,4 +1,4 @@
-import { DocumentType, NPA, Parameter, ProductType, Rule } from '@/lib/types';
+import { ApplicationFormSchema, DocumentType, NPA, ObjectType, Parameter, ProductType, Procedure, Rule } from '@/lib/types';
 
 export const npas: NPA[] = [
   { id: 'npa-1', name: 'Соглашение о единых принципах и правилах обращения лекарственных средств в рамках ЕАЭС', number: '№ 355-V', date: '12.10.2015', direction: 'LS', status: 'active' },
@@ -162,12 +162,200 @@ export const productTypeLabels: Record<ProductType, string> = {
   biosimilar: 'Биоаналогичный (биосимиляр)',
 };
 
+const lsBaseFields: string[] = [
+  'param-object-type',
+  'param-procedure',
+  'param-trade-name',
+  'param-inn',
+  'param-dosage-form',
+  'param-dosage',
+  'param-administration-route',
+  'param-dispensing',
+  'param-manufacturer',
+  'param-manufacturer-address',
+  'param-applicant',
+];
+
+const lsProcedureFields: Record<Procedure, string[]> = {
+  registration: ['param-product-type', 'param-sterile', 'param-aseptic', 'param-bioequivalence-required', 'param-clinical-studies', 'param-holder', 'param-additional-monitoring'],
+  're-registration': ['param-product-type', 'param-sterile', 'param-aseptic', 'param-bioequivalence-required', 'param-clinical-studies', 'param-holder', 'param-registration-number', 'param-additional-monitoring'],
+  variation: [
+    'param-product-type',
+    'param-sterile',
+    'param-aseptic',
+    'param-bioequivalence-required',
+    'param-clinical-studies',
+    'param-holder',
+    'param-additional-monitoring',
+    'param-registration-number',
+    'param-variation-class',
+    'param-variation-area',
+    'param-variation-old-value',
+    'param-variation-new-value',
+  ],
+};
+
+const lsRequiredFields: Record<Procedure, string[]> = {
+  registration: [
+    'param-trade-name',
+    'param-inn',
+    'param-dosage-form',
+    'param-dosage',
+    'param-product-type',
+    'param-administration-route',
+    'param-dispensing',
+    'param-manufacturer',
+    'param-manufacturer-address',
+    'param-applicant',
+  ],
+  're-registration': [
+    'param-trade-name',
+    'param-inn',
+    'param-dosage-form',
+    'param-dosage',
+    'param-product-type',
+    'param-administration-route',
+    'param-dispensing',
+    'param-registration-number',
+    'param-holder',
+    'param-manufacturer',
+    'param-manufacturer-address',
+    'param-applicant',
+  ],
+  variation: [
+    'param-trade-name',
+    'param-inn',
+    'param-dosage-form',
+    'param-dosage',
+    'param-product-type',
+    'param-administration-route',
+    'param-dispensing',
+    'param-registration-number',
+    'param-holder',
+    'param-variation-class',
+    'param-variation-area',
+    'param-variation-old-value',
+    'param-variation-new-value',
+    'param-manufacturer',
+    'param-manufacturer-address',
+    'param-applicant',
+  ],
+};
+
+const miBaseFields: string[] = [
+  'param-object-type',
+  'param-procedure',
+  'param-trade-name',
+  'param-applicant',
+  'param-mi-type',
+  'param-mi-risk-class',
+  'param-manufacturer',
+  'param-manufacturer-address',
+  'param-mi-sterile',
+  'param-mi-measuring',
+  'param-mi-ivd',
+  'param-mi-implantable',
+];
+
+const miProcedureFields: Record<Procedure, string[]> = {
+  registration: [],
+  're-registration': ['param-mi-registration-number'],
+  variation: [
+    'param-mi-registration-number',
+    'param-mi-variation-class',
+    'param-mi-variation-area',
+    'param-mi-variation-old-value',
+    'param-mi-variation-new-value',
+  ],
+};
+
+const miRequiredFields: Record<Procedure, string[]> = {
+  registration: [
+    'param-trade-name',
+    'param-applicant',
+    'param-mi-type',
+    'param-mi-risk-class',
+    'param-manufacturer',
+    'param-manufacturer-address',
+  ],
+  're-registration': [
+    'param-trade-name',
+    'param-applicant',
+    'param-mi-type',
+    'param-mi-risk-class',
+    'param-manufacturer',
+    'param-manufacturer-address',
+    'param-mi-registration-number',
+  ],
+  variation: [
+    'param-trade-name',
+    'param-applicant',
+    'param-mi-type',
+    'param-mi-risk-class',
+    'param-mi-registration-number',
+    'param-mi-variation-class',
+    'param-mi-variation-area',
+    'param-mi-variation-old-value',
+    'param-mi-variation-new-value',
+    'param-manufacturer',
+    'param-manufacturer-address',
+  ],
+};
+
+const lsProfile: ApplicationFormSchema['LS'] = {
+  baseFields: lsBaseFields,
+  requiredFields: lsRequiredFields,
+  procedureFields: lsProcedureFields,
+};
+
+const miProfile: ApplicationFormSchema['MI'] = {
+  baseFields: miBaseFields,
+  requiredFields: miRequiredFields,
+  procedureFields: miProcedureFields,
+};
+
+export const applicationFormProfiles: ApplicationFormSchema = {
+  LS: lsProfile,
+  MI: miProfile,
+};
+
+export function getVisibleParameterIds(
+  objectType: ObjectType = 'LS',
+  procedure: Procedure = 'registration',
+  values: Record<string, string> = {}
+): string[] {
+  const profile = applicationFormProfiles[objectType] || applicationFormProfiles.LS;
+  const fields = [...profile.baseFields, ...profile.procedureFields[procedure]];
+  const visible = new Set(fields);
+
+  if (objectType === 'MI' && values['param-mi-risk-class']) {
+    visible.add('param-mi-risk-class');
+  }
+
+  return Array.from(visible);
+}
+
+export function getRequiredParameterIds(
+  objectType: ObjectType = 'LS',
+  procedure: Procedure = 'registration'
+): string[] {
+  const profile = applicationFormProfiles[objectType] || applicationFormProfiles.LS;
+  return Array.from(new Set(profile.requiredFields[procedure]));
+}
+
+export function getParameterLabelById(paramId: string): string {
+  return parameters.find((param) => param.id === paramId)?.label || paramId;
+}
+
 export const rules: Rule[] = [
   {
     id: 'rule-common-registration',
     name: 'Общий пакет документов для регистрации',
     active: true,
-    conditions: [{ parameterId: 'param-procedure', operator: 'equals', value: 'registration' }],
+    conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
+      { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
+    ],
     requiredDocuments: [
       { documentTypeId: 'doc-application', severityIfMissing: 'critical' },
       { documentTypeId: 'doc-payment', severityIfMissing: 'critical' },
@@ -194,6 +382,7 @@ export const rules: Rule[] = [
     name: 'Generic: биоэквивалентность или обоснование отсутствия',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-product-type', operator: 'equals', value: 'generic' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'registration' },
     ],
@@ -214,6 +403,7 @@ export const rules: Rule[] = [
     name: 'Биологический / биоаналогичный: ПУР и фармаконадзор',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-product-type', operator: 'includes', value: 'biological' },
     ],
     requiredDocuments: [
@@ -228,6 +418,7 @@ export const rules: Rule[] = [
     name: 'Биоаналогичный: сравнительные данные с референтным препаратом',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-product-type', operator: 'equals', value: 'biosimilar' },
     ],
     requiredDocuments: [
@@ -242,6 +433,7 @@ export const rules: Rule[] = [
     name: 'Гибридный: обоснование отличий и доп. данные',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-product-type', operator: 'equals', value: 'hybrid' },
     ],
     requiredDocuments: [
@@ -255,6 +447,7 @@ export const rules: Rule[] = [
     name: 'Стерильный препарат: валидация стерильности',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-sterile', operator: 'equals', value: 'yes' },
     ],
     requiredDocuments: [
@@ -267,6 +460,7 @@ export const rules: Rule[] = [
     name: 'Товарный знак',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-trade-name', operator: 'notEmpty' },
     ],
     requiredDocuments: [
@@ -279,6 +473,7 @@ export const rules: Rule[] = [
     name: 'Пакет документов для перерегистрации',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-procedure', operator: 'equals', value: 're-registration' },
     ],
     requiredDocuments: [
@@ -302,6 +497,7 @@ export const rules: Rule[] = [
     name: 'Пакет документов для внесения изменений',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'variation' },
     ],
     requiredDocuments: [
@@ -325,6 +521,7 @@ export const rules: Rule[] = [
     name: 'Изменение в области производства / GMP: нужны GMP и CPP',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'variation' },
       { parameterId: 'param-variation-area', operator: 'equals', value: 'manufacturing' },
     ],
@@ -340,6 +537,7 @@ export const rules: Rule[] = [
     name: 'Изменение в области качества: нужны НДК и Модуль 3',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'variation' },
       { parameterId: 'param-variation-area', operator: 'equals', value: 'quality' },
     ],
@@ -355,6 +553,7 @@ export const rules: Rule[] = [
     name: 'Изменение в области фармаконадзора: нужны ПУР и мастер-файл',
     active: true,
     conditions: [
+      { parameterId: 'param-object-type', operator: 'equals', value: 'LS' },
       { parameterId: 'param-procedure', operator: 'equals', value: 'variation' },
       { parameterId: 'param-variation-area', operator: 'equals', value: 'pharmacovigilance' },
     ],

@@ -7,8 +7,9 @@ import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn } from '@/components/shared/motion';
 import { useApplications } from '@/lib/hooks/useApplications';
 import { useRules } from '@/lib/hooks/useRules';
-import { documentTypes, parameters, productTypeLabels } from '@/lib/data/seed';
+import { documentTypes, getVisibleParameterIds, parameters, productTypeLabels } from '@/lib/data/seed';
 import { getRequiredDocuments } from '@/lib/rules/engine';
+import { getBlockingFindings, runSectionValidation } from '@/lib/checks';
 import { DocumentUploader } from '@/components/applicant/document-uploader';
 import { FindingCard } from '@/components/shared/finding-card';
 import { SeverityBadge } from '@/components/shared/severity-badge';
@@ -19,8 +20,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { CheckCircle2, FileStack, Settings2, Sparkles, ArrowLeft, ArrowRight, Send, Loader2 } from 'lucide-react';
-import { Application, UploadedFile } from '@/lib/types';
+import { CheckCircle2, FileStack, Settings2, Sparkles, ArrowLeft, ArrowRight, Send, Save, Loader2 } from 'lucide-react';
+import { Application, Finding, UploadedFile } from '@/lib/types';
 
 const steps = [
   { id: 'params', title: 'Параметры', icon: Settings2 },
@@ -30,8 +31,18 @@ const steps = [
 
 export default function WizardPage() {
   const router = useRouter();
-  const { applications, currentId, setCurrentId, addApplication, updateValues, addFile, removeFile, runCheck, submitApplication } =
-    useApplications();
+  const {
+    applications,
+    currentId,
+    setCurrentId,
+    addApplication,
+    updateValues,
+    addFile,
+    removeFile,
+    runCheck,
+    submitApplication,
+    updateStatus,
+  } = useApplications();
   const { rules } = useRules();
   const [step, setStep] = useState(0);
 
@@ -51,6 +62,7 @@ export default function WizardPage() {
     () => (requiredDocs.length ? Math.round((uploadedCount / requiredDocs.length) * 100) : 0),
     [requiredDocs.length, uploadedCount]
   );
+  const blockingFindings = useMemo(() => (app ? getBlockingFindings(app.findings) : []), [app]);
 
   const handleParamChange = (id: string, value: string) => {
     if (!app) return;
@@ -66,9 +78,80 @@ export default function WizardPage() {
 
   const handleSubmit = () => {
     if (!app) return;
-    submitApplication(app.id);
+    const result = submitApplication(app.id);
+    if (!result.success) {
+      toast.error(
+        `Нельзя отправить заявку: ${result.blockingFindings.length} обязательных замечаний.
+Загрузка в экспертизу доступна после их устранения.`
+      );
+      setStep(2);
+      return;
+    }
     toast.success('Заявка отправлена в экспертизу');
     router.push('/expert');
+  };
+
+  const handleSaveDraft = () => {
+    if (!app) return;
+    updateStatus(app.id, 'draft');
+    toast.success('Черновик сохранен');
+  };
+
+  const sectionValidationForNavigation = (fromStep: number, targetStep: number) => {
+    if (!app || targetStep <= fromStep) return null;
+
+    const scopes: Array<'params' | 'documents'> = [];
+    if (fromStep === 0 && targetStep >= 1) {
+      scopes.push('params');
+    }
+    if (fromStep <= 1 && targetStep === 2) {
+      scopes.push('documents');
+    }
+
+    if (scopes.length === 0) return null;
+
+    let findings: Finding[] = [];
+    for (const scope of scopes) {
+      const result = runSectionValidation(app, rules, scope === 'params' ? 'params' : 'documents');
+      findings = findings.concat(result.findings);
+    }
+
+    return { findings };
+  };
+
+  const handleNextStep = () => {
+    if (!app) return;
+    const validation = sectionValidationForNavigation(step, step + 1);
+    if (validation) {
+      const validationBlocking = getBlockingFindings(validation.findings);
+      if (validationBlocking.length > 0) {
+        toast.warning(
+          `Есть обязательные замечания (${validationBlocking.length}). Можно перейти дальше, но отправка будет заблокирована до устранения.`
+        );
+      } else if (validation.findings.length > 0) {
+        toast.warning(`Есть предупреждения (${validation.findings.length}). Можно перейти дальше и доработать позже.`);
+      }
+    }
+    setStep(Math.min(2, step + 1));
+  };
+
+  const handleStepChange = (target: number) => {
+    if (!app || target <= step) {
+      setStep(target);
+      return;
+    }
+    const validation = sectionValidationForNavigation(step, target);
+    if (validation) {
+      const validationBlocking = getBlockingFindings(validation.findings);
+      if (validationBlocking.length > 0) {
+        toast.warning(
+          `Есть обязательные замечания (${validationBlocking.length}). Можно перейти дальше, но отправка будет заблокирована до устранения.`
+        );
+      } else if (validation.findings.length > 0) {
+        toast.warning(`Есть предупреждения (${validation.findings.length}). Можно перейти дальше и доработать позже.`);
+      }
+    }
+    setStep(target);
   };
 
   return (
@@ -96,8 +179,10 @@ export default function WizardPage() {
                   <div>
                     <h1 className="text-2xl font-bold tracking-tight">Создание заявки</h1>
                     <p className="text-sm text-muted-foreground">
-                      {productTypeLabels[app.values['param-product-type'] as keyof typeof productTypeLabels] || 'Заявка'} ·{' '}
-                      {app.values['param-trade-name'] || '—'}
+                      {app.values['param-object-type'] === 'MI'
+                        ? 'Медицинское изделие'
+                        : productTypeLabels[app.values['param-product-type'] as keyof typeof productTypeLabels] || 'Заявка'}{' '}
+                      · {app.values['param-trade-name'] || '—'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -117,7 +202,7 @@ export default function WizardPage() {
                   return (
                     <button
                       key={s.id}
-                      onClick={() => setStep(i)}
+                      onClick={() => handleStepChange(i)}
                       className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors ${
                         active
                           ? 'border-primary bg-primary text-primary-foreground'
@@ -152,7 +237,15 @@ export default function WizardPage() {
                       onRemove={(fileId) => removeFile(app.id, fileId)}
                     />
                   )}
-                  {step === 2 && <CheckStep app={app} onRun={handleRunCheck} onSubmit={handleSubmit} />}
+                  {step === 2 && (
+                    <CheckStep
+                      app={app}
+                      onRun={handleRunCheck}
+                      onSubmit={handleSubmit}
+                      onSaveDraft={handleSaveDraft}
+                      mandatoryCount={blockingFindings.length}
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
@@ -161,12 +254,17 @@ export default function WizardPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Назад
                 </Button>
-                {step < 2 && (
-                  <Button onClick={() => setStep(step + 1)}>
-                    Далее
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={handleSaveDraft}>
+                    Сохранить черновик
                   </Button>
-                )}
+                  {step < 2 && (
+                    <Button onClick={handleNextStep}>
+                      Далее
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -179,63 +277,12 @@ export default function WizardPage() {
 function ParamsStep({ values, onChange }: { values: Application['values']; onChange: (id: string, value: string) => void }) {
   const procedure = values['param-procedure'] as string;
   const objectType = values['param-object-type'] as string;
-
-  const visibleParamIds = new Set<string>([
-    'param-object-type',
-    'param-procedure',
-    'param-trade-name',
-    'param-inn',
-    'param-dosage-form',
-    'param-dosage',
-    'param-manufacturer',
-    'param-manufacturer-address',
-    'param-applicant',
-  ]);
-
-  if (objectType === 'LS') {
-    visibleParamIds.add('param-product-type');
-    visibleParamIds.add('param-administration-route');
-    visibleParamIds.add('param-dispensing');
-    visibleParamIds.add('param-sterile');
-    visibleParamIds.add('param-aseptic');
-    visibleParamIds.add('param-bioequivalence-required');
-    visibleParamIds.add('param-clinical-studies');
-    visibleParamIds.add('param-holder');
-    visibleParamIds.add('param-additional-monitoring');
-  }
-
-  if (objectType === 'LS' && (procedure === 're-registration' || procedure === 'variation')) {
-    visibleParamIds.add('param-registration-number');
-  }
-
-  if (objectType === 'LS' && procedure === 'variation') {
-    visibleParamIds.add('param-variation-class');
-    visibleParamIds.add('param-variation-area');
-    visibleParamIds.add('param-variation-old-value');
-    visibleParamIds.add('param-variation-new-value');
-  }
-
-  if (objectType === 'MI') {
-    visibleParamIds.add('param-mi-risk-class');
-    visibleParamIds.add('param-mi-type');
-    visibleParamIds.add('param-mi-sterile');
-    visibleParamIds.add('param-mi-measuring');
-    visibleParamIds.add('param-mi-ivd');
-    visibleParamIds.add('param-mi-implantable');
-  }
-
-  if (objectType === 'MI' && (procedure === 're-registration' || procedure === 'variation')) {
-    visibleParamIds.add('param-mi-registration-number');
-  }
-
-  if (objectType === 'MI' && procedure === 'variation') {
-    visibleParamIds.add('param-mi-variation-class');
-    visibleParamIds.add('param-mi-variation-area');
-    visibleParamIds.add('param-mi-variation-old-value');
-    visibleParamIds.add('param-mi-variation-new-value');
-  }
-
-  const visibleParams = parameters.filter((p) => visibleParamIds.has(p.id));
+  const visibleParamIds = getVisibleParameterIds(
+    objectType === 'MI' ? 'MI' : 'LS',
+    procedure === 're-registration' || procedure === 'variation' ? procedure : 'registration',
+    values as Record<string, string>
+  );
+  const visibleParams = parameters.filter((p) => visibleParamIds.includes(p.id));
 
   return (
     <Card>
@@ -355,10 +402,14 @@ function CheckStep({
   app,
   onRun,
   onSubmit,
+  onSaveDraft,
+  mandatoryCount,
 }: {
   app: Application;
   onRun: () => void;
   onSubmit: () => void;
+  onSaveDraft: () => void;
+  mandatoryCount: number;
 }) {
   const grouped = useMemo(() => {
     const groups: Record<string, typeof app.findings> = {};
@@ -385,41 +436,46 @@ function CheckStep({
               <Sparkles className="mr-2 h-4 w-4" />
               Запустить проверку
             </Button>
-            {app.status === 'checked' && (
-              <Button onClick={onSubmit}>
-                <Send className="mr-2 h-4 w-4" />
-                Отправить в экспертизу
-              </Button>
-            )}
+            <Button variant="outline" onClick={onSaveDraft}>
+              <Save className="mr-2 h-4 w-4" />
+              Сохранить черновик
+            </Button>
+            <Button onClick={onSubmit} disabled={mandatoryCount > 0}>
+              <Send className="mr-2 h-4 w-4" />
+              Отправить в экспертизу
+            </Button>
           </div>
+          {mandatoryCount > 0 && (
+            <p className="text-sm text-amber-600">
+              Для отправки нужно устранить все замечания уровня «критично» или «серьезно».
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {app.status === 'checked' && (
-        <div className="space-y-6">
-          {(['critical', 'serious', 'warning', 'unknown'] as const).map((sev) =>
-            grouped[sev]?.length ? (
-              <div key={sev} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <SeverityBadge severity={sev} />
-                  <span className="text-sm text-muted-foreground">{grouped[sev].length} замечаний</span>
-                </div>
-                {grouped[sev].map((finding) => (
-                  <FindingCard key={finding.id} finding={finding} />
-                ))}
+      <div className="space-y-6">
+        {(['critical', 'serious', 'warning', 'unknown'] as const).map((sev) =>
+          grouped[sev]?.length ? (
+            <div key={sev} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <SeverityBadge severity={sev} />
+                <span className="text-sm text-muted-foreground">{grouped[sev].length} замечаний</span>
               </div>
-            ) : null
-          )}
-          {app.findings.length === 0 && (
-            <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
-              <CardContent className="flex items-center gap-3 py-6">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <span className="font-medium">Замечаний не выявлено. Заявка готова к подаче.</span>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+              {grouped[sev].map((finding) => (
+                <FindingCard key={finding.id} finding={finding} />
+              ))}
+            </div>
+          ) : null
+        )}
+        {app.findings.length === 0 && (
+          <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
+            <CardContent className="flex items-center gap-3 py-6">
+              <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <span className="font-medium">Замечаний не выявлено. Заявка готова к подаче.</span>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

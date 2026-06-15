@@ -1,5 +1,13 @@
 import { Application, Finding, Severity, UploadedFile } from '@/lib/types';
-import { documentTypes, parameters, productTypeLabels } from '@/lib/data/seed';
+import {
+  documentTypes,
+  getParameterLabelById,
+  getRequiredParameterIds,
+  parameters,
+  productTypeLabels,
+} from '@/lib/data/seed';
+
+type CheckScope = 'all' | 'params' | 'documents';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -243,34 +251,35 @@ function checkBlackTriangle(
   }
 }
 
-export function runChecks(app: Application): Finding[] {
+export function runChecks(
+  app: Application,
+  rules: unknown[] = [],
+  options: { scope?: CheckScope } = {}
+): Finding[] {
   const findings: Finding[] = [];
+  const scope = options.scope || 'all';
+  void rules;
   const values = app.values;
-  const objectType = values['param-object-type'] as string;
+  const objectType = values['param-object-type'] === 'MI' ? 'MI' : 'LS';
+  const procedure = values['param-procedure'] === 're-registration' || values['param-procedure'] === 'variation' ? values['param-procedure'] : 'registration';
+  const isLS = objectType === 'LS';
+  const isMI = objectType === 'MI';
   const productType = values['param-product-type'] as string;
   const productLabel = productTypeLabels[productType as keyof typeof productTypeLabels] || productType;
-  const procedure = values['param-procedure'] as string;
+  const requiredFieldIds = getRequiredParameterIds(objectType, procedure);
 
   // 1. Application completeness
-  const requiredAppFields = [
-    { id: 'param-trade-name', label: 'Торговое наименование' },
-    { id: 'param-inn', label: 'МНН' },
-    { id: 'param-dosage', label: 'Дозировка' },
-    { id: 'param-manufacturer', label: 'Производитель' },
-    { id: 'param-manufacturer-address', label: 'Адрес производства' },
-    { id: 'param-applicant', label: 'Заявитель' },
-  ];
-  for (const field of requiredAppFields) {
-    const val = values[field.id];
+  for (const fieldId of requiredFieldIds) {
+    const val = values[fieldId];
     if (!val || (typeof val === 'string' && val.trim() === '')) {
       findings.push(
         createFinding(
           'critical',
           'Заявление',
-          `Не заполнено поле заявления: ${field.label}`,
-          `В заявлении отсутствует обязательное поле «${field.label}».`,
+          `Не заполнено поле заявления: ${getParameterLabelById(fieldId)}`,
+          `В заявлении отсутствует обязательное поле «${getParameterLabelById(fieldId)}».`,
           ['Заявление'],
-          `Заполните поле «${field.label}» в параметрах заявки.`,
+          `Заполните поле «${getParameterLabelById(fieldId)}» в параметрах заявки.`,
           undefined,
           'Приказ ҚР ДСМ-10, Приложение 2'
         )
@@ -299,6 +308,7 @@ export function runChecks(app: Application): Finding[] {
     }
   }
 
+  if (isLS) {
   // 3. GMP validity and address
   const gmp = findFile(app, 'doc-gmp');
   if (gmp) {
@@ -1531,9 +1541,9 @@ export function runChecks(app: Application): Finding[] {
       }
     }
   }
-
+  }
   // 23. Medical device (MI) specific checks
-  if (objectType === 'MI') {
+  if (isMI) {
     const miApplication = findFile(app, 'doc-mi-application');
     const miDossier = findFile(app, 'doc-mi-registration-dossier');
     const miInstructions = findFile(app, 'doc-mi-instructions');
@@ -1821,6 +1831,14 @@ export function runChecks(app: Application): Finding[] {
         }
       }
     }
+  }
+
+  if (scope === 'params') {
+    return findings.filter((f) => f.category === 'Заявление');
+  }
+
+  if (scope === 'documents') {
+    return findings.filter((f) => f.category !== 'Заявление');
   }
 
   return findings;

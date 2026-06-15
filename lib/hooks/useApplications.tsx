@@ -4,7 +4,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 import { Application, Finding, UploadedFile } from '@/lib/types';
 import { defaultApplicationValues } from '@/lib/data/seed';
 import { demoFiles } from '@/lib/data/demoFiles';
-import { runPreCheck } from '@/lib/checks';
+import { runPreCheck, runSubmissionValidation } from '@/lib/checks';
 import { getStoredRules } from '@/lib/rules/store';
 
 const STORAGE_KEY = 'ndda-applications-v3';
@@ -20,7 +20,7 @@ function createDemoApplication(): Application {
   const app: Application = {
     id: uid(),
     createdAt: new Date().toISOString(),
-    status: 'checked',
+    status: 'draft',
     values,
     files,
     checklist: [],
@@ -43,7 +43,11 @@ interface ApplicationContextValue {
   removeFile: (id: string, fileId: string) => void;
   runCheck: (id: string) => void;
   updateFinding: (id: string, findingId: string, patch: Partial<Finding>) => void;
-  submitApplication: (id: string) => void;
+  submitApplication: (id: string) => {
+    success: boolean;
+    findings: Finding[];
+    blockingFindings: Finding[];
+  };
   updateStatus: (id: string, status: Application['status']) => void;
 }
 
@@ -79,6 +83,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const updateApp = (id: string, updater: (app: Application) => Application) => {
     setApplications((prev) => prev.map((a) => (a.id === id ? updater(a) : a)));
   };
+  const toEditableStatus = (status: Application['status']): Application['status'] =>
+    status === 'submitted' || status === 'expert-review' ? status : 'draft';
 
   const value = useMemo<ApplicationContextValue>(
     () => ({
@@ -107,17 +113,19 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           values: Object.fromEntries(
             Object.entries({ ...app.values, ...values }).filter(([, v]) => v !== undefined)
           ) as Application['values'],
-          status: app.status === 'draft' ? 'draft' : app.status,
+          status: toEditableStatus(app.status),
         })),
       addFile: (id, file) =>
         updateApp(id, (app) => ({
           ...app,
           files: [...app.files, { ...file, id: uid() }],
+          status: toEditableStatus(app.status),
         })),
       removeFile: (id, fileId) =>
         updateApp(id, (app) => ({
           ...app,
           files: app.files.filter((f) => f.id !== fileId),
+          status: toEditableStatus(app.status),
         })),
       runCheck: (id) =>
         updateApp(id, (app) => {
@@ -129,11 +137,29 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           ...app,
           findings: app.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)),
         })),
-      submitApplication: (id) =>
-        updateApp(id, (app) => {
-          const findings = runPreCheck(app, getStoredRules());
-          return { ...app, status: 'submitted', findings };
-        }),
+      submitApplication: (id) => {
+        const app = applications.find((item) => item.id === id);
+        if (!app) {
+          return { success: false, findings: [], blockingFindings: [] };
+        }
+
+        const { findings, blockingFindings, success } = runSubmissionValidation(app, getStoredRules());
+        if (!success) {
+          updateApp(id, (stored) => ({
+            ...stored,
+            status: 'checked',
+            findings,
+          }));
+          return { success: false, findings, blockingFindings };
+        }
+
+        updateApp(id, (stored) => ({
+          ...stored,
+          status: 'submitted',
+          findings,
+        }));
+        return { success: true, findings, blockingFindings };
+      },
       updateStatus: (id, status) =>
         updateApp(id, (app) => ({
           ...app,
