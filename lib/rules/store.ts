@@ -13,10 +13,22 @@ function normalizeRule(rule: Partial<Rule>): Rule | null {
     id: source.id,
     name: source.name,
     conditions: Array.isArray(source.conditions) ? source.conditions : [],
-    requiredDocuments: Array.isArray(source.requiredDocuments) ? source.requiredDocuments : [],
+    requiredDocuments: Array.isArray(source.requiredDocuments)
+      ? source.requiredDocuments.map((doc) => {
+          const seedDoc = seed?.requiredDocuments.find((item) => item.documentTypeId === doc.documentTypeId);
+          return seedDoc ? { ...seedDoc, ...doc } : doc;
+        })
+      : [],
     sourceNpaId: source.sourceNpaId,
     active: source.active ?? true,
   };
+}
+
+function mergeStoredWithSeed(storedRules: Rule[]): Rule[] {
+  const storedById = new Map(storedRules.map((rule) => [rule.id, rule]));
+  const mergedSeedRules = seedRules.map((seed) => normalizeRule({ ...seed, ...(storedById.get(seed.id) || {}) }));
+  const customRules = storedRules.filter((rule) => !seedRules.some((seed) => seed.id === rule.id));
+  return [...mergedSeedRules, ...customRules].filter((rule): rule is Rule => !!rule);
 }
 
 export function getStoredRules(): Rule[] {
@@ -26,7 +38,7 @@ export function getStoredRules(): Rule[] {
     if (raw) {
       const parsed = JSON.parse(raw) as Rule[];
       const normalized = Array.isArray(parsed) ? parsed.map(normalizeRule).filter((rule): rule is Rule => !!rule) : [];
-      return normalized.length > 0 ? normalized : seedRules.map((r) => ({ ...r, active: r.active ?? true }));
+      return normalized.length > 0 ? mergeStoredWithSeed(normalized) : seedRules.map((r) => ({ ...r, active: r.active ?? true }));
     }
   } catch {
     // ignore

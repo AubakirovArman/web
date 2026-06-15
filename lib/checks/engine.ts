@@ -1,4 +1,4 @@
-import { Application, Finding, Severity, UploadedFile } from '@/lib/types';
+import { Application, Finding, Rule, RuleCondition, Severity, UploadedFile } from '@/lib/types';
 import {
   documentTypes,
   getParameterLabelById,
@@ -6,6 +6,7 @@ import {
   parameters,
   productTypeLabels,
 } from '@/lib/data/seed';
+import { enrichFinding } from '@/lib/checks/registry';
 
 type CheckScope = 'all' | 'params' | 'documents';
 
@@ -19,6 +20,11 @@ function getDocName(id: string) {
 
 function getDocType(id: string) {
   return documentTypes.find((d) => d.id === id);
+}
+
+function getOptionLabel(parameterId: string, value: string): string {
+  const param = parameters.find((p) => p.id === parameterId);
+  return param?.options?.find((option) => option.value === value)?.label || value;
 }
 
 function normalize(value: string | undefined): string {
@@ -57,6 +63,69 @@ function extract(file: UploadedFile, key: string): string | undefined {
 
 function findFile(app: Application, docTypeId: string): UploadedFile | undefined {
   return app.files.find((f) => f.documentTypeId === docTypeId);
+}
+
+function matchesConditions(values: Application['values'], conditions: RuleCondition[]): boolean {
+  return conditions.every((condition) => {
+    const value = values[condition.parameterId];
+    const target = condition.value;
+    switch (condition.operator) {
+      case 'equals':
+        return value === target;
+      case 'notEquals':
+        return value !== target;
+      case 'notEmpty':
+        return typeof value === 'string' ? value.trim().length > 0 : Array.isArray(value) ? value.length > 0 : false;
+      case 'includes':
+        if (typeof value === 'string') return value.toLowerCase().includes((target || '').toLowerCase());
+        if (Array.isArray(value)) return value.some((item) => item.toLowerCase().includes((target || '').toLowerCase()));
+        return false;
+      default:
+        return false;
+    }
+  });
+}
+
+const alwaysEnabledCheckIds = new Set([
+  'required_fields_check',
+  'file_format_check',
+  'ocr_quality_check',
+  'required_document_presence_check',
+]);
+
+function getEnabledCheckIds(app: Application, rules: Rule[]): Set<string> {
+  const enabled = new Set(alwaysEnabledCheckIds);
+  for (const rule of rules) {
+    if (rule.active === false || !matchesConditions(app.values, rule.conditions)) continue;
+    for (const req of rule.requiredDocuments) {
+      for (const checkId of req.checks || []) enabled.add(checkId);
+      const doc = getDocType(req.documentTypeId);
+      for (const checkId of doc?.checkIds || []) enabled.add(checkId);
+      if (req.alternativeDocumentTypeId) {
+        const altDoc = getDocType(req.alternativeDocumentTypeId);
+        for (const checkId of altDoc?.checkIds || []) enabled.add(checkId);
+      }
+    }
+  }
+  return enabled;
+}
+
+function applyScopeAndRuleFilters(findings: Finding[], app: Application, rules: Rule[], scope: CheckScope): Finding[] {
+  let scoped = findings;
+  if (scope === 'params') {
+    scoped = findings.filter((f) => f.category === 'Заявление');
+  } else if (scope === 'documents') {
+    scoped = findings.filter((f) => f.category !== 'Заявление');
+  }
+
+  const enriched = scoped.map(enrichFinding);
+  if (!rules.length) return enriched;
+
+  const enabledCheckIds = getEnabledCheckIds(app, rules);
+  return enriched.filter((finding) => {
+    const checkerId = finding.checkerId || '';
+    return alwaysEnabledCheckIds.has(checkerId) || enabledCheckIds.has(checkerId);
+  });
 }
 
 function parseDate(dateStr: string): Date | null {
@@ -253,12 +322,11 @@ function checkBlackTriangle(
 
 export function runChecks(
   app: Application,
-  rules: unknown[] = [],
+  rules: Rule[] = [],
   options: { scope?: CheckScope } = {}
 ): Finding[] {
   const findings: Finding[] = [];
   const scope = options.scope || 'all';
-  void rules;
   const values = app.values;
   const objectType = values['param-object-type'] === 'MI' ? 'MI' : 'LS';
   const procedure = values['param-procedure'] === 're-registration' || values['param-procedure'] === 'variation' ? values['param-procedure'] : 'registration';
@@ -305,6 +373,27 @@ export function runChecks(
           'Приказ ҚР ДСМ-10, Приложение 3'
         )
       );
+    }
+    const extractionStatus = file.processing?.extractionStatus;
+    if (extractionStatus === 'failed' || extractionStatus === 'partial') {
+      findings.push({
+        ...createFinding(
+          extractionStatus === 'failed' ? 'warning' : 'unknown',
+          'OCR',
+          extractionStatus === 'failed'
+            ? `Не удалось распознать файл: ${docType.name}`
+            : `Файл распознан частично: ${docType.name}`,
+          file.processing?.errors?.length
+            ? file.processing.errors.join('; ')
+            : 'Извлечение данных завершилось без полного набора структурированных полей.',
+          [docType.name],
+          'Проверьте качество скана/текстовый слой или загрузите файл повторно.',
+          undefined,
+          'Внутренний регламент OCR/LLM'
+        ),
+        checkerId: 'ocr_quality_check',
+        confidence: extractionStatus === 'failed' ? 0.9 : 0.6,
+      });
     }
   }
 
@@ -507,7 +596,8 @@ export function runChecks(
   ];
 
   for (const field of fieldsToCheck) {
-    const appValue = appData[field.key === 'tradeName' ? 'param-trade-name' : field.key === 'inn' ? 'param-inn' : field.key === 'dosage' ? 'param-dosage' : 'param-dosage-form'] as string;
+    const rawAppValue = appData[field.key === 'tradeName' ? 'param-trade-name' : field.key === 'inn' ? 'param-inn' : field.key === 'dosage' ? 'param-dosage' : 'param-dosage-form'] as string;
+    const appValue = field.key === 'dosageForm' ? getOptionLabel('param-dosage-form', rawAppValue) : rawAppValue;
     const valuesMap: { source: string; text: string }[] = [];
     for (const [sourceName, file] of field.sources) {
       const val = sourceName === 'Заявление' ? appValue : file ? extract(file, field.key) : undefined;
@@ -760,7 +850,7 @@ export function runChecks(
       );
     }
     const beDosageForm = extract(beReport, 'dosageForm');
-    const appDosageForm = values['param-dosage-form'] as string;
+    const appDosageForm = getOptionLabel('param-dosage-form', values['param-dosage-form'] as string);
     if (beDosageForm && appDosageForm && normalize(beDosageForm) !== normalize(appDosageForm)) {
       findings.push(
         createFinding(
@@ -815,7 +905,7 @@ export function runChecks(
     const waiverReason = extract(beWaiver, 'waiverReason');
     const justified = extract(beWaiver, 'justified');
     const waiverDosageForm = extract(beWaiver, 'dosageForm');
-    const appDosageForm = values['param-dosage-form'] as string;
+    const appDosageForm = getOptionLabel('param-dosage-form', values['param-dosage-form'] as string);
     if (!waiverReason) {
       findings.push(
         createFinding(
@@ -1833,13 +1923,5 @@ export function runChecks(
     }
   }
 
-  if (scope === 'params') {
-    return findings.filter((f) => f.category === 'Заявление');
-  }
-
-  if (scope === 'documents') {
-    return findings.filter((f) => f.category !== 'Заявление');
-  }
-
-  return findings;
+  return applyScopeAndRuleFilters(findings, app, rules, scope);
 }

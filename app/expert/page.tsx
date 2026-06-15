@@ -41,6 +41,8 @@ function ExpertPageInner() {
   const { applications, runCheck, updateFinding, updateStatus, setCurrentId } = useApplications();
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [viewingFile, setViewingFile] = useState<UploadedFile | null>(null);
+  const [severityFilter, setSeverityFilter] = useState<Finding['severity'] | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     if (applications.length === 0) return;
@@ -53,17 +55,46 @@ function ExpertPageInner() {
   }, [searchParams, applications, selectedId, setCurrentId]);
 
   const selectedApp = useMemo(() => applications.find((a) => a.id === selectedId), [applications, selectedId]);
-
-  const handleAccept = (finding: Finding) => {
-    if (!selectedApp) return;
-    updateFinding(selectedApp.id, finding.id, { accepted: true });
-    toast.success('Замечание принято');
-  };
+  const findingCategories = useMemo(
+    () => Array.from(new Set((selectedApp?.findings || []).map((finding) => finding.category))).sort(),
+    [selectedApp]
+  );
+  const filteredFindings = useMemo(() => {
+    const findings = selectedApp?.findings || [];
+    return findings.filter((finding) => {
+      if (severityFilter !== 'all' && finding.severity !== severityFilter) return false;
+      if (categoryFilter !== 'all' && finding.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [selectedApp, severityFilter, categoryFilter]);
+  const requestText = useMemo(() => buildApplicantRequest(selectedApp, filteredFindings), [selectedApp, filteredFindings]);
 
   const handleReject = (finding: Finding) => {
     if (!selectedApp) return;
-    updateFinding(selectedApp.id, finding.id, { accepted: false });
+    updateFinding(selectedApp.id, finding.id, { accepted: false, status: 'rejected' });
     toast.success('Замечание отклонено');
+  };
+
+  const handleAccept = (finding: Finding) => {
+    if (!selectedApp) return;
+    updateFinding(selectedApp.id, finding.id, { accepted: true, status: 'accepted' });
+    toast.success('Замечание принято');
+  };
+
+  const handleNotApplicable = (finding: Finding) => {
+    if (!selectedApp) return;
+    updateFinding(selectedApp.id, finding.id, { accepted: null, status: 'not-applicable' });
+    toast.success('Замечание помечено как неприменимое');
+  };
+
+  const handleCopyRequest = async () => {
+    if (!requestText) return;
+    try {
+      await navigator.clipboard.writeText(requestText);
+      toast.success('Текст запроса скопирован');
+    } catch {
+      toast.success('Текст запроса сформирован');
+    }
   };
 
   const handleRunCheck = (id: string) => {
@@ -191,7 +222,53 @@ function ExpertPageInner() {
                   <SummaryCards findings={selectedApp.findings} />
 
                   <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">Замечания ({selectedApp.findings.length})</h2>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h2 className="text-lg font-semibold">
+                        Замечания ({filteredFindings.length} из {selectedApp.findings.length})
+                      </h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          className="h-9 rounded-md border bg-background px-3 text-sm"
+                          value={severityFilter}
+                          onChange={(event) => setSeverityFilter(event.target.value as Finding['severity'] | 'all')}
+                          aria-label="Фильтр по критичности"
+                        >
+                          <option value="all">Все уровни</option>
+                          <option value="critical">Критично</option>
+                          <option value="serious">Серьезно</option>
+                          <option value="warning">Предупреждение</option>
+                          <option value="unknown">Неизвестно</option>
+                        </select>
+                        <select
+                          className="h-9 rounded-md border bg-background px-3 text-sm"
+                          value={categoryFilter}
+                          onChange={(event) => setCategoryFilter(event.target.value)}
+                          aria-label="Фильтр по категории"
+                        >
+                          <option value="all">Все категории</option>
+                          {findingCategories.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                        <Button variant="outline" size="sm" onClick={handleCopyRequest} disabled={!requestText}>
+                          Сформировать запрос
+                        </Button>
+                      </div>
+                    </div>
+                    {requestText && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Черновик запроса заявителю</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs">
+                            {requestText}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                    )}
                     {selectedApp.findings.length === 0 && (
                       <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
                         <CardContent className="flex items-center gap-3 py-6">
@@ -200,7 +277,7 @@ function ExpertPageInner() {
                         </CardContent>
                       </Card>
                     )}
-                    {selectedApp.findings.map((finding) => (
+                    {filteredFindings.map((finding) => (
                       <div key={finding.id} className="space-y-3">
                         <FindingCard finding={finding} />
                         <div className="flex items-center gap-2">
@@ -220,11 +297,26 @@ function ExpertPageInner() {
                             <XCircle className="mr-1.5 h-4 w-4" />
                             Отклонить
                           </Button>
+                          <Button
+                            size="sm"
+                            variant={finding.status === 'not-applicable' ? 'default' : 'outline'}
+                            onClick={() => handleNotApplicable(finding)}
+                          >
+                            Не применимо
+                          </Button>
                           {finding.accepted === true && <span className="text-xs text-green-600">Принято</span>}
                           {finding.accepted === false && <span className="text-xs text-muted-foreground">Отклонено</span>}
+                          {finding.status === 'not-applicable' && <span className="text-xs text-muted-foreground">Не применимо</span>}
                         </div>
                       </div>
                     ))}
+                    {selectedApp.findings.length > 0 && filteredFindings.length === 0 && (
+                      <Card>
+                        <CardContent className="py-6 text-sm text-muted-foreground">
+                          По выбранным фильтрам замечаний нет.
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
 
                   {selectedApp.files.length > 0 && (
@@ -243,6 +335,11 @@ function ExpertPageInner() {
                               <div className="text-xs text-muted-foreground">
                                 {documentTypes.find((d) => d.id === file.documentTypeId)?.name} · {(file.size / 1024).toFixed(1)} КБ
                               </div>
+                              {file.processing?.extractionStatus && (
+                                <div className="text-xs text-muted-foreground">
+                                  OCR/LLM: {file.processing.extractionStatus} · hash {file.hash?.slice(0, 10) || '—'}
+                                </div>
+                              )}
                             </div>
                             <Button variant="outline" size="sm" onClick={() => setViewingFile(file)}>
                               <Eye className="mr-1.5 h-3.5 w-3.5" />
@@ -363,6 +460,19 @@ function DocumentViewer({ file, onClose }: { file: UploadedFile; onClose: () => 
   );
 }
 
+function buildApplicantRequest(app: Application | undefined, findings: Finding[]): string {
+  if (!app || findings.length === 0) return '';
+  const actionable = findings.filter((finding) => finding.status !== 'not-applicable' && finding.accepted !== false);
+  if (actionable.length === 0) return '';
+  const title = app.values['param-trade-name'] || app.id;
+  const lines = actionable.map((finding, index) => {
+    const docs = finding.documents.length ? ` Документы: ${finding.documents.join(', ')}.` : '';
+    const npa = finding.npaReference ? ` НПА: ${finding.npaReference}.` : '';
+    return `${index + 1}. ${finding.title}\n${finding.description}${docs}${npa}\nРекомендация: ${finding.recommendation}`;
+  });
+  return [`Запрос по заявке: ${title}`, '', ...lines].join('\n');
+}
+
 function ExtractedData({ file }: { file: UploadedFile }) {
   if (!file.extracted || Object.keys(file.extracted).length === 0) {
     return (
@@ -376,13 +486,33 @@ function ExtractedData({ file }: { file: UploadedFile }) {
     );
   }
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {Object.entries(file.extracted).map(([key, value]) => (
-        <div key={key} className="rounded-md border p-2">
-          <p className="text-xs text-muted-foreground uppercase">{key}</p>
-          <p className="text-sm">{value}</p>
-        </div>
-      ))}
+    <div className="space-y-4">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Meta label="Hash" value={file.hash} />
+        <Meta label="Версия" value={file.version ? String(file.version) : undefined} />
+        <Meta label="Загружен" value={file.uploadedAt ? new Date(file.uploadedAt).toLocaleString('ru-KZ') : undefined} />
+        <Meta label="Статус извлечения" value={file.processing?.extractionStatus} />
+        <Meta label="Provider" value={file.processing?.provider} />
+        <Meta label="Prompt" value={file.processing?.promptVersion} />
+      </div>
+      <Separator />
+      <div className="grid gap-2 sm:grid-cols-2">
+        {Object.entries(file.extracted).map(([key, value]) => (
+          <div key={key} className="rounded-md border p-2">
+            <p className="text-xs text-muted-foreground uppercase">{key}</p>
+            <p className="text-sm">{value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Meta({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="rounded-md border bg-muted/30 p-2">
+      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <p className="break-all text-sm">{value || '—'}</p>
     </div>
   );
 }

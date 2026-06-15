@@ -1,6 +1,7 @@
 import { Application, Finding, Rule } from '@/lib/types';
 import { evaluateMissingDocuments } from '@/lib/rules/engine';
 import { runChecks } from '@/lib/checks/engine';
+import { enrichFindings } from '@/lib/checks/registry';
 
 const submissionBlockingSeverities: Finding['severity'][] = ['critical', 'serious'];
 
@@ -93,5 +94,5 @@ export function runPreCheck(
     byId.set(finding.id, finding);
   }
 
-  return Array.from(byId.values());
+  return enrichFindings(Array.from(byId.values()));
 }

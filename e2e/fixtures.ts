@@ -40,7 +40,7 @@ export { expect };
 
 export async function selectOption(page: Page, triggerSelector: string, optionName: string) {
   await page.locator(triggerSelector).click();
-  await page.getByRole('option', { name: optionName }).click();
+  await page.getByRole('option', { name: optionName, exact: true }).click();
 }
 
 export async function openWizard(page: Page) {
