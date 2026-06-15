@@ -1,0 +1,6 @@
+▲ Next.js 16.2.6
+- Local:         http://91.215.137.210:8040
+- Network:       http://91.215.137.210:8040
+✓ Ready in 212ms
+(node:3118847) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
