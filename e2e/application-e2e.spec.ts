@@ -1,5 +1,34 @@
-import { expect, openWizard, test } from './fixtures';
-import type { Page } from '@playwright/test';
+import { expect, openWizard, seedApplications, test } from './fixtures';
+
+
+const incompleteRegistrationApp = {
+  id: 'e2e-incomplete-ls-registration',
+  createdAt: '2026-06-15T00:00:00.000Z',
+  status: 'draft',
+  values: {
+    'param-object-type': 'LS',
+    'param-procedure': 'registration',
+    'param-product-type': 'generic',
+    'param-trade-name': 'Incomplete Drug',
+    'param-inn': 'Paracetamol',
+    'param-dosage-form': 'tablets',
+    'param-dosage': '500 мг',
+    'param-atc-code': 'N02BE01',
+    'param-administration-route': 'oral',
+    'param-dispensing': 'otc',
+    'param-packaging': 'Блистер',
+    'param-composition': 'Paracetamol 500 мг',
+    'param-shelf-life': '24 месяца',
+    'param-storage-conditions': 'хранить при температуре не выше 25 °C',
+    'param-manufacturer': 'Incomplete Pharma',
+    'param-manufacturer-address': 'Incomplete Site, Hungary',
+    'param-applicant': 'Incomplete Applicant',
+    'param-lab-testing-required': 'yes',
+  },
+  files: [],
+  checklist: [],
+  findings: [],
+};
 
 const completeRegistrationApp = {
   id: 'e2e-complete-ls-registration',
@@ -91,6 +120,7 @@ const completeRegistrationApp = {
 };
 
 test('incomplete LS registration is blocked with compact completeness and findings tables', async ({ page }) => {
+  await seedApplications(page, [incompleteRegistrationApp]);
   await openWizard(page);
 
   await page.getByTestId('wizard-step-check').click();
@@ -117,21 +147,14 @@ test('complete LS registration can be checked, submitted, and opened by expert',
   await expect(page.getByRole('button', { name: 'Отправить в экспертизу' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Отправить в экспертизу' }).click();
-  await expect(page).toHaveURL(/\/expert$/);
-  await expect(page.getByRole('heading', { name: 'Кабинет эксперта' })).toBeVisible();
-  await expect(page.getByText('E2E Test Drug').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/expert\//);
+  await expect(page.getByRole('heading', { name: 'E2E Test Drug' })).toBeVisible();
+  await expect(page.getByText('Документы и проверки')).toBeVisible();
   await expect(page.getByText('Подана').first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Перезапустить проверку' }).click();
   await expect(page.getByText('Предпроверка выполнена')).toBeVisible();
 });
-
-async function seedApplications(page: Page, apps: unknown[]) {
-  await page.addInitScript((seedApps) => {
-    window.localStorage.setItem('ndda-applications-v3', JSON.stringify(seedApps));
-    window.localStorage.setItem('theme', 'light');
-  }, apps);
-}
 
 function file(documentTypeId: string, name: string, extracted: Record<string, string> = {}) {
   return {

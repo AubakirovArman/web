@@ -1,4 +1,4 @@
-import { expect, openWizard, selectOption, test } from './fixtures';
+import { expect, openWizard, seedApiApplication, selectOption, test } from './fixtures';
 
 test('generic LS accepts bioequivalence waiver as an alternative document', async ({ page }) => {
   await openWizard(page);
@@ -59,10 +59,10 @@ test('admin exposes check registry and rule package export', async ({ page }) =>
 });
 
 test('expert can generate an applicant request from findings', async ({ page }) => {
-  await page.goto('/expert');
-  await page.getByRole('button', { name: 'Перезапустить проверку' }).click();
-  await page.getByRole('button', { name: 'Сформировать запрос' }).click();
+  const app = await seedApiApplication(page, 'missing-gmp');
+  await page.goto(`/expert/${app.id}`);
 
-  await expect(page.getByText('Черновик запроса заявителю')).toBeVisible();
-  await expect(page.getByText('Запрос по заявке:')).toBeVisible();
+  await expect(page.getByText('Документы и проверки')).toBeVisible();
+  await page.getByRole('button', { name: 'Сформировать запрос' }).click({ force: true });
+  await expect(page.getByText(/Текст запроса/)).toBeVisible();
 });

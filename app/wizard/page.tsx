@@ -95,7 +95,7 @@ export default function WizardPage() {
       return;
     }
     toast.success('Заявка отправлена в экспертизу');
-    router.push('/expert');
+    router.push(`/expert/${app.id}`);
   };
 
   const handleSaveDraft = () => {

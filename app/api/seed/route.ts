@@ -1,49 +1,60 @@
-import { NextResponse } from 'next/server';
-import path from 'path';
-import { demoFiles } from '@/lib/data/demoFiles';
+import { NextRequest, NextResponse } from 'next/server';
+import { createDemoFiles, demoScenarioLabels } from '@/lib/data/demoFiles';
+import type { DemoScenario } from '@/lib/data/demoFiles';
 import { defaultApplicationValues } from '@/lib/data/seed';
-import { extractDocument } from '@/lib/ai/extract';
 import { runPreCheck } from '@/lib/checks';
 import { Application } from '@/lib/types';
+
+const allowedScenarios = new Set<DemoScenario>(['ideal', 'missing-gmp', 'expired-cpp', 'field-mismatch', 'bad-docx-format']);
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export async function POST() {
+function normalizeScenario(value: unknown): DemoScenario {
+  return typeof value === 'string' && allowedScenarios.has(value as DemoScenario) ? (value as DemoScenario) : 'ideal';
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const baseDir = path.join(process.cwd(), 'public', 'test-docs');
+    let bodyScenario: unknown;
+    try {
+      const body = await request.json();
+      bodyScenario = body?.scenario;
+    } catch {
+      bodyScenario = undefined;
+    }
 
-    const files: Application['files'] = await Promise.all(
-      demoFiles.map(async (f) => {
-        const extracted = await extractDocument(path.join(baseDir, f.name), f.documentTypeId);
-        return {
-          ...f,
-          id: uid(),
-          extracted: { ...f.extracted, ...extracted },
-        };
-      })
-    );
+    const scenario = normalizeScenario(bodyScenario || request.nextUrl.searchParams.get('scenario'));
+    const files: Application['files'] = createDemoFiles(scenario).map((file) => ({
+      ...file,
+      id: uid(),
+      uploadedAt: file.uploadedAt || new Date().toISOString(),
+    }));
 
-    const appFile = files.find((f) => f.documentTypeId === 'doc-application');
+    const appFile = files.find((file) => file.documentTypeId === 'doc-application');
     const appExtracted = appFile?.extracted || {};
 
     const values: Application['values'] = {
       ...defaultApplicationValues,
-      'param-trade-name': appExtracted.tradeName || (defaultApplicationValues['param-trade-name'] as string),
-      'param-inn': appExtracted.inn || (defaultApplicationValues['param-inn'] as string),
-      'param-dosage': appExtracted.dosage || (defaultApplicationValues['param-dosage'] as string),
-      'param-dosage-form': appExtracted.dosageForm || (defaultApplicationValues['param-dosage-form'] as string),
-      'param-manufacturer': appExtracted.manufacturer || (defaultApplicationValues['param-manufacturer'] as string),
-      'param-manufacturer-address': appExtracted.manufacturerAddress || (defaultApplicationValues['param-manufacturer-address'] as string),
-      'param-applicant': appExtracted.applicant || (defaultApplicationValues['param-applicant'] as string),
-      'param-holder': appExtracted.holder || (defaultApplicationValues['param-holder'] as string),
+      'param-trade-name': appExtracted.tradeName || defaultApplicationValues['param-trade-name'],
+      'param-trade-name-ru': appExtracted.tradeName || defaultApplicationValues['param-trade-name-ru'],
+      'param-trade-name-kz': appExtracted.tradeName || defaultApplicationValues['param-trade-name-kz'],
+      'param-inn': appExtracted.inn || defaultApplicationValues['param-inn'],
+      'param-inn-ru': appExtracted.inn || defaultApplicationValues['param-inn-ru'],
+      'param-inn-kz': appExtracted.inn || defaultApplicationValues['param-inn-kz'],
+      'param-dosage': appExtracted.dosage || defaultApplicationValues['param-dosage'],
+      'param-dosage-form': defaultApplicationValues['param-dosage-form'],
+      'param-manufacturer': appExtracted.manufacturer || defaultApplicationValues['param-manufacturer'],
+      'param-manufacturer-address': appExtracted.manufacturerAddress || defaultApplicationValues['param-manufacturer-address'],
+      'param-applicant': appExtracted.applicant || defaultApplicationValues['param-applicant'],
+      'param-holder': appExtracted.holder || defaultApplicationValues['param-holder'],
     };
 
     const app: Application = {
       id: uid(),
       createdAt: new Date().toISOString(),
-      status: 'checked',
+      status: 'submitted',
       values,
       files,
       checklist: [],
@@ -52,7 +63,7 @@ export async function POST() {
 
     app.findings = runPreCheck(app);
 
-    return NextResponse.json({ app });
+    return NextResponse.json({ app, scenario, scenarioLabel: demoScenarioLabels[scenario] });
   } catch (err: any) {
     console.error('Seed error:', err);
     return NextResponse.json({ error: err.message || 'Seed failed' }, { status: 500 });

@@ -19,19 +19,19 @@ export default function DemoPage() {
         if (!res.ok) throw new Error((await res.json()).error || 'Seed failed');
         const data = await res.json();
         importApplication(data.app);
-        window.location.href = `/expert?id=${data.app.id}`;
+        window.location.href = `/expert/${data.app.id}`;
       })
       .catch((err) => {
         console.error(err);
         setError(err.message);
       });
-  }, []);
+  }, [importApplication]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="max-w-md">
         <CardHeader>
-          <CardTitle>Генерация демо-заявки через ИИ</CardTitle>
+          <CardTitle>Генерация эталонной демо-заявки</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-3 text-muted-foreground">
           {error ? (
@@ -39,7 +39,7 @@ export default function DemoPage() {
           ) : (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Извлекаю данные из PDF/DOCX через Gemma-4-31B-it и запускаю проверки…</span>
+              <span>Создаю реалистичную заявку ЛС/регистрация, прикладываю DOCX/PDF/XLSX и запускаю проверки…</span>
             </>
           )}
         </CardContent>

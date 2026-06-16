@@ -32,7 +32,7 @@ const baseDocumentTypes: DocumentType[] = [
   { id: 'doc-instruction-kz', name: 'Инструкция / листок-вкладыш (казахский)', acceptedFormats: ['pdf', 'doc', 'docx'], direction: 'LS' },
   { id: 'doc-labeling-text', name: 'Текст маркировки', acceptedFormats: ['pdf', 'docx'], direction: 'LS' },
   { id: 'doc-mockup', name: 'Макеты упаковки', acceptedFormats: ['jpg', 'jpeg', 'png'], direction: 'LS' },
-  { id: 'doc-quality-nd', name: 'Нормативный документ по качеству', acceptedFormats: ['doc', 'docx'], direction: 'LS' },
+  { id: 'doc-quality-nd', name: 'Нормативный документ по качеству', acceptedFormats: ['doc', 'docx', 'xlsx'], direction: 'LS' },
   { id: 'doc-module3', name: 'Модуль 3. Качество', acceptedFormats: ['pdf'], direction: 'LS' },
   { id: 'doc-bioequivalence-report', name: 'Отчет об исследовании биоэквивалентности', acceptedFormats: ['pdf'], direction: 'LS' },
   { id: 'doc-bioequivalence-waiver', name: 'Обоснование отсутствия биоэквивалентности (биовейвер)', acceptedFormats: ['pdf'], direction: 'LS' },

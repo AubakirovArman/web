@@ -2,23 +2,19 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn } from '@/components/shared/motion';
 import { useApplications } from '@/lib/hooks/useApplications';
-import { FindingCard } from '@/components/shared/finding-card';
-import { SeverityBadge } from '@/components/shared/severity-badge';
+import { documentTypes, parameters, productTypeLabels } from '@/lib/data/seed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, AlertCircle, FileText, ArrowLeft, PlayCircle, CheckSquare, RotateCcw, Send, ExternalLink, Eye, Download } from 'lucide-react';
-import { Application, Finding, UploadedFile } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { documentTypes, parameters, productTypeLabels } from '@/lib/data/seed';
+import { Application } from '@/lib/types';
+import { ArrowRight, CheckCircle2, ClipboardList, FileText, Loader2, Search, Sparkles, XCircle } from 'lucide-react';
 
 const statusLabels: Record<Application['status'], string> = {
   draft: 'Черновик',
@@ -29,535 +25,277 @@ const statusLabels: Record<Application['status'], string> = {
 };
 
 export default function ExpertPage() {
-    return (
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Загрузка…</div>}>
-        <ExpertPageInner />
-      </Suspense>
-    );
-  }
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Загрузка…</div>}>
+      <ExpertListPage />
+    </Suspense>
+  );
+}
 
-function ExpertPageInner() {
+function ExpertListPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const { applications, runCheck, updateFinding, updateStatus, setCurrentId } = useApplications();
-  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
-  const [viewingFile, setViewingFile] = useState<UploadedFile | null>(null);
-  const [severityFilter, setSeverityFilter] = useState<Finding['severity'] | 'all'>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const { applications, importApplication, runCheck, setCurrentId } = useApplications();
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'clean' | 'critical' | 'serious' | 'warning'>('all');
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
-    if (applications.length === 0) return;
-    const queryId = searchParams.get('id');
-    const targetId = queryId && applications.some((a) => a.id === queryId) ? queryId : applications[0].id;
-    if (selectedId !== targetId) {
-      setSelectedId(targetId);
-      setCurrentId(targetId);
-    }
-  }, [searchParams, applications, selectedId, setCurrentId]);
+    const legacyId = searchParams.get('id');
+    if (legacyId) router.replace(`/expert/${legacyId}`);
+  }, [router, searchParams]);
 
-  const selectedApp = useMemo(() => applications.find((a) => a.id === selectedId), [applications, selectedId]);
-  const findingCategories = useMemo(
-    () => Array.from(new Set((selectedApp?.findings || []).map((finding) => finding.category))).sort(),
-    [selectedApp]
-  );
-  const filteredFindings = useMemo(() => {
-    const findings = selectedApp?.findings || [];
-    return findings.filter((finding) => {
-      if (severityFilter !== 'all' && finding.severity !== severityFilter) return false;
-      if (categoryFilter !== 'all' && finding.category !== categoryFilter) return false;
-      return true;
+  const rows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return [...applications]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .filter((app) => {
+        if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+        const counts = getFindingCounts(app);
+        if (severityFilter === 'clean' && app.findings.length > 0) return false;
+        if (severityFilter !== 'all' && severityFilter !== 'clean' && counts[severityFilter] === 0) return false;
+        if (!normalizedQuery) return true;
+        const searchable = [
+          app.id,
+          app.values['param-trade-name'],
+          app.values['param-inn'],
+          app.values['param-applicant'],
+          app.values['param-manufacturer'],
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return searchable.includes(normalizedQuery);
+      });
+  }, [applications, query, severityFilter, statusFilter]);
+
+  const totals = useMemo(() => {
+    const submitted = applications.filter((app) => app.status === 'submitted').length;
+    const inReview = applications.filter((app) => app.status === 'expert-review').length;
+    const clean = applications.filter((app) => app.findings.length === 0).length;
+    const withCritical = applications.filter((app) => getFindingCounts(app).critical > 0).length;
+    return { submitted, inReview, clean, withCritical };
+  }, [applications]);
+
+  const seedScenario = async (scenario: string) => {
+    const res = await fetch('/api/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario }),
     });
-  }, [selectedApp, severityFilter, categoryFilter]);
-  const requestText = useMemo(() => buildApplicantRequest(selectedApp, filteredFindings), [selectedApp, filteredFindings]);
-
-  const handleReject = (finding: Finding) => {
-    if (!selectedApp) return;
-    updateFinding(selectedApp.id, finding.id, { accepted: false, status: 'rejected' });
-    toast.success('Замечание отклонено');
+    if (!res.ok) throw new Error((await res.json()).error || 'Seed failed');
+    return res.json();
   };
 
-  const handleAccept = (finding: Finding) => {
-    if (!selectedApp) return;
-    updateFinding(selectedApp.id, finding.id, { accepted: true, status: 'accepted' });
-    toast.success('Замечание принято');
-  };
-
-  const handleNotApplicable = (finding: Finding) => {
-    if (!selectedApp) return;
-    updateFinding(selectedApp.id, finding.id, { accepted: null, status: 'not-applicable' });
-    toast.success('Замечание помечено как неприменимое');
-  };
-
-  const handleCopyRequest = async () => {
-    if (!requestText) return;
+  const handleSeedDemo = async () => {
+    setSeeding(true);
     try {
-      await navigator.clipboard.writeText(requestText);
-      toast.success('Текст запроса скопирован');
-    } catch {
-      toast.success('Текст запроса сформирован');
+      const data = await seedScenario('ideal');
+      importApplication(data.app);
+      setCurrentId(data.app.id);
+      toast.success('Эталонная заявка создана');
+      router.push(`/expert/${data.app.id}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Не удалось создать демо-заявку');
+    } finally {
+      setSeeding(false);
     }
   };
 
-  const handleRunCheck = (id: string) => {
-    runCheck(id);
-    toast.success('Предпроверка выполнена');
+  const handleSeedNegativeScenarios = async () => {
+    setSeeding(true);
+    try {
+      const scenarios = ['missing-gmp', 'expired-cpp', 'field-mismatch', 'bad-docx-format'];
+      const payloads = [];
+      for (const scenario of scenarios) payloads.push(await seedScenario(scenario));
+      payloads.forEach((payload) => importApplication(payload.app));
+      const last = payloads[payloads.length - 1]?.app;
+      if (last) setCurrentId(last.id);
+      toast.success(`Созданы негативные кейсы: ${payloads.length}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Не удалось создать негативные кейсы');
+    } finally {
+      setSeeding(false);
+    }
   };
 
-  const handleStatusChange = (status: Application['status']) => {
-    if (!selectedApp) return;
-    updateStatus(selectedApp.id, status);
-    toast.success(`Статус изменён на «${statusLabels[status]}»`);
+  const handleQuickCheck = (app: Application) => {
+    runCheck(app.id);
+    toast.success('Проверка заявки обновлена');
   };
 
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1 bg-muted/20 py-6">
-        <div className="container mx-auto max-w-7xl px-4">
+        <div className="container mx-auto max-w-[1500px] px-4">
           <FadeIn>
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Кабинет эксперта</h1>
-                <p className="text-sm text-muted-foreground">Предварительные результаты проверки заявок</p>
+                <p className="text-sm text-muted-foreground">Список заявок, статус предэкспертизы и быстрый вход в досье.</p>
               </div>
-              <Button variant="outline" asChild>
-                <Link href="/wizard">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Назад к заявке
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" asChild>
+                  <Link href="/wizard">Создать заявку</Link>
+                </Button>
+                <Button onClick={handleSeedDemo} disabled={seeding}>
+                  {seeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  Эталонная заявка
+                </Button>
+                <Button variant="secondary" onClick={handleSeedNegativeScenarios} disabled={seeding}>
+                  Негативные кейсы
+                </Button>
+              </div>
             </div>
           </FadeIn>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-base">Заявки</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-14rem)]">
-                  <div className="space-y-1 p-2">
-                    {applications.map((app) => {
-                      const critical = app.findings.filter((f) => f.severity === 'critical').length;
-                      const serious = app.findings.filter((f) => f.severity === 'serious').length;
-                      const active = selectedId === app.id;
-                      return (
-                        <button
-                          key={app.id}
-                          onClick={() => {
-                            setSelectedId(app.id);
-                            setCurrentId(app.id);
-                          }}
-                          className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                            active ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="truncate font-medium">{app.values['param-trade-name'] || 'Без названия'}</span>
-                            <Badge variant="secondary">{statusLabels[app.status]}</Badge>
-                          </div>
-                          <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>{productTypeLabels[app.values['param-product-type'] as keyof typeof productTypeLabels] || app.values['param-product-type']}</span>
-                            <span>·</span>
-                            <span>{new Date(app.createdAt).toLocaleDateString('ru-KZ')}</span>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {critical > 0 && (
-                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-100">
-                                Критично: {critical}
-                              </span>
-                            )}
-                            {serious > 0 && (
-                              <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/40 dark:text-orange-100">
-                                Серьезно: {serious}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+          <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Всего заявок" value={applications.length} icon={<ClipboardList className="h-4 w-4" />} />
+            <MetricCard label="Поданы" value={totals.submitted} icon={<FileText className="h-4 w-4" />} />
+            <MetricCard label="На экспертизе" value={totals.inReview} icon={<ArrowRight className="h-4 w-4" />} />
+            <MetricCard label="Без замечаний" value={totals.clean} icon={<CheckCircle2 className="h-4 w-4" />} />
+          </div>
+
+          <Card>
+            <CardHeader className="space-y-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <CardTitle>Заявки</CardTitle>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="relative min-w-[260px]">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по препарату, МНН, заявителю" className="pl-8" />
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            <div className="lg:col-span-2 space-y-6">
-              {selectedApp ? (
-                <>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{selectedApp.values['param-trade-name'] || 'Заявка'}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Тип процедуры" value={labelFor('param-procedure', selectedApp.values['param-procedure'])} />
-                        <Field label="Тип продукта" value={productTypeLabels[selectedApp.values['param-product-type'] as keyof typeof productTypeLabels] || selectedApp.values['param-product-type']} />
-                        <Field label="Лекарственная форма" value={labelFor('param-dosage-form', selectedApp.values['param-dosage-form'])} />
-                        <Field label="Дозировка" value={selectedApp.values['param-dosage']} />
-                        <Field label="МНН" value={selectedApp.values['param-inn']} />
-                        <Field label="Путь введения" value={labelFor('param-administration-route', selectedApp.values['param-administration-route'])} />
-                        <Field label="Форма отпуска" value={labelFor('param-dispensing', selectedApp.values['param-dispensing'])} />
-                        <Field label="Производитель" value={selectedApp.values['param-manufacturer']} />
-                        <Field label="Адрес производства" value={selectedApp.values['param-manufacturer-address']} />
-                        <Field label="Заявитель" value={selectedApp.values['param-applicant']} />
-                      </div>
-                      <Separator />
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button onClick={() => handleRunCheck(selectedApp.id)}>
-                          <PlayCircle className="mr-2 h-4 w-4" />
-                          Перезапустить проверку
-                        </Button>
-                        <Button variant="outline" onClick={() => handleStatusChange('expert-review')}>
-                          <Send className="mr-2 h-4 w-4" />
-                          Взять в работу
-                        </Button>
-                        <Button variant="outline" onClick={() => handleStatusChange('checked')}>
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Вернуть
-                        </Button>
-                        <Badge variant="outline">{statusLabels[selectedApp.status]}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <SummaryCards findings={selectedApp.findings} />
-
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <h2 className="text-lg font-semibold">
-                        Замечания ({filteredFindings.length} из {selectedApp.findings.length})
-                      </h2>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <select
-                          className="h-9 rounded-md border bg-background px-3 text-sm"
-                          value={severityFilter}
-                          onChange={(event) => setSeverityFilter(event.target.value as Finding['severity'] | 'all')}
-                          aria-label="Фильтр по критичности"
-                        >
-                          <option value="all">Все уровни</option>
-                          <option value="critical">Критично</option>
-                          <option value="serious">Серьезно</option>
-                          <option value="warning">Предупреждение</option>
-                          <option value="unknown">Неизвестно</option>
-                        </select>
-                        <select
-                          className="h-9 rounded-md border bg-background px-3 text-sm"
-                          value={categoryFilter}
-                          onChange={(event) => setCategoryFilter(event.target.value)}
-                          aria-label="Фильтр по категории"
-                        >
-                          <option value="all">Все категории</option>
-                          {findingCategories.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
-                        <Button variant="outline" size="sm" onClick={handleCopyRequest} disabled={!requestText}>
-                          Сформировать запрос
-                        </Button>
-                      </div>
-                    </div>
-                    {requestText && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">Черновик запроса заявителю</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs">
-                            {requestText}
-                          </pre>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {selectedApp.findings.length === 0 && (
-                      <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
-                        <CardContent className="flex items-center gap-3 py-6">
-                          <CheckCircle2 className="h-6 w-6 text-green-600" />
-                          <span className="font-medium">Замечаний нет</span>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {filteredFindings.map((finding) => (
-                      <div key={finding.id} className="space-y-3">
-                        <FindingCard finding={finding} />
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant={finding.accepted === true ? 'default' : 'outline'}
-                            onClick={() => handleAccept(finding)}
-                          >
-                            <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                            Принять
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={finding.accepted === false ? 'default' : 'outline'}
-                            onClick={() => handleReject(finding)}
-                          >
-                            <XCircle className="mr-1.5 h-4 w-4" />
-                            Отклонить
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={finding.status === 'not-applicable' ? 'default' : 'outline'}
-                            onClick={() => handleNotApplicable(finding)}
-                          >
-                            Не применимо
-                          </Button>
-                          {finding.accepted === true && <span className="text-xs text-green-600">Принято</span>}
-                          {finding.accepted === false && <span className="text-xs text-muted-foreground">Отклонено</span>}
-                          {finding.status === 'not-applicable' && <span className="text-xs text-muted-foreground">Не применимо</span>}
-                        </div>
-                      </div>
+                  <select className="h-9 rounded-md border bg-background px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as Application['status'] | 'all')}>
+                    <option value="all">Все статусы</option>
+                    {Object.entries(statusLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
                     ))}
-                    {selectedApp.findings.length > 0 && filteredFindings.length === 0 && (
-                      <Card>
-                        <CardContent className="py-6 text-sm text-muted-foreground">
-                          По выбранным фильтрам замечаний нет.
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-
-                  {selectedApp.files.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          Загруженные файлы
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {selectedApp.files.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate font-medium">{file.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {documentTypes.find((d) => d.id === file.documentTypeId)?.name} · {(file.size / 1024).toFixed(1)} КБ
-                              </div>
-                              {file.processing?.extractionStatus && (
-                                <div className="text-xs text-muted-foreground">
-                                  OCR/LLM: {file.processing.extractionStatus} · hash {file.hash?.slice(0, 10) || '—'}
-                                </div>
-                              )}
+                  </select>
+                  <select className="h-9 rounded-md border bg-background px-3 text-sm" value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value as typeof severityFilter)}>
+                    <option value="all">Все результаты</option>
+                    <option value="clean">Без замечаний</option>
+                    <option value="critical">Есть критичные</option>
+                    <option value="serious">Есть серьёзные</option>
+                    <option value="warning">Есть предупреждения</option>
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Заявка</TableHead>
+                    <TableHead>Тип / процедура</TableHead>
+                    <TableHead>Заявитель</TableHead>
+                    <TableHead>Документы</TableHead>
+                    <TableHead>Проверки</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead className="text-right">Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((app) => {
+                    const counts = getFindingCounts(app);
+                    const clean = app.findings.length === 0;
+                    return (
+                      <TableRow key={app.id}>
+                        <TableCell className="min-w-[260px] whitespace-normal">
+                          <div className="font-medium">{app.values['param-trade-name'] || 'Без названия'}</div>
+                          <div className="text-xs text-muted-foreground">{app.values['param-inn'] || 'МНН не указан'} · {new Date(app.createdAt).toLocaleString('ru-KZ')}</div>
+                        </TableCell>
+                        <TableCell className="min-w-[210px] whitespace-normal">
+                          <div>{objectLabel(app)} · {labelFor('param-procedure', app.values['param-procedure'])}</div>
+                          <div className="text-xs text-muted-foreground">{productTypeLabels[app.values['param-product-type'] as keyof typeof productTypeLabels] || app.values['param-product-type'] || '—'}</div>
+                        </TableCell>
+                        <TableCell className="min-w-[220px] whitespace-normal">
+                          <div>{app.values['param-applicant'] || '—'}</div>
+                          <div className="text-xs text-muted-foreground">{app.values['param-manufacturer'] || '—'}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{app.files.length} файлов</Badge>
+                        </TableCell>
+                        <TableCell className="min-w-[240px] whitespace-normal">
+                          {clean ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-100">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Без замечаний
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {counts.critical > 0 && <Badge className="bg-red-600">Критично {counts.critical}</Badge>}
+                              {counts.serious > 0 && <Badge className="bg-orange-600">Серьёзно {counts.serious}</Badge>}
+                              {counts.warning > 0 && <Badge variant="secondary">Предупр. {counts.warning}</Badge>}
                             </div>
-                            <Button variant="outline" size="sm" onClick={() => setViewingFile(file)}>
-                              <Eye className="mr-1.5 h-3.5 w-3.5" />
-                              Просмотр
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={app.status === 'submitted' || app.status === 'expert-review' ? 'default' : 'secondary'}>{statusLabels[app.status]}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleQuickCheck(app)}>
+                              Проверить
+                            </Button>
+                            <Button size="sm" asChild>
+                              <Link href={`/expert/${app.id}`}>
+                                Открыть
+                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                              </Link>
                             </Button>
                           </div>
-                        ))}
-                      </CardContent>
-                    </Card>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                        <XCircle className="mx-auto mb-2 h-6 w-6" />
+                        Заявки по выбранным фильтрам не найдены.
+                      </TableCell>
+                    </TableRow>
                   )}
-
-                  {viewingFile && (
-                    <DocumentViewer file={viewingFile} onClose={() => setViewingFile(null)} />
-                  )}
-                </>
-              ) : (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                    <AlertCircle className="mb-4 h-10 w-10" />
-                    <p>Выберите заявку из списка</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
   );
 }
 
-function DocumentViewer({ file, onClose }: { file: UploadedFile; onClose: () => void }) {
-  const [text, setText] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!file.url) return;
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    const txtUrl = `${file.url}.txt`;
-    if (['pdf', 'docx', 'doc'].includes(ext || '')) {
-      setLoading(true);
-      fetch(txtUrl)
-        .then((res) => (res.ok ? res.text() : Promise.reject()))
-        .then(setText)
-        .catch(() => setText(null))
-        .finally(() => setLoading(false));
-    }
-  }, [file]);
-
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  const isPdf = ext === 'pdf';
-  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '');
-  const docName = documentTypes.find((d) => d.id === file.documentTypeId)?.name;
-  const defaultTab = text ? 'text' : 'preview';
-
+function MetricCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl w-full h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-4 pt-4 pb-2">
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            {file.name}
-          </DialogTitle>
-          <DialogDescription>
-            {docName} · {(file.size / 1024).toFixed(1)} КБ
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 min-h-0 border-t">
-          {file.url ? (
-            <Tabs defaultValue={defaultTab} className="h-full flex flex-col">
-              <TabsList className="mx-4 mt-2">
-                {(isPdf || isImage) && <TabsTrigger value="preview">{isPdf ? 'Документ' : 'Изображение'}</TabsTrigger>}
-                {text && <TabsTrigger value="text">Текст</TabsTrigger>}
-                <TabsTrigger value="data">Извлечённые данные</TabsTrigger>
-              </TabsList>
-              {isPdf && (
-                <TabsContent value="preview" className="flex-1 min-h-0 p-0">
-                  <iframe src={file.url} className="w-full h-full border-0" title={file.name} />
-                </TabsContent>
-              )}
-              {isImage && (
-                <TabsContent value="preview" className="flex-1 min-h-0 overflow-auto p-4">
-                  <img src={file.url} alt={file.name} className="max-w-full rounded-md border" />
-                </TabsContent>
-              )}
-              {text && (
-                <TabsContent value="text" className="flex-1 min-h-0 overflow-auto p-4">
-                  {loading ? (
-                    <p className="text-sm text-muted-foreground">Загрузка текста…</p>
-                  ) : (
-                    <pre className="whitespace-pre-wrap text-sm">{text}</pre>
-                  )}
-                </TabsContent>
-              )}
-              <TabsContent value="data" className="flex-1 min-h-0 overflow-auto p-4">
-                <ExtractedData file={file} />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="p-4">
-              <ExtractedData file={file} />
-            </div>
-          )}
+    <Card>
+      <CardContent className="flex items-center justify-between p-4">
+        <div>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-2xl font-semibold">{value}</p>
         </div>
-        <div className="border-t p-3 flex items-center justify-end gap-2 bg-muted/50">
-          {file.url && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={file.url} target="_blank" rel="noopener noreferrer" download>
-                <Download className="mr-1.5 h-4 w-4" />
-                Скачать
-              </a>
-            </Button>
-          )}
-          <Button size="sm" onClick={onClose}>Закрыть</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        <div className="rounded-full bg-primary/10 p-2 text-primary">{icon}</div>
+      </CardContent>
+    </Card>
   );
 }
 
-function buildApplicantRequest(app: Application | undefined, findings: Finding[]): string {
-  if (!app || findings.length === 0) return '';
-  const actionable = findings.filter((finding) => finding.status !== 'not-applicable' && finding.accepted !== false);
-  if (actionable.length === 0) return '';
-  const title = app.values['param-trade-name'] || app.id;
-  const lines = actionable.map((finding, index) => {
-    const docs = finding.documents.length ? ` Документы: ${finding.documents.join(', ')}.` : '';
-    const npa = finding.npaReference ? ` НПА: ${finding.npaReference}.` : '';
-    return `${index + 1}. ${finding.title}\n${finding.description}${docs}${npa}\nРекомендация: ${finding.recommendation}`;
-  });
-  return [`Запрос по заявке: ${title}`, '', ...lines].join('\n');
+function getFindingCounts(app: Application) {
+  return {
+    critical: app.findings.filter((finding) => finding.severity === 'critical').length,
+    serious: app.findings.filter((finding) => finding.severity === 'serious').length,
+    warning: app.findings.filter((finding) => finding.severity === 'warning').length,
+    unknown: app.findings.filter((finding) => finding.severity === 'unknown').length,
+  };
 }
 
-function ExtractedData({ file }: { file: UploadedFile }) {
-  if (!file.extracted || Object.keys(file.extracted).length === 0) {
-    return (
-      <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-        <p>Для этого документа не сформированы извлечённые поля.</p>
-        <p className="mt-1">
-          Если файл был загружен вручную, поля появятся после распознавания. Для демо-документов некоторые
-          вспомогательные файлы могут не содержать структурированных данных.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Meta label="Hash" value={file.hash} />
-        <Meta label="Версия" value={file.version ? String(file.version) : undefined} />
-        <Meta label="Загружен" value={file.uploadedAt ? new Date(file.uploadedAt).toLocaleString('ru-KZ') : undefined} />
-        <Meta label="Статус извлечения" value={file.processing?.extractionStatus} />
-        <Meta label="Provider" value={file.processing?.provider} />
-        <Meta label="Prompt" value={file.processing?.promptVersion} />
-      </div>
-      <Separator />
-      <div className="grid gap-2 sm:grid-cols-2">
-        {Object.entries(file.extracted).map(([key, value]) => (
-          <div key={key} className="rounded-md border p-2">
-            <p className="text-xs text-muted-foreground uppercase">{key}</p>
-            <p className="text-sm">{value}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Meta({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="rounded-md border bg-muted/30 p-2">
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
-      <p className="break-all text-sm">{value || '—'}</p>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value?: string | string[] }) {
-  const display = Array.isArray(value) ? value.join(', ') : value || '—';
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium">{display}</p>
-    </div>
-  );
+function objectLabel(app: Application) {
+  return app.values['param-object-type'] === 'MI' ? 'МИ' : 'ЛС';
 }
 
 function labelFor(parameterId: string, value?: string | string[]) {
   if (Array.isArray(value)) return value.join(', ');
-  const param = parameters.find((p) => p.id === parameterId);
-  return param?.options?.find((o) => o.value === value)?.label || value || '—';
-}
-
-function SummaryCards({ findings }: { findings: Finding[] }) {
-  const counts = useMemo(() => {
-    return {
-      critical: findings.filter((f) => f.severity === 'critical').length,
-      serious: findings.filter((f) => f.severity === 'serious').length,
-      warning: findings.filter((f) => f.severity === 'warning').length,
-      unknown: findings.filter((f) => f.severity === 'unknown').length,
-    };
-  }, [findings]);
-
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <CountCard label="Критично" count={counts.critical} color="text-red-600" bg="bg-red-50 dark:bg-red-950/20" />
-      <CountCard label="Серьезно" count={counts.serious} color="text-orange-600" bg="bg-orange-50 dark:bg-orange-950/20" />
-      <CountCard label="Предупреждения" count={counts.warning} color="text-yellow-600" bg="bg-yellow-50 dark:bg-yellow-950/20" />
-      <CountCard label="Неизвестно" count={counts.unknown} color="text-slate-600" bg="bg-slate-50 dark:bg-slate-800" />
-    </div>
-  );
-}
-
-function CountCard({ label, count, color, bg }: { label: string; count: number; color: string; bg: string }) {
-  return (
-    <div className={`rounded-xl border p-4 ${bg}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-bold ${color}`}>{count}</p>
-    </div>
-  );
+  const param = parameters.find((item) => item.id === parameterId);
+  return param?.options?.find((option) => option.value === value)?.label || value || '—';
 }

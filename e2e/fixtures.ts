@@ -47,3 +47,18 @@ export async function openWizard(page: Page) {
   await page.goto('/wizard');
   await expect(page.getByRole('heading', { name: 'Создание заявки' })).toBeVisible();
 }
+
+export async function seedApplications(page: Page, apps: unknown[]) {
+  await page.addInitScript((seedApps) => {
+    window.localStorage.setItem('ndda-applications-v3', JSON.stringify(seedApps));
+    window.localStorage.setItem('theme', 'light');
+  }, apps);
+}
+
+export async function seedApiApplication(page: Page, scenario: string = 'ideal') {
+  const response = await page.request.post('/api/seed', { data: { scenario } });
+  expect(response.ok()).toBeTruthy();
+  const payload = await response.json();
+  await seedApplications(page, [payload.app]);
+  return payload.app;
+}
