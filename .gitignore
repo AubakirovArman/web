@@ -25,6 +25,30 @@
 .reference-postgres/
 data/reference/generated/
 
+# private real dossiers and generated local imports
+/real-dossiers/
+/private-dossiers/
+/data/real-dossiers/
+/data/private-dossiers/
+/public/real-dossiers/
+/public/private-dossiers/
+/tmp/real-dossiers/
+/tmp/private-dossiers/
+/lib/data/realDossier*.ts
+/lib/data/real-dossier*.ts
+/scripts/*real*dossier*
+/scripts/*Real*Dossier*
+**/Регистрационное досье/
+**/Регистрационное*досье*/
+**/Названия файлов по ID.xlsx
+**/*real*dossier*.json
+**/*real*dossier*.csv
+**/*real*dossier*.xlsx
+**/*private*dossier*.json
+**/*private*dossier*.csv
+**/*private*dossier*.xlsx
+*.rar
+
 # debug
 npm-debug.log*
 yarn-debug.log*
