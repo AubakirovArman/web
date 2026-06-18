@@ -113,6 +113,8 @@ function statusLabel(status: NonNullable<Finding['status']>) {
     open: 'Открыто',
     accepted: 'Принято',
     rejected: 'Отклонено',
+    'false-positive': 'Ложное срабатывание',
+    'needs-clarification': 'Нужно уточнение',
     'not-applicable': 'Не применимо',
     resolved: 'Закрыто',
   };

@@ -45,12 +45,25 @@ export interface DocumentTypeRequirement {
   sourcePoint?: string;
   quote?: string;
   importedAt?: string;
+  checkerMode?: string;
+  checkTarget?: string[];
+  linkedApplicationFields?: string[];
+  missingApplicationFields?: string[];
+  relatedDocumentCodes?: string[];
+  expectedCheckerInputs?: string[];
+  applicabilityGateRequired?: boolean;
+  aggregateByDossierSectionCode?: boolean;
+  decisionLogic?: string;
 }
 
 export interface DocumentType {
   id: string;
   name: string;
   description?: string;
+  docCode?: string;
+  modulePart?: string;
+  sourceStructure?: string;
+  dossierVariant?: string;
   acceptedFormats: string[];
   direction: 'LS' | 'MI' | 'both';
   requiredLanguages?: string[];
@@ -64,6 +77,10 @@ export interface DocumentType {
   checkIds?: string[];
   npaReferences?: string[];
   requirednessExplanation?: string;
+  requiredWhenExpression?: string;
+  linkedApplicationParams?: string[];
+  severityIfMissing?: Severity;
+  validationChecksText?: string;
   importedRequirements?: DocumentTypeRequirement[];
 }
 
@@ -140,6 +157,9 @@ export interface FileProcessingMetadata {
   errors?: string[];
   textLayer?: boolean;
   ocrQuality?: number;
+  pageCount?: number;
+  imagePages?: number;
+  textChars?: number;
 }
 
 export interface UploadedFile {
@@ -148,6 +168,15 @@ export interface UploadedFile {
   size: number;
   documentTypeId: string;
   contentType: string;
+  source?: 'manual' | 'demo' | 'dossier-folder';
+  originalName?: string;
+  relativePath?: string;
+  dossierSectionId?: string;
+  dossierSectionCode?: string;
+  dossierSectionName?: string;
+  dossierFolderName?: string;
+  dossierMappingConfidence?: number;
+  dossierMappingReason?: string;
   extracted?: Record<string, string>;
   url?: string;
   hash?: string;
@@ -160,9 +189,37 @@ export interface UploadedFile {
   textLayer?: boolean;
   ocrQuality?: number;
   processing?: FileProcessingMetadata;
+  npaRequirementResults?: DocumentRequirementCheckResult[];
 }
 
-export type FindingStatus = 'open' | 'accepted' | 'rejected' | 'not-applicable' | 'resolved';
+export type DocumentRequirementCheckStatus = 'passed' | 'failed' | 'uncertain' | 'not_applicable' | 'skipped';
+
+export interface DocumentRequirementCheckResult {
+  requirementId: string;
+  status: DocumentRequirementCheckStatus;
+  requirementText?: string;
+  evidence?: string;
+  comment?: string;
+  confidence?: number;
+  checkedAt: string;
+  provider?: string;
+  sourcePoint?: string;
+  bundleKey?: string;
+  dossierSectionCode?: string;
+  documentTypeId?: string;
+  fileIds?: string[];
+  fileNames?: string[];
+  coverage?: 'single_file' | 'multi_file' | 'none';
+}
+
+export type FindingStatus =
+  | 'open'
+  | 'accepted'
+  | 'rejected'
+  | 'false-positive'
+  | 'needs-clarification'
+  | 'not-applicable'
+  | 'resolved';
 
 export interface FindingEvidence {
   source: string;

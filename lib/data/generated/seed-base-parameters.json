@@ -1,0 +1,634 @@
+[
+  {
+    "id": "param-object-type",
+    "label": "Тип объекта",
+    "type": "select",
+    "options": [
+      {
+        "value": "LS",
+        "label": "Лекарственное средство"
+      },
+      {
+        "value": "MI",
+        "label": "Медицинское изделие"
+      }
+    ]
+  },
+  {
+    "id": "param-procedure",
+    "label": "Тип процедуры",
+    "type": "select",
+    "options": [
+      {
+        "value": "registration",
+        "label": "Регистрация"
+      },
+      {
+        "value": "re-registration",
+        "label": "Перерегистрация"
+      },
+      {
+        "value": "variation",
+        "label": "Внесение изменений"
+      }
+    ]
+  },
+  {
+    "id": "param-dossier-type",
+    "label": "Структура досье",
+    "type": "select",
+    "options": [
+      {
+        "value": "ctd",
+        "label": "CTD / Приложение 3"
+      },
+      {
+        "value": "domestic",
+        "label": "Нац. комплект / Приложение 2"
+      }
+    ]
+  },
+  {
+    "id": "param-manufacturer-country",
+    "label": "Страна производителя",
+    "type": "select",
+    "options": [
+      {
+        "value": "KZ",
+        "label": "Казахстан"
+      },
+      {
+        "value": "RU",
+        "label": "Россия"
+      },
+      {
+        "value": "BY",
+        "label": "Беларусь"
+      },
+      {
+        "value": "AM",
+        "label": "Армения"
+      },
+      {
+        "value": "KG",
+        "label": "Кыргызстан"
+      },
+      {
+        "value": "other",
+        "label": "Другая страна"
+      }
+    ]
+  },
+  {
+    "id": "param-expertise-mode",
+    "label": "Режим экспертизы",
+    "type": "select",
+    "options": [
+      {
+        "value": "standard",
+        "label": "Обычная"
+      },
+      {
+        "value": "accelerated",
+        "label": "Ускоренная"
+      },
+      {
+        "value": "conditional",
+        "label": "Условная / исключительные случаи"
+      },
+      {
+        "value": "who-joint",
+        "label": "Совместная / ВОЗ"
+      }
+    ]
+  },
+  {
+    "id": "param-product-type",
+    "label": "Тип лекарственного средства",
+    "type": "select",
+    "options": [
+      {
+        "value": "original",
+        "label": "Оригинальный"
+      },
+      {
+        "value": "generic",
+        "label": "Воспроизведенный (generic)"
+      },
+      {
+        "value": "hybrid",
+        "label": "Гибридный"
+      },
+      {
+        "value": "biological",
+        "label": "Биологический"
+      },
+      {
+        "value": "biosimilar",
+        "label": "Биоаналогичный (биосимиляр)"
+      },
+      {
+        "value": "vaccine",
+        "label": "Вакцина"
+      },
+      {
+        "value": "herbal",
+        "label": "Растительный препарат"
+      },
+      {
+        "value": "homeopathic",
+        "label": "Гомеопатический препарат"
+      },
+      {
+        "value": "radiopharmaceutical",
+        "label": "Радиофармацевтический препарат"
+      },
+      {
+        "value": "orphan",
+        "label": "Орфанный препарат"
+      },
+      {
+        "value": "blood",
+        "label": "Препарат крови / плазмы"
+      },
+      {
+        "value": "well-established",
+        "label": "Препарат с хорошо изученным применением"
+      },
+      {
+        "value": "advanced-therapy",
+        "label": "Препарат передовой терапии"
+      }
+    ]
+  },
+  {
+    "id": "param-trade-name",
+    "label": "Торговое наименование",
+    "type": "text"
+  },
+  {
+    "id": "param-inn",
+    "label": "МНН",
+    "type": "text"
+  },
+  {
+    "id": "param-dosage-form",
+    "label": "Лекарственная форма",
+    "type": "select",
+    "options": [
+      {
+        "value": "tablets",
+        "label": "Таблетки"
+      },
+      {
+        "value": "film-coated-tablets",
+        "label": "Таблетки, покрытые пленочной оболочкой"
+      },
+      {
+        "value": "capsules",
+        "label": "Капсулы"
+      },
+      {
+        "value": "solution",
+        "label": "Раствор"
+      },
+      {
+        "value": "powder",
+        "label": "Порошок"
+      },
+      {
+        "value": "injection",
+        "label": "Раствор для инъекций"
+      }
+    ]
+  },
+  {
+    "id": "param-dosage",
+    "label": "Дозировка",
+    "type": "text"
+  },
+  {
+    "id": "param-administration-route",
+    "label": "Путь введения",
+    "type": "select",
+    "options": [
+      {
+        "value": "oral",
+        "label": "Перорально"
+      },
+      {
+        "value": "parenteral",
+        "label": "Парентерально"
+      },
+      {
+        "value": "topical",
+        "label": "Местно"
+      },
+      {
+        "value": "inhalation",
+        "label": "Ингаляционно"
+      }
+    ]
+  },
+  {
+    "id": "param-dispensing",
+    "label": "Форма отпуска в стране заявителя",
+    "type": "select",
+    "options": [
+      {
+        "value": "otc",
+        "label": "Без рецепта"
+      },
+      {
+        "value": "prescription",
+        "label": "По рецепту"
+      },
+      {
+        "value": "hospital",
+        "label": "Для стационаров"
+      }
+    ]
+  },
+  {
+    "id": "param-sterile",
+    "label": "Стерильный препарат",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-aseptic",
+    "label": "Асептическое производство",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-bioequivalence-required",
+    "label": "Требуется биоэквивалентность",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-lab-testing-required",
+    "label": "Требуются лабораторные испытания / образцы",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-clinical-studies",
+    "label": "Есть клинические исследования",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-additional-monitoring",
+    "label": "Препарат требует дополнительного мониторинга безопасности",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-reference-product",
+    "label": "Референтный / оригинальный препарат",
+    "type": "textarea"
+  },
+  {
+    "id": "param-contains-gmo",
+    "label": "Содержит или получен из ГМО",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-human-animal-origin",
+    "label": "Вещества человеческого / животного происхождения",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-applicant",
+    "label": "Заявитель",
+    "type": "text"
+  },
+  {
+    "id": "param-holder",
+    "label": "Держатель регистрационного удостоверения",
+    "type": "text"
+  },
+  {
+    "id": "param-manufacturer",
+    "label": "Производитель",
+    "type": "text"
+  },
+  {
+    "id": "param-manufacturer-address",
+    "label": "Адрес производственной площадки",
+    "type": "text"
+  },
+  {
+    "id": "param-registration-number",
+    "label": "Номер регистрационного удостоверения",
+    "type": "text"
+  },
+  {
+    "id": "param-variation-class",
+    "label": "Класс изменений",
+    "type": "select",
+    "options": [
+      {
+        "value": "IA",
+        "label": "IA"
+      },
+      {
+        "value": "IB",
+        "label": "IB"
+      },
+      {
+        "value": "II",
+        "label": "II"
+      }
+    ]
+  },
+  {
+    "id": "param-variation-code",
+    "label": "Код изменения по классификатору",
+    "type": "text"
+  },
+  {
+    "id": "param-variation-area",
+    "label": "Область изменений",
+    "type": "select",
+    "options": [
+      {
+        "value": "spc",
+        "label": "ОХЛП / инструкция"
+      },
+      {
+        "value": "labeling",
+        "label": "Маркировка / макет"
+      },
+      {
+        "value": "quality",
+        "label": "Качество / НДК / Модуль 3"
+      },
+      {
+        "value": "manufacturing",
+        "label": "Производство / GMP"
+      },
+      {
+        "value": "pharmacovigilance",
+        "label": "Фармаконадзор / ПУР"
+      }
+    ]
+  },
+  {
+    "id": "param-variation-old-value",
+    "label": "Текущее (старое) значение",
+    "type": "text"
+  },
+  {
+    "id": "param-variation-new-value",
+    "label": "Планируемое (новое) значение",
+    "type": "text"
+  },
+  {
+    "id": "param-mi-risk-class",
+    "label": "Класс риска медицинского изделия",
+    "type": "select",
+    "options": [
+      {
+        "value": "I",
+        "label": "I"
+      },
+      {
+        "value": "IIa",
+        "label": "IIa"
+      },
+      {
+        "value": "IIb",
+        "label": "IIb"
+      },
+      {
+        "value": "III",
+        "label": "III"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-type",
+    "label": "Тип медицинского изделия",
+    "type": "select",
+    "options": [
+      {
+        "value": "diagnostic",
+        "label": "Диагностическое"
+      },
+      {
+        "value": "therapeutic",
+        "label": "Терапевтическое"
+      },
+      {
+        "value": "surgical",
+        "label": "Хирургическое"
+      },
+      {
+        "value": "ivd",
+        "label": "IVD (in vitro)"
+      },
+      {
+        "value": "implantable",
+        "label": "Имплантируемое"
+      },
+      {
+        "value": "software",
+        "label": "Программное обеспечение"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-sterile",
+    "label": "Стерильное изделие",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-measuring",
+    "label": "Является средством измерения",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-ivd",
+    "label": "Изделие для диагностики in vitro",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-implantable",
+    "label": "Имплантируемое изделие",
+    "type": "select",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-registration-number",
+    "label": "Номер регистрационного удостоверения МИ",
+    "type": "text"
+  },
+  {
+    "id": "param-mi-variation-class",
+    "label": "Класс изменений МИ",
+    "type": "select",
+    "options": [
+      {
+        "value": "IA",
+        "label": "IA"
+      },
+      {
+        "value": "IB",
+        "label": "IB"
+      },
+      {
+        "value": "II",
+        "label": "II"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-variation-area",
+    "label": "Область изменений МИ",
+    "type": "select",
+    "options": [
+      {
+        "value": "labeling",
+        "label": "Маркировка / инструкция"
+      },
+      {
+        "value": "quality",
+        "label": "Качество / дизайн"
+      },
+      {
+        "value": "manufacturing",
+        "label": "Производство / СМК"
+      },
+      {
+        "value": "software",
+        "label": "ПО"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-variation-old-value",
+    "label": "Текущее значение (МИ)",
+    "type": "text"
+  },
+  {
+    "id": "param-mi-variation-new-value",
+    "label": "Новое значение (МИ)",
+    "type": "text"
+  }
+]

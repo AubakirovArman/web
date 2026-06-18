@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { extractDocument, extractDocumentFromBuffer } from '@/lib/ai/extract';
+import { readRuntimeUpload } from '@/lib/files/runtime-upload-store';
 
 function buildExtractionResponse(extracted: Record<string, string>) {
   const status = extracted.extractionStatus || (Object.keys(extracted).length > 0 ? 'success' : 'partial');
@@ -35,9 +37,16 @@ export async function POST(req: NextRequest) {
     }
 
     // JSON path used internally for seed/demo workflows
-    const { fileName, documentTypeId } = await req.json();
-    if (!fileName || !documentTypeId) {
-      return NextResponse.json({ error: 'fileName and documentTypeId are required' }, { status: 400 });
+    const { fileName, fileId, documentTypeId } = await req.json();
+    if (!documentTypeId || (!fileName && !fileId)) {
+      return NextResponse.json({ error: 'fileName/fileId and documentTypeId are required' }, { status: 400 });
+    }
+
+    if (fileId) {
+      const { metadata, filePath } = await readRuntimeUpload(fileId);
+      const buffer = await fs.readFile(filePath);
+      const extracted = await extractDocumentFromBuffer(buffer, metadata.fileName, documentTypeId);
+      return NextResponse.json(buildExtractionResponse(extracted));
     }
 
     const safeName = path.basename(fileName);
@@ -51,13 +60,13 @@ export async function POST(req: NextRequest) {
       {
         extracted: {},
         status: 'failed',
-        provider: 'local-parser',
+        provider: 'document-parser-service',
         promptVersion: 'unknown',
         errors: [err.message || 'Extraction failed'],
         textLayer: false,
         ocrQuality: 0,
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }

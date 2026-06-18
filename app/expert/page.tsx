@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Application } from '@/lib/types';
-import { ArrowRight, CheckCircle2, ClipboardList, FileText, Loader2, Search, Sparkles, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ClipboardList, FileText, Loader2, Search, Sparkles, Trash2, XCircle } from 'lucide-react';
 
 const statusLabels: Record<Application['status'], string> = {
   draft: 'Черновик',
@@ -35,7 +35,7 @@ export default function ExpertPage() {
 function ExpertListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { applications, importApplication, runCheck, setCurrentId } = useApplications();
+  const { applications, importApplication, deleteApplication, runCheck, setCurrentId } = useApplications();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'clean' | 'critical' | 'serious' | 'warning'>('all');
@@ -58,8 +58,8 @@ function ExpertListPage() {
         if (!normalizedQuery) return true;
         const searchable = [
           app.id,
-          app.values['param-trade-name'],
-          app.values['param-inn'],
+          getApplicationTitle(app),
+          getApplicationInn(app),
           app.values['param-applicant'],
           app.values['param-manufacturer'],
         ]
@@ -125,11 +125,23 @@ function ExpertListPage() {
     toast.success('Проверка заявки обновлена');
   };
 
+  const handleDeleteApplication = async (app: Application) => {
+    const title = getApplicationTitle(app) || app.id;
+    if (!window.confirm(`Удалить заявку «${title}»?`)) return;
+
+    try {
+      await deleteApplication(app.id);
+      toast.success('Заявка удалена');
+    } catch (err: any) {
+      toast.error(err?.message || 'Не удалось удалить заявку');
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1 bg-muted/20 py-6">
-        <div className="container mx-auto max-w-[1500px] px-4">
+        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4">
           <FadeIn>
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -203,8 +215,8 @@ function ExpertListPage() {
                     return (
                       <TableRow key={app.id}>
                         <TableCell className="min-w-[260px] whitespace-normal">
-                          <div className="font-medium">{app.values['param-trade-name'] || 'Без названия'}</div>
-                          <div className="text-xs text-muted-foreground">{app.values['param-inn'] || 'МНН не указан'} · {new Date(app.createdAt).toLocaleString('ru-KZ')}</div>
+                          <div className="font-medium">{getApplicationTitle(app) || 'Без названия'}</div>
+                          <div className="text-xs text-muted-foreground">{getApplicationInn(app) || 'МНН не указан'} · {new Date(app.createdAt).toLocaleString('ru-KZ')}</div>
                         </TableCell>
                         <TableCell className="min-w-[210px] whitespace-normal">
                           <div>{objectLabel(app)} · {labelFor('param-procedure', app.values['param-procedure'])}</div>
@@ -243,6 +255,10 @@ function ExpertListPage() {
                                 Открыть
                                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                               </Link>
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteApplication(app)}>
+                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                              Удалить
                             </Button>
                           </div>
                         </TableCell>
@@ -298,4 +314,25 @@ function labelFor(parameterId: string, value?: string | string[]) {
   if (Array.isArray(value)) return value.join(', ');
   const param = parameters.find((item) => item.id === parameterId);
   return param?.options?.find((option) => option.value === value)?.label || value || '—';
+}
+
+function getApplicationTitle(app: { values: Record<string, string | string[] | undefined> }): string {
+  return stringField(app.values['param-trade-name-ru']) ||
+    stringField(app.values['param-trade-name-kz']) ||
+    stringField(app.values['param-trade-name-en']) ||
+    stringField(app.values['param-trade-name']) ||
+    stringField(app.values['param-mi-name-ru']) ||
+    stringField(app.values['param-mi-name-kz']) ||
+    stringField(app.values['param-mi-name-en']);
+}
+
+function getApplicationInn(app: { values: Record<string, string | string[] | undefined> }): string {
+  return stringField(app.values['param-inn-ru']) ||
+    stringField(app.values['param-inn-kz']) ||
+    stringField(app.values['param-inn-en']) ||
+    stringField(app.values['param-inn']);
+}
+
+function stringField(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value.join(', ') : value || '';
 }

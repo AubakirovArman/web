@@ -5,7 +5,7 @@ const RULES_STORAGE_KEY = 'ndda-rules-v1';
 
 function normalizeRule(rule: Partial<Rule>): Rule | null {
   const seed = seedRules.find((item) => item.id === rule.id);
-  const source = seed ? { ...seed, ...rule } : rule;
+  const source = seed ? { ...rule, ...seed, active: rule.active ?? seed.active ?? true } : rule;
 
   if (!source.id || !source.name) return null;
 
@@ -13,12 +13,7 @@ function normalizeRule(rule: Partial<Rule>): Rule | null {
     id: source.id,
     name: source.name,
     conditions: Array.isArray(source.conditions) ? source.conditions : [],
-    requiredDocuments: Array.isArray(source.requiredDocuments)
-      ? source.requiredDocuments.map((doc) => {
-          const seedDoc = seed?.requiredDocuments.find((item) => item.documentTypeId === doc.documentTypeId);
-          return seedDoc ? { ...seedDoc, ...doc } : doc;
-        })
-      : [],
+    requiredDocuments: Array.isArray(source.requiredDocuments) ? source.requiredDocuments : [],
     sourceNpaId: source.sourceNpaId,
     sources: Array.isArray(source.sources) ? source.sources : seed?.sources,
     active: source.active ?? true,

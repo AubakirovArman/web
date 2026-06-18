@@ -1,0 +1,481 @@
+[
+  {
+    "id": "doc-application",
+    "name": "Заявление на экспертизу",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "both"
+  },
+  {
+    "id": "doc-payment",
+    "name": "Документ об оплате",
+    "acceptedFormats": [
+      "pdf",
+      "jpg",
+      "png"
+    ],
+    "direction": "both"
+  },
+  {
+    "id": "doc-cover-letter",
+    "name": "Сопроводительное письмо",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "both"
+  },
+  {
+    "id": "doc-registration-dossier",
+    "name": "Регистрационное досье (модули 1–5 / Части I–IV)",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-samples",
+    "name": "Образцы препарата / стандартные образцы / реагенты",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-cpp",
+    "name": "Сертификат фармацевтического продукта (CPP) / регистрация в стране-производителе",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-gmp",
+    "name": "GMP-сертификат или ссылка на GMP-реестр",
+    "acceptedFormats": [
+      "pdf",
+      "jpg"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-manufacturing-license",
+    "name": "Лицензия на производство",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-foreign-registrations",
+    "name": "Сведения о регистрации в других странах",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-trademark",
+    "name": "Охранный документ на товарный знак",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-spc-ru",
+    "name": "ОХЛП (русский)",
+    "acceptedFormats": [
+      "pdf",
+      "doc",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-spc-kz",
+    "name": "ОХЛП (казахский)",
+    "acceptedFormats": [
+      "pdf",
+      "doc",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-instruction-ru",
+    "name": "Инструкция / листок-вкладыш (русский)",
+    "acceptedFormats": [
+      "pdf",
+      "doc",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-instruction-kz",
+    "name": "Инструкция / листок-вкладыш (казахский)",
+    "acceptedFormats": [
+      "pdf",
+      "doc",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-labeling-text",
+    "name": "Текст маркировки",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-mockup",
+    "name": "Макеты упаковки",
+    "acceptedFormats": [
+      "jpg"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-quality-nd",
+    "name": "Нормативный документ по качеству",
+    "acceptedFormats": [
+      "doc",
+      "docx",
+      "xlsx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-module3",
+    "name": "Модуль 3. Качество",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-bioequivalence-report",
+    "name": "Отчет об исследовании биоэквивалентности",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-bioequivalence-waiver",
+    "name": "Обоснование отсутствия биоэквивалентности (биовейвер)",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-risk-management",
+    "name": "План управления рисками (ПУР)",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-pharmacovigilance-master",
+    "name": "Мастер-файл системы фармаконадзора",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-pharmacovigilance-contact",
+    "name": "Документ о контактном лице по фармаконадзору",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-generic-summary",
+    "name": "Резюме обоснования воспроизведенного/гибридного/биоаналогичного препарата",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-spc-comparison",
+    "name": "Построчное сравнение ОХЛП/инструкции с референтным препаратом",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-stability",
+    "name": "Данные по стабильности",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-registration-certificate",
+    "name": "Действующее регистрационное удостоверение",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-current-spc-ru",
+    "name": "Действующая ОХЛП (русский)",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-current-spc-kz",
+    "name": "Действующая ОХЛП (казахский)",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-updated-spc-ru",
+    "name": "Проект ОХЛП с изменениями (русский)",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-updated-spc-kz",
+    "name": "Проект ОХЛП с изменениями (казахский)",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-variation-description",
+    "name": "Описание вносимых изменений",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-variation-justification",
+    "name": "Обоснование изменений",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-variation-comparison",
+    "name": "Сравнительная таблица изменений",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-post-marketing-data",
+    "name": "Пострегистрационные данные по безопасности и эффективности",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-no-changes-statement",
+    "name": "Заявление об отсутствии изменений",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "LS"
+  },
+  {
+    "id": "doc-mi-application",
+    "name": "Заявление на регистрацию/экспертизу МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-payment",
+    "name": "Документ об оплате (МИ)",
+    "acceptedFormats": [
+      "pdf",
+      "jpg",
+      "png"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-cover-letter",
+    "name": "Сопроводительные и административные документы МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-registration-dossier",
+    "name": "Регистрационное досье МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-technical-tests",
+    "name": "Протокол технических испытаний МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-biological-studies",
+    "name": "Протокол исследований биологического действия МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-clinical-trials",
+    "name": "Протокол клинических/клинико-лабораторных испытаний МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-instructions",
+    "name": "Инструкция / эксплуатационная документация МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-labeling",
+    "name": "Текст маркировки МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-mockup",
+    "name": "Макет маркировки МИ",
+    "acceptedFormats": [
+      "jpg",
+      "jpeg",
+      "png"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-qms-certificate",
+    "name": "Сертификат СМК / декларация соответствия МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-sterilization-validation",
+    "name": "Валидация стерилизации МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-software-validation",
+    "name": "Валидация программного обеспечения МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-registration-certificate",
+    "name": "Действующее регистрационное удостоверение МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-post-marketing",
+    "name": "Пострегистрационные данные по безопасности/эффективности МИ",
+    "acceptedFormats": [
+      "pdf"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-variation-description",
+    "name": "Описание изменений МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-variation-justification",
+    "name": "Обоснование изменений МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-current-instructions",
+    "name": "Действующая инструкция / эксплуатационная документация МИ",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  },
+  {
+    "id": "doc-mi-updated-instructions",
+    "name": "Проект инструкции / эксплуатационной документации МИ с изменениями",
+    "acceptedFormats": [
+      "pdf",
+      "docx"
+    ],
+    "direction": "MI"
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "registration": [
+    "param-product-type",
+    "param-bioequivalence-required",
+    "param-lab-testing-required",
+    "param-clinical-studies",
+    "param-holder",
+    "param-additional-monitoring"
+  ],
+  "re-registration": [
+    "param-product-type",
+    "param-bioequivalence-required",
+    "param-clinical-studies",
+    "param-holder",
+    "param-registration-number",
+    "param-ru-issue-date",
+    "param-ru-expiry-date",
+    "param-ru-unlimited",
+    "param-additional-monitoring"
+  ],
+  "variation": [
+    "param-product-type",
+    "param-bioequivalence-required",
+    "param-clinical-studies",
+    "param-holder",
+    "param-additional-monitoring",
+    "param-registration-number",
+    "param-ru-issue-date",
+    "param-ru-expiry-date",
+    "param-ru-unlimited",
+    "param-variation-class",
+    "param-variation-code",
+    "param-variation-area",
+    "param-variation-old-value",
+    "param-variation-new-value",
+    "param-variation-changes-table",
+    "param-variation-linked-changes"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "registration": [
+    "param-trade-name",
+    "param-applicant",
+    "param-mi-type",
+    "param-mi-risk-class",
+    "param-mi-intended-purpose",
+    "param-manufacturer",
+    "param-manufacturer-address"
+  ],
+  "re-registration": [
+    "param-trade-name",
+    "param-applicant",
+    "param-mi-type",
+    "param-mi-risk-class",
+    "param-mi-intended-purpose",
+    "param-manufacturer",
+    "param-manufacturer-address",
+    "param-mi-registration-number",
+    "param-mi-registration-issue-date",
+    "param-mi-registration-expiry-date"
+  ],
+  "variation": [
+    "param-trade-name",
+    "param-applicant",
+    "param-mi-type",
+    "param-mi-risk-class",
+    "param-mi-intended-purpose",
+    "param-mi-registration-number",
+    "param-mi-variation-class",
+    "param-mi-variation-area",
+    "param-mi-variation-old-value",
+    "param-mi-variation-new-value",
+    "param-mi-variation-details-table",
+    "param-manufacturer",
+    "param-manufacturer-address"
+  ]
+}

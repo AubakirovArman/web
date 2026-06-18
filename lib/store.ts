@@ -31,9 +31,27 @@ function mergeRequirements(
   storedRequirements: DocumentTypeRequirement[] = [],
 ): DocumentTypeRequirement[] {
   const byId = new Map<string, DocumentTypeRequirement>();
-  seedRequirements.forEach((requirement) => byId.set(requirement.id, requirement));
-  storedRequirements.forEach((requirement) => byId.set(requirement.id, requirement));
+  seedRequirements.forEach((requirement) => byId.set(requirementKey(requirement), requirement));
+  storedRequirements.forEach((requirement) => byId.set(requirementKey(requirement), requirement));
   return Array.from(byId.values());
+}
+
+function requirementKey(requirement: DocumentTypeRequirement) {
+  return [
+    normalizeRequirementText(requirement.sourceDocumentCode),
+    normalizeRequirementText(requirement.checkType),
+    normalizeRequirementText(requirement.requirementText),
+  ].join('|') || requirement.id;
+}
+
+function normalizeRequirementText(value: unknown) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/р/g, 'p')
+    .replace(/\s+/g, ' ')
+    .replace(/[.]+$/g, '')
+    .trim();
 }
 
 function mergeDocumentTypesWithSeed(storedDocumentTypes?: DocumentType[] | null): DocumentType[] {

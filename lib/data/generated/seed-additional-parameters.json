@@ -1,0 +1,844 @@
+[
+  {
+    "id": "param-payment-request",
+    "label": "Заявка на платеж",
+    "type": "text",
+    "section": "I-II. Начало формы и базовые сведения о ЛС",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, верх формы"
+  },
+  {
+    "id": "param-registration-certificate-info",
+    "label": "Сведения о регистрационном удостоверении",
+    "type": "text",
+    "section": "I-II. Начало формы и базовые сведения о ЛС",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, сведения о РУ"
+  },
+  {
+    "id": "param-trade-name-kz",
+    "label": "Торговое наименование (каз.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, Приложение 1"
+  },
+  {
+    "id": "param-trade-name-ru",
+    "label": "Торговое наименование (рус.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, Приложение 1"
+  },
+  {
+    "id": "param-trade-name-en",
+    "label": "Торговое наименование (англ.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, Приложение 1"
+  },
+  {
+    "id": "param-export-trade-names",
+    "label": "Торговые наименования на экспорт",
+    "type": "textarea",
+    "section": "ЛС. Экспорт",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, экспортные наименования по странам"
+  },
+  {
+    "id": "param-export-trade-name-kz",
+    "label": "Торговое наименование на экспорт (каз.)",
+    "type": "text",
+    "section": "ЛС. Экспорт",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, экспортное наименование"
+  },
+  {
+    "id": "param-export-trade-name-ru",
+    "label": "Торговое наименование на экспорт (рус.)",
+    "type": "text",
+    "section": "ЛС. Экспорт",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, экспортное наименование"
+  },
+  {
+    "id": "param-export-trade-name-en",
+    "label": "Торговое наименование на экспорт (англ.)",
+    "type": "text",
+    "section": "ЛС. Экспорт",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, экспортное наименование"
+  },
+  {
+    "id": "param-export-country",
+    "label": "Страна для экспорта",
+    "type": "text",
+    "section": "ЛС. Экспорт",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, страна экспорта"
+  },
+  {
+    "id": "param-inn-kz",
+    "label": "МНН (каз.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, МНН"
+  },
+  {
+    "id": "param-inn-ru",
+    "label": "МНН (рус.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, МНН"
+  },
+  {
+    "id": "param-inn-en",
+    "label": "МНН (англ.)",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, МНН"
+  },
+  {
+    "id": "param-inn-comments",
+    "label": "Комментарии к МНН",
+    "type": "textarea",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, комментарии к МНН"
+  },
+  {
+    "id": "param-dosage-amount",
+    "label": "Дозировка: количество",
+    "type": "text",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, дозировка"
+  },
+  {
+    "id": "param-dosage-unit",
+    "label": "Дозировка: единица измерения",
+    "type": "select",
+    "section": "ЛС. Основные сведения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, дозировка",
+    "options": [
+      {
+        "value": "mg",
+        "label": "мг"
+      },
+      {
+        "value": "g",
+        "label": "г"
+      },
+      {
+        "value": "mcg",
+        "label": "мкг"
+      },
+      {
+        "value": "ml",
+        "label": "мл"
+      },
+      {
+        "value": "percent",
+        "label": "%"
+      },
+      {
+        "value": "iu",
+        "label": "МЕ"
+      },
+      {
+        "value": "mg-ml",
+        "label": "мг/мл"
+      }
+    ]
+  },
+  {
+    "id": "param-atc-enabled",
+    "label": "АТХ классификация указана",
+    "type": "boolean",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, АТХ"
+  },
+  {
+    "id": "param-atc-code",
+    "label": "АТХ-код",
+    "type": "text",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, АТХ"
+  },
+  {
+    "id": "param-atc-name",
+    "label": "АТХ-наименование",
+    "type": "text",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, АТХ"
+  },
+  {
+    "id": "param-atc-name-kz",
+    "label": "АТХ: на государственном языке",
+    "type": "text",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, АТХ"
+  },
+  {
+    "id": "param-atc-name-ru",
+    "label": "АТХ: на русском языке",
+    "type": "text",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, АТХ"
+  },
+  {
+    "id": "param-atc-comments",
+    "label": "Комментарии к АТХ",
+    "type": "textarea",
+    "section": "ЛС. Классификация",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, комментарии к АТХ"
+  },
+  {
+    "id": "param-biological-flag",
+    "label": "Биологический лекарственный препарат",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-immunobiological-flag",
+    "label": "Иммунобиологический лекарственный препарат",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-new-api-flag",
+    "label": "Новая активная фармацевтическая субстанция",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-status",
+    "label": "Орфанный статус",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-orphan-status-state",
+    "label": "Присвоен ли статус орфанного в РК или других странах",
+    "type": "select",
+    "section": "ЛС. Тип и особые статусы",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      },
+      {
+        "value": "in-progress",
+        "label": "В процессе"
+      }
+    ]
+  },
+  {
+    "id": "param-orphan-assigned-date",
+    "label": "Дата присвоения орфанного статуса",
+    "type": "date",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-registration-number",
+    "label": "Номер регистрационного удостоверения орфанного ЛС",
+    "type": "text",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-refusal-flag",
+    "label": "Отказ / отзыв орфанного статуса",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-refusal-date",
+    "label": "Дата отказа / отзыва",
+    "type": "date",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-decision-number",
+    "label": "Номер решения по орфанному статусу",
+    "type": "text",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-orphan-withdrawal-date",
+    "label": "Заявление на присвоение статуса отозвано, дата",
+    "type": "date",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-transfer-enabled",
+    "label": "Трансфер технологии",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-transfer-site",
+    "label": "Наименование, адрес производственной площадки передающей стороны",
+    "type": "textarea",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-production-sites",
+    "label": "Производство лекарственного препарата",
+    "type": "textarea",
+    "section": "ЛС. Производство",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, V блок, пункт 22"
+  },
+  {
+    "id": "param-manufacturers",
+    "label": "Производитель лекарственного препарата и участки производства",
+    "type": "textarea",
+    "section": "ЛС. Правовая охрана",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, V блок, пункт 22"
+  },
+  {
+    "id": "param-api-special-status",
+    "label": "АФС без GMP / растительное сырье",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-who-prequalification",
+    "label": "Преквалификация ВОЗ",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-administration-routes",
+    "label": "Способы введения",
+    "type": "multiselect",
+    "section": "ЛС. Применение",
+    "options": [
+      {
+        "value": "oral",
+        "label": "Перорально"
+      },
+      {
+        "value": "parenteral",
+        "label": "Парентерально"
+      },
+      {
+        "value": "topical",
+        "label": "Местно"
+      },
+      {
+        "value": "inhalation",
+        "label": "Ингаляционно"
+      },
+      {
+        "value": "intravenous",
+        "label": "Внутривенно"
+      },
+      {
+        "value": "intramuscular",
+        "label": "Внутримышечно"
+      }
+    ]
+  },
+  {
+    "id": "param-dispensing-comment",
+    "label": "Комментарий к форме отпуска",
+    "type": "textarea",
+    "section": "ЛС. Применение"
+  },
+  {
+    "id": "param-administration-device",
+    "label": "Устройства введения / комплектующие",
+    "type": "textarea",
+    "section": "ЛС. Применение"
+  },
+  {
+    "id": "param-packaging",
+    "label": "Упаковка: тип, материал, объем, количество, GTIN",
+    "type": "textarea",
+    "section": "ЛС. Упаковка",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, упаковка"
+  },
+  {
+    "id": "param-composition",
+    "label": "Состав: вещество, количество, НД, производитель",
+    "type": "textarea",
+    "section": "ЛС. Состав",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, состав"
+  },
+  {
+    "id": "param-composition-table",
+    "label": "Полный качественный и количественный состав",
+    "type": "textarea",
+    "section": "ЛС. Состав",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, состав"
+  },
+  {
+    "id": "param-api-name",
+    "label": "Наименование АФС",
+    "type": "text",
+    "section": "ЛС. Состав"
+  },
+  {
+    "id": "param-shelf-life",
+    "label": "Срок хранения",
+    "type": "text",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-use-period-after-opening",
+    "label": "Период применения после вскрытия/разведения",
+    "type": "text",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-use-period-after-opening-amount",
+    "label": "Период применения после первого вскрытия: значение",
+    "type": "text",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-use-period-after-opening-unit",
+    "label": "Период применения после первого вскрытия: единица",
+    "type": "select",
+    "section": "ЛС. Стабильность",
+    "options": [
+      {
+        "value": "hours",
+        "label": "часов"
+      },
+      {
+        "value": "days",
+        "label": "дней"
+      },
+      {
+        "value": "months",
+        "label": "месяцев"
+      }
+    ]
+  },
+  {
+    "id": "param-use-period-after-dissolution-amount",
+    "label": "Период применения после растворения: значение",
+    "type": "text",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-use-period-after-dissolution-unit",
+    "label": "Период применения после растворения: единица",
+    "type": "select",
+    "section": "ЛС. Стабильность",
+    "options": [
+      {
+        "value": "hours",
+        "label": "часов"
+      },
+      {
+        "value": "days",
+        "label": "дней"
+      },
+      {
+        "value": "months",
+        "label": "месяцев"
+      }
+    ]
+  },
+  {
+    "id": "param-storage-conditions",
+    "label": "Условия хранения",
+    "type": "textarea",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-transport-conditions",
+    "label": "Условия транспортирования",
+    "type": "textarea",
+    "section": "ЛС. Стабильность"
+  },
+  {
+    "id": "param-qc-lab-name",
+    "label": "Лаборатория по контролю качества: наименование",
+    "type": "text",
+    "section": "ЛС. Лаборатория контроля качества"
+  },
+  {
+    "id": "param-qc-lab-address",
+    "label": "Лаборатория: адрес места осуществления деятельности",
+    "type": "textarea",
+    "section": "ЛС. Лаборатория контроля качества"
+  },
+  {
+    "id": "param-qc-lab-country",
+    "label": "Лаборатория: страна",
+    "type": "select",
+    "section": "ЛС. Лаборатория контроля качества",
+    "options": [
+      {
+        "value": "KZ",
+        "label": "Казахстан"
+      },
+      {
+        "value": "RU",
+        "label": "Россия"
+      },
+      {
+        "value": "BY",
+        "label": "Беларусь"
+      },
+      {
+        "value": "AM",
+        "label": "Армения"
+      },
+      {
+        "value": "KG",
+        "label": "Кыргызстан"
+      },
+      {
+        "value": "other",
+        "label": "Другая страна"
+      }
+    ]
+  },
+  {
+    "id": "param-qc-lab-phone",
+    "label": "Лаборатория: телефон / факс",
+    "type": "text",
+    "section": "ЛС. Лаборатория контроля качества"
+  },
+  {
+    "id": "param-qc-lab-email",
+    "label": "Лаборатория: электронная почта",
+    "type": "text",
+    "section": "ЛС. Лаборатория контроля качества"
+  },
+  {
+    "id": "param-foreign-registrations",
+    "label": "Регистрация в стране-производителе и других странах",
+    "type": "textarea",
+    "section": "ЛС. Регистрации",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, VI блок, пункт 19"
+  },
+  {
+    "id": "param-patent-trademark",
+    "label": "Патент / товарный знак: документ, номер, даты",
+    "type": "textarea",
+    "section": "ЛС. Правовая охрана"
+  },
+  {
+    "id": "param-manufacturer-role",
+    "label": "Тип производителя / роль площадки",
+    "type": "textarea",
+    "section": "ЛС. Производство"
+  },
+  {
+    "id": "param-manufacturer-permits",
+    "label": "Разрешительные документы производителя",
+    "type": "textarea",
+    "section": "ЛС. Производство"
+  },
+  {
+    "id": "param-manufacturer-contact",
+    "label": "Руководитель / контактное лицо производителя",
+    "type": "textarea",
+    "section": "ЛС. Производство"
+  },
+  {
+    "id": "param-ru-issue-date",
+    "label": "Дата выдачи РУ",
+    "type": "date",
+    "section": "РУ"
+  },
+  {
+    "id": "param-ru-expiry-date",
+    "label": "Срок действия РУ",
+    "type": "date",
+    "section": "РУ"
+  },
+  {
+    "id": "param-ru-unlimited",
+    "label": "РУ бессрочное",
+    "type": "select",
+    "section": "РУ",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-variation-details-table",
+    "label": "Вносимые изменения: тип, редакция до, предлагаемая редакция",
+    "type": "textarea",
+    "section": "Изменения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, таблица изменений"
+  },
+  {
+    "id": "param-variation-changes-table",
+    "label": "Динамический список изменений",
+    "type": "textarea",
+    "section": "Изменения",
+    "sourceNpa": "Приказ ҚР ДСМ-10",
+    "sourceFieldRef": "Заявление ЛС, таблица изменений"
+  },
+  {
+    "id": "param-variation-linked-changes",
+    "label": "Связанные / последовательные изменения",
+    "type": "textarea",
+    "section": "Изменения"
+  },
+  {
+    "id": "param-contract-number",
+    "label": "Номер договора на экспертизу",
+    "type": "text",
+    "section": "Оплата и договор"
+  },
+  {
+    "id": "param-contract-date",
+    "label": "Дата договора на экспертизу",
+    "type": "date",
+    "section": "Оплата и договор"
+  },
+  {
+    "id": "param-contract-term",
+    "label": "Дата договора на экспертизу",
+    "type": "date",
+    "section": "Оплата и договор"
+  },
+  {
+    "id": "param-payment-subject",
+    "label": "Субъект оплаты и банковские реквизиты",
+    "type": "textarea",
+    "section": "Оплата и договор"
+  },
+  {
+    "id": "param-applicant-confirmation",
+    "label": "Подтверждение достоверности и пострегистрационных обязательств",
+    "type": "textarea",
+    "section": "Подписание"
+  },
+  {
+    "id": "param-mi-name-kz",
+    "label": "Наименование МИ (каз.)",
+    "type": "text",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-name-ru",
+    "label": "Наименование МИ (рус.)",
+    "type": "text",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-name-en",
+    "label": "Наименование МИ (англ.)",
+    "type": "text",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-model",
+    "label": "Модель / модификация МИ",
+    "type": "text",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-variants",
+    "label": "Варианты исполнения / комплектация МИ",
+    "type": "textarea",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-intended-purpose",
+    "label": "Назначение МИ",
+    "type": "textarea",
+    "section": "МИ. Основные сведения"
+  },
+  {
+    "id": "param-mi-application-area",
+    "label": "Область медицинского применения",
+    "type": "text",
+    "section": "МИ. Классификация"
+  },
+  {
+    "id": "param-mi-nomenclature-code",
+    "label": "Номенклатурный код МИ",
+    "type": "text",
+    "section": "МИ. Классификация"
+  },
+  {
+    "id": "param-mi-risk-rule",
+    "label": "Правило классификации риска",
+    "type": "text",
+    "section": "МИ. Классификация"
+  },
+  {
+    "id": "param-mi-software-version",
+    "label": "Версия программного обеспечения МИ",
+    "type": "text",
+    "section": "МИ. ПО"
+  },
+  {
+    "id": "param-mi-authorized-representative",
+    "label": "Уполномоченный представитель производителя",
+    "type": "textarea",
+    "section": "МИ. Участники"
+  },
+  {
+    "id": "param-mi-applicant-contact",
+    "label": "Контактное лицо заявителя МИ",
+    "type": "textarea",
+    "section": "МИ. Участники"
+  },
+  {
+    "id": "param-mi-qms-info",
+    "label": "СМК / декларация соответствия МИ",
+    "type": "textarea",
+    "section": "МИ. Производство"
+  },
+  {
+    "id": "param-mi-technical-testing",
+    "label": "Технические испытания МИ",
+    "type": "textarea",
+    "section": "МИ. Испытания"
+  },
+  {
+    "id": "param-mi-biological-testing",
+    "label": "Исследования биологического действия МИ",
+    "type": "textarea",
+    "section": "МИ. Испытания"
+  },
+  {
+    "id": "param-mi-clinical-testing",
+    "label": "Клинические / клинико-лабораторные испытания МИ",
+    "type": "textarea",
+    "section": "МИ. Испытания"
+  },
+  {
+    "id": "param-mi-instructions-info",
+    "label": "Инструкция / эксплуатационная документация МИ",
+    "type": "textarea",
+    "section": "МИ. Документация"
+  },
+  {
+    "id": "param-mi-labeling-info",
+    "label": "Маркировка и макеты МИ",
+    "type": "textarea",
+    "section": "МИ. Документация"
+  },
+  {
+    "id": "param-mi-storage-conditions",
+    "label": "Условия хранения и транспортирования МИ",
+    "type": "textarea",
+    "section": "МИ. Документация"
+  },
+  {
+    "id": "param-mi-registration-issue-date",
+    "label": "Дата выдачи РУ МИ",
+    "type": "date",
+    "section": "МИ. РУ"
+  },
+  {
+    "id": "param-mi-registration-expiry-date",
+    "label": "Срок действия РУ МИ",
+    "type": "date",
+    "section": "МИ. РУ"
+  },
+  {
+    "id": "param-mi-registration-unlimited",
+    "label": "РУ МИ бессрочное",
+    "type": "select",
+    "section": "МИ. РУ",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-post-market-history",
+    "label": "История изменений / инцидентов / мониторинга МИ",
+    "type": "textarea",
+    "section": "МИ. Пострегистрация"
+  },
+  {
+    "id": "param-mi-variation-details-table",
+    "label": "Вносимые изменения МИ: вид, старая и новая редакция",
+    "type": "textarea",
+    "section": "МИ. Изменения"
+  },
+  {
+    "id": "param-mi-contract-number",
+    "label": "Номер договора на экспертизу МИ",
+    "type": "text",
+    "section": "МИ. Оплата"
+  },
+  {
+    "id": "param-mi-contract-date",
+    "label": "Дата договора на экспертизу МИ",
+    "type": "date",
+    "section": "МИ. Оплата"
+  },
+  {
+    "id": "param-mi-payment-subject",
+    "label": "Субъект оплаты и реквизиты МИ",
+    "type": "textarea",
+    "section": "МИ. Оплата"
+  },
+  {
+    "id": "param-mi-applicant-confirmation",
+    "label": "Подтверждение заявителя МИ",
+    "type": "textarea",
+    "section": "МИ. Подписание"
+  }
+]

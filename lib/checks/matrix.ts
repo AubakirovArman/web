@@ -1,6 +1,8 @@
-import { Application, ObjectType, Procedure, Rule, RuleCondition, Severity } from '@/lib/types';
+import { Application, DocumentType, ObjectType, Procedure, Rule, RuleCondition, Severity } from '@/lib/types';
 import { checkDefinitions } from '@/lib/checks/registry';
 import { documentTypes, rules as seedRules } from '@/lib/data/seed';
+import { getLsDocumentRequirementByDocumentTypeId } from '@/lib/data/ls-document-checks-mapping';
+import { getRequiredDocuments } from '@/lib/rules/engine';
 
 export interface ApplicationCheckMatrixRow {
   objectType: ObjectType;
@@ -23,26 +25,71 @@ export interface ApplicationCheckMatrixRow {
 export function buildApplicationCheckMatrix(
   app: Application,
   rules: Rule[] = seedRules,
+  documentTypesCatalog: DocumentType[] = documentTypes,
 ): ApplicationCheckMatrixRow[] {
   const objectType = app.values['param-object-type'] === 'MI' ? 'MI' : 'LS';
   const procedure = normalizeProcedure(app.values['param-procedure']);
+  const requiredDocuments = getRequiredDocuments(app, rules, documentTypesCatalog);
+
+  if (objectType === 'LS') {
+    return requiredDocuments.map((requiredDocument) => {
+      const documentType = documentTypesCatalog.find((doc) => doc.id === requiredDocument.documentTypeId);
+      const matrixRule = getLsDocumentRequirementByDocumentTypeId(requiredDocument.documentTypeId);
+      const checkIds = unique([
+        'required_document_presence_check',
+        'file_format_check',
+        'ocr_quality_check',
+        documentType?.expectedExtractedFields?.length ? 'expected_extracted_fields_check' : '',
+        documentType?.canCheckExpiry || documentType?.expectedExtractedFields?.includes('validUntil') ? 'document_expiry_check' : '',
+        ...(requiredDocument.checks || []),
+        ...(documentType?.checkIds || []),
+      ]);
+      const definitions = checkIds.map((checkId) => checkDefinitions.find((definition) => definition.id === checkId));
+      const importedRequirementCount = documentType?.importedRequirements?.length || 0;
+
+      return {
+        objectType,
+        procedure,
+        ruleId: `matrix-${requiredDocument.documentTypeId}`,
+        ruleName: matrixRule ? `Матрица досье: ${matrixRule.docCode || matrixRule.modulePart}` : 'Матрица досье ЛС',
+        conditions: [],
+        documentTypeId: requiredDocument.documentTypeId,
+        documentName: documentType?.name || requiredDocument.documentTypeId,
+        severityIfMissing: requiredDocument.severityIfMissing,
+        acceptedFormats: documentType?.acceptedFormats || [],
+        checkIds,
+        checkNames: [
+          ...definitions.map((definition, index) => definition?.name || checkIds[index]),
+          ...Array.from({ length: importedRequirementCount }, (_, index) => `Требование НПА ${index + 1}`),
+        ],
+        runnerMethods: unique([...definitions.map((definition) => definition?.method || 'manual'), importedRequirementCount ? 'manual' : '']),
+        npaReferences: unique([
+          ...(documentType?.npaReferences || []),
+          ...definitions.flatMap((definition) => definition?.npaReferences || []),
+        ]),
+      } satisfies ApplicationCheckMatrixRow;
+    });
+  }
 
   return rules
     .filter((rule) => rule.active !== false && matchesConditions(app.values, rule.conditions))
     .flatMap((rule) =>
       rule.requiredDocuments.map((requiredDocument) => {
-        const documentType = documentTypes.find((doc) => doc.id === requiredDocument.documentTypeId);
+        const documentType = documentTypesCatalog.find((doc) => doc.id === requiredDocument.documentTypeId);
         const alternativeDocumentType = requiredDocument.alternativeDocumentTypeId
-          ? documentTypes.find((doc) => doc.id === requiredDocument.alternativeDocumentTypeId)
+          ? documentTypesCatalog.find((doc) => doc.id === requiredDocument.alternativeDocumentTypeId)
           : undefined;
         const checkIds = unique([
           'required_document_presence_check',
           'file_format_check',
           'ocr_quality_check',
+          documentType?.expectedExtractedFields?.length ? 'expected_extracted_fields_check' : '',
+          documentType?.canCheckExpiry || documentType?.expectedExtractedFields?.includes('validUntil') ? 'document_expiry_check' : '',
           ...(requiredDocument.checks || []),
           ...(documentType?.checkIds || []),
         ]);
         const definitions = checkIds.map((checkId) => checkDefinitions.find((definition) => definition.id === checkId));
+        const importedRequirementCount = documentType?.importedRequirements?.length || 0;
 
         return {
           objectType,
@@ -57,8 +104,11 @@ export function buildApplicationCheckMatrix(
           severityIfMissing: requiredDocument.severityIfMissing,
           acceptedFormats: documentType?.acceptedFormats || [],
           checkIds,
-          checkNames: definitions.map((definition, index) => definition?.name || checkIds[index]),
-          runnerMethods: unique(definitions.map((definition) => definition?.method || 'manual')),
+          checkNames: [
+            ...definitions.map((definition, index) => definition?.name || checkIds[index]),
+            ...Array.from({ length: importedRequirementCount }, (_, index) => `Требование НПА ${index + 1}`),
+          ],
+          runnerMethods: unique([...definitions.map((definition) => definition?.method || 'manual'), importedRequirementCount ? 'manual' : '']),
           npaReferences: unique([
             ...(documentType?.npaReferences || []),
             ...definitions.flatMap((definition) => definition?.npaReferences || []),

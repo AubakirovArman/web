@@ -3,14 +3,28 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { documentTypes } from '@/lib/data/seed';
-import { FileProcessingStatus, UploadedFile } from '@/lib/types';
-import { Upload, X, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { DocumentType, FileProcessingStatus, UploadedFile } from '@/lib/types';
+import { Upload, X, FileText, AlertCircle, Loader2, HelpCircle } from 'lucide-react';
+
+type UploadInput = Omit<UploadedFile, 'id'> & Partial<Pick<UploadedFile, 'id'>>;
 
 interface DocumentUploaderProps {
   documentTypeId: string;
   files: UploadedFile[];
-  onUpload: (file: Omit<UploadedFile, 'id'>) => void;
+  documentTypesCatalog?: DocumentType[];
+  requirementMeta?: {
+    code?: string;
+    section?: string;
+    requiredness?: string;
+    trigger?: string;
+    linkedParams?: string[];
+    source?: string;
+    checks?: string[];
+    severity?: string;
+  };
+  onUpload: (file: UploadInput) => void;
   onRemove: (fileId: string) => void;
 }
 
@@ -24,12 +38,32 @@ interface ExtractApiResult {
   ocrQuality?: number;
 }
 
-async function extractFields(file: File, documentTypeId: string): Promise<ExtractApiResult> {
+interface UploadApiResult {
+  fileId?: string;
+  url?: string;
+  error?: string;
+}
+
+async function uploadRuntimeFile(file: File): Promise<UploadApiResult> {
   try {
     const form = new FormData();
     form.append('file', file);
-    form.append('documentTypeId', documentTypeId);
-    const res = await fetch('/api/extract', { method: 'POST', body: form });
+    const res = await fetch('/api/files', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) return { error: data?.error || `HTTP ${res.status}` };
+    return { fileId: data.fileId, url: data.url };
+  } catch {
+    return { error: 'Upload request failed' };
+  }
+}
+
+async function extractFields(fileId: string, documentTypeId: string): Promise<ExtractApiResult> {
+  try {
+    const res = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId, documentTypeId }),
+    });
     if (!res.ok) {
       return { extracted: {}, status: 'failed', errors: [`HTTP ${res.status}`] };
     }
@@ -67,10 +101,18 @@ async function sha256(file: File): Promise<string | undefined> {
     .join('');
 }
 
-export function DocumentUploader({ documentTypeId, files, onUpload, onRemove }: DocumentUploaderProps) {
+export function DocumentUploader({ documentTypeId, files, documentTypesCatalog, requirementMeta, onUpload, onRemove }: DocumentUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const docType = documentTypes.find((d) => d.id === documentTypeId)!;
+  const docType = documentTypesCatalog?.find((d) => d.id === documentTypeId) ||
+    documentTypes.find((d) => d.id === documentTypeId) || {
+      id: documentTypeId,
+      name: documentTypeId,
+      acceptedFormats: ['pdf', 'doc', 'docx'],
+      direction: 'LS' as const,
+    };
   const accepted = docType.acceptedFormats.map((ext) => `.${ext}`).join(',');
+  const sectionCode = requirementMeta?.code || docType.docCode || docType.importedRequirements?.[0]?.sourceDocumentCode;
+  const sectionName = requirementMeta?.section || docType.modulePart;
   const [extracting, setExtracting] = useState(false);
   const [formatError, setFormatError] = useState<string | null>(null);
 
@@ -88,20 +130,31 @@ export function DocumentUploader({ documentTypeId, files, onUpload, onRemove }: 
       setFormatError(null);
       setExtracting(true);
       const startedAt = new Date().toISOString();
-      const [extraction, url, hash] = await Promise.all([
-        extractFields(file, documentTypeId),
+      const upload = await uploadRuntimeFile(file);
+      if (!upload.fileId || !upload.url) {
+        setExtracting(false);
+        setFormatError(`Не удалось сохранить файл «${file.name}» на сервере: ${upload.error || 'неизвестная ошибка'}.`);
+        continue;
+      }
+
+      const [extraction, previewUrl, hash] = await Promise.all([
+        extractFields(upload.fileId, documentTypeId),
         readAsDataUrl(file),
         sha256(file),
       ]);
       setExtracting(false);
 
       onUpload({
+        id: upload.fileId,
         name: file.name,
         size: file.size,
         documentTypeId,
         contentType: file.type || 'application/octet-stream',
+        dossierSectionCode: sectionCode,
+        dossierSectionName: docType.name,
+        dossierFolderName: sectionName,
         extracted: extraction.extracted,
-        url,
+        url: upload.url || previewUrl,
         hash,
         extension: ext,
         mime: file.type || 'application/octet-stream',
@@ -132,16 +185,25 @@ export function DocumentUploader({ documentTypeId, files, onUpload, onRemove }: 
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-base font-medium">{docType.name}</CardTitle>
+            <div className="flex flex-wrap gap-1.5">
+              {sectionCode && <Badge variant="secondary">{sectionCode}</Badge>}
+              {sectionName && <Badge variant="outline">{sectionName}</Badge>}
+              {requirementMeta?.severity && <Badge variant="outline">{severityLabel(requirementMeta.severity)}</Badge>}
+              {files.length > 0 && <Badge variant="outline">{files.length} файл(ов)</Badge>}
+            </div>
             <p className="text-xs text-muted-foreground">Форматы: {docType.acceptedFormats.join(', ')}</p>
             {docType.requiredLanguages?.length ? (
               <p className="text-xs text-muted-foreground">Язык: {docType.requiredLanguages.join(', ')}</p>
             ) : null}
           </div>
-          <input ref={inputRef} type="file" accept={accepted} className="hidden" onChange={handleChange} multiple={false} />
-          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={extracting}>
-            {extracting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
-            {extracting ? 'Извлечение…' : 'Загрузить'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {requirementMeta && <RequirementInfoPopover requirementMeta={requirementMeta} />}
+            <input ref={inputRef} type="file" accept={accepted} className="hidden" onChange={handleChange} multiple />
+            <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={extracting}>
+              {extracting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+              {extracting ? 'Извлечение…' : 'Загрузить'}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       {formatError && (
@@ -193,6 +255,73 @@ export function DocumentUploader({ documentTypeId, files, onUpload, onRemove }: 
   );
 }
 
+function RequirementInfoPopover({ requirementMeta }: { requirementMeta: NonNullable<DocumentUploaderProps['requirementMeta']> }) {
+  const hasInfo = Boolean(
+    requirementMeta.requiredness ||
+      requirementMeta.trigger ||
+      requirementMeta.linkedParams?.length ||
+      requirementMeta.checks?.length ||
+      requirementMeta.source,
+  );
+  if (!hasInfo) return null;
+
+  return (
+    <div className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label="Показать условия и требования к документу"
+        className="flex h-8 w-8 items-center justify-center border bg-background text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        <HelpCircle className="h-4 w-4" />
+      </button>
+      <div className="pointer-events-none absolute right-0 top-9 z-50 hidden max-h-[70vh] w-[720px] max-w-[calc(100vw-2rem)] overflow-y-auto border bg-popover p-4 text-xs text-popover-foreground shadow-lg group-hover:block group-focus-within:block">
+        <div className="space-y-3">
+          {requirementMeta.requiredness && (
+            <InfoBlock title="Почему нужен" text={requirementMeta.requiredness} />
+          )}
+          {requirementMeta.trigger && (
+            <InfoBlock title="Условие отображения" text={requirementMeta.trigger} />
+          )}
+          {requirementMeta.linkedParams?.length ? (
+            <div>
+              <div className="mb-1 font-medium text-foreground">Связанные параметры заявки</div>
+              <div className="flex flex-wrap gap-1">
+                {requirementMeta.linkedParams.map((param) => (
+                  <span key={param} className="border bg-background px-2 py-0.5 text-muted-foreground">
+                    {param}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {requirementMeta.checks?.length ? (
+            <div>
+              <div className="mb-1 font-medium text-foreground">Что проверяется</div>
+              <ul className="space-y-1 text-muted-foreground">
+                {requirementMeta.checks.map((check) => (
+                  <li key={check} className="whitespace-pre-wrap break-words">- {check}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {requirementMeta.source && (
+            <InfoBlock title="Источник" text={requirementMeta.source} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div>
+      <div className="mb-1 font-medium text-foreground">{title}</div>
+      <div className="whitespace-pre-wrap break-words text-muted-foreground">{text}</div>
+    </div>
+  );
+}
+
 function statusLabel(status: FileProcessingStatus) {
   const labels: Record<FileProcessingStatus, string> = {
     queued: 'в очереди',
@@ -204,6 +333,35 @@ function statusLabel(status: FileProcessingStatus) {
     skipped: 'без OCR',
   };
   return labels[status];
+}
+
+function severityLabel(value: string) {
+  const labels: Record<string, string> = {
+    critical: 'Критично',
+    serious: 'Серьезно',
+    warning: 'Предупреждение',
+    unknown: 'Неизвестно',
+  };
+  return labels[value] || value;
+}
+
+function shortCheckLabel(value: string) {
+  const labels: Record<string, string> = {
+    required_document_presence_check: 'наличие',
+    file_format_check: 'формат',
+    ocr_quality_check: 'OCR',
+    docx_format_check: 'DOCX',
+    core_field_consistency_check: 'сверка с заявкой',
+    shelf_life_consistency_check: 'срок годности',
+    storage_consistency_check: 'хранение',
+    translation_length_check: 'перевод',
+  };
+  return labels[value] || value;
+}
+
+function compactText(value: string, limit: number) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
 }
 
 function formatSize(bytes: number) {

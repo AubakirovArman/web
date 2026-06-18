@@ -1,4 +1,4 @@
-import { Application, Finding, Rule } from '@/lib/types';
+import { Application, DocumentType, Finding, Rule } from '@/lib/types';
 import { evaluateMissingDocuments } from '@/lib/rules/engine';
 import { runChecks } from '@/lib/checks/engine';
 import { enrichFindings } from '@/lib/checks/registry';
@@ -11,6 +11,7 @@ export type ValidationScope = 'all' | 'params' | 'documents';
 export interface ValidationOptions {
   mode: ValidationMode;
   scope: ValidationScope;
+  documentTypes?: DocumentType[];
 }
 
 export interface ValidationResult {
@@ -41,17 +42,17 @@ export function runValidation(
 
   if (mode === 'section') {
     if (scope === 'params') {
-      const findings = runChecks(app, rules, { scope: 'params' });
+      const findings = runChecks(app, rules, { scope: 'params', documentTypes: options.documentTypes });
       const blockingFindings = getBlockingFindings(findings);
       return { findings, blockingFindings, success: blockingFindings.length === 0 };
     }
 
-    const findings = runPreCheck(app, rules, { scope: 'documents' });
+    const findings = runPreCheck(app, rules, { scope: 'documents', documentTypes: options.documentTypes });
     const blockingFindings = getBlockingFindings(findings);
     return { findings, blockingFindings, success: blockingFindings.length === 0 };
   }
 
-  const findings = runPreCheck(app, rules, { scope: 'all' });
+  const findings = runPreCheck(app, rules, { scope: 'all', documentTypes: options.documentTypes });
   const blockingFindings = getBlockingFindings(findings);
   return { findings, blockingFindings, success: blockingFindings.length === 0 };
 }
@@ -71,20 +72,20 @@ export function runSectionValidation(
 export function runPreCheck(
   app: Application,
   rules?: Rule[],
-  options: { scope: ValidationScope } = { scope: 'all' }
+  options: { scope: ValidationScope; documentTypes?: DocumentType[] } = { scope: 'all' }
 ): Finding[] {
   const scope = options.scope || 'all';
   const findings: Finding[] = [];
 
   if (scope === 'all' || scope === 'documents') {
-    const missing = evaluateMissingDocuments(app, rules);
+    const missing = evaluateMissingDocuments(app, rules, options.documentTypes);
     for (const finding of missing) {
       findings.push(finding);
     }
   }
 
   const checksScope = scope === 'params' ? 'params' : scope;
-  const mismatches = runChecks(app, rules, { scope: checksScope });
+  const mismatches = runChecks(app, rules, { scope: checksScope, documentTypes: options.documentTypes });
   for (const finding of mismatches) {
     findings.push(finding);
   }

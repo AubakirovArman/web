@@ -7,7 +7,9 @@ import { demoFiles } from '@/lib/data/demoFiles';
 import { runPreCheck, runSubmissionValidation } from '@/lib/checks';
 import { getStoredRules } from '@/lib/rules/store';
 
-const STORAGE_KEY = 'ndda-applications-v3';
+const APPLICATIONS_API = '/api/applications';
+const APPLICATIONS_CLIENT_VERSION = 'postgres-only-v2';
+type UploadInput = Omit<UploadedFile, 'id'> & Partial<Pick<UploadedFile, 'id'>>;
 
 const validStatuses: Application['status'][] = ['draft', 'submitted', 'checking', 'checked', 'expert-review'];
 
@@ -52,6 +54,43 @@ function normalizeApplication(app: Partial<Application>): Application {
   };
 }
 
+async function fetchServerApplications(): Promise<Application[]> {
+  const response = await fetch(APPLICATIONS_API, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Не удалось загрузить серверные заявки');
+
+  const data = await response.json();
+  const applications = data?.applications;
+  return Array.isArray(applications) ? applications.map(normalizeApplication) : [];
+}
+
+async function saveServerApplication(application: Application) {
+  await fetch(APPLICATIONS_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-ndda-client-version': APPLICATIONS_CLIENT_VERSION },
+    body: JSON.stringify({ application }),
+  });
+}
+
+async function patchServerFinding(id: string, findingId: string, patch: Partial<Finding>): Promise<Application | null> {
+  const response = await fetch(`${APPLICATIONS_API}/${encodeURIComponent(id)}/findings/${encodeURIComponent(findingId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ patch }),
+  });
+
+  if (!response.ok) throw new Error('Не удалось сохранить статус замечания');
+  const data = await response.json();
+  return data?.application ? normalizeApplication(data.application) : null;
+}
+
+async function deleteServerApplication(id: string): Promise<void> {
+  const response = await fetch(`${APPLICATIONS_API}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) throw new Error('Не удалось удалить заявку');
+}
+
 interface ApplicationContextValue {
   applications: Application[];
   currentId: string | null;
@@ -59,9 +98,12 @@ interface ApplicationContextValue {
   addApplication: () => Application;
   seedDemoApplication: () => Application;
   importApplication: (app: Application) => void;
+  deleteApplication: (id: string) => Promise<void>;
   updateValues: (id: string, values: Partial<Application['values']>) => void;
-  addFile: (id: string, file: Omit<UploadedFile, 'id'>) => void;
+  addFile: (id: string, file: UploadInput) => void;
+  addFiles: (id: string, files: UploadInput[]) => void;
   removeFile: (id: string, fileId: string) => void;
+  removeFiles: (id: string, fileIds: string[]) => void;
   runCheck: (id: string) => void;
   updateFinding: (id: string, findingId: string, patch: Partial<Finding>) => void;
   submitApplication: (id: string) => {
@@ -77,43 +119,43 @@ const ApplicationContext = createContext<ApplicationContextValue | null>(null);
 export function ApplicationProvider({ children }: { children: ReactNode }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw) as Application[];
-        const normalized = Array.isArray(parsed) ? parsed.map(normalizeApplication) : [];
-        if (normalized.length > 0) {
-          setApplications(normalized);
-          setCurrentId((current) => current || normalized[0].id);
-        } else {
-          const demo = createDemoApplication();
-          setApplications([demo]);
-          setCurrentId((current) => current || demo.id);
-        }
-      } else {
-        const demo = createDemoApplication();
-        setApplications([demo]);
-        setCurrentId((current) => current || demo.id);
-      }
-    } catch {
-      const demo = createDemoApplication();
-      setApplications([demo]);
-      setCurrentId((current) => current || demo.id);
-    }
-    setLoaded(true);
+    let cancelled = false;
+
+    const loadApplications = async () => {
+      const initial = await fetchServerApplications();
+
+      if (cancelled) return;
+
+      setApplications(initial);
+      setCurrentId((current) => current || initial[0]?.id || null);
+    };
+
+    void loadApplications().catch(() => {
+      if (cancelled) return;
+      setApplications([]);
+      setCurrentId(null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (loaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-    }
-  }, [applications, loaded]);
-
-  const updateApp = (id: string, updater: (app: Application) => Application) => {
-    setApplications((prev) => prev.map((a) => (a.id === id ? updater(a) : a)));
+  const updateApp = (id: string, updater: (app: Application) => Application, persist = true) => {
+    setApplications((prev) => {
+      let updated: Application | null = null;
+      const next = prev.map((a) => {
+        if (a.id !== id) return a;
+        updated = updater(a);
+        return updated;
+      });
+      if (persist && updated) {
+        void saveServerApplication(updated).catch((error) => console.warn(error));
+      }
+      return next;
+    });
   };
   const toEditableStatus = (status: Application['status']): Application['status'] =>
     status === 'submitted' || status === 'expert-review' ? status : 'draft';
@@ -127,18 +169,29 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         const app = createDemoApplication();
         setApplications((prev) => [app, ...prev]);
         setCurrentId(app.id);
+        void saveServerApplication(app).catch((error) => console.warn(error));
         return app;
       },
       seedDemoApplication: () => {
         const app = createDemoApplication();
         setApplications((prev) => [app, ...prev]);
         setCurrentId(app.id);
+        void saveServerApplication(app).catch((error) => console.warn(error));
         return app;
       },
       importApplication: (app) => {
         const normalized = normalizeApplication(app);
-        setApplications((prev) => [normalized, ...prev]);
+        setApplications((prev) =>
+          prev.some((item) => item.id === normalized.id)
+            ? prev.map((item) => (item.id === normalized.id ? normalized : item))
+            : [normalized, ...prev]
+        );
         setCurrentId(normalized.id);
+      },
+      deleteApplication: async (id) => {
+        await deleteServerApplication(id);
+        setApplications((prev) => prev.filter((app) => app.id !== id));
+        setCurrentId((current) => (current === id ? null : current));
       },
       updateValues: (id, values) =>
         updateApp(id, (app) => ({
@@ -151,7 +204,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       addFile: (id, file) =>
         updateApp(id, (app) => ({
           ...app,
-          files: [...app.files, { ...file, id: uid() }],
+          files: [...app.files, { ...file, id: file.id || uid() }],
+          status: toEditableStatus(app.status),
+        })),
+      addFiles: (id, files) =>
+        updateApp(id, (app) => ({
+          ...app,
+          files: [...app.files, ...files.map((file) => ({ ...file, id: file.id || uid() }))],
           status: toEditableStatus(app.status),
         })),
       removeFile: (id, fileId) =>
@@ -160,16 +219,41 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           files: app.files.filter((f) => f.id !== fileId),
           status: toEditableStatus(app.status),
         })),
+      removeFiles: (id, fileIds) =>
+        updateApp(id, (app) => {
+          const remove = new Set(fileIds);
+          return {
+            ...app,
+            files: app.files.filter((f) => !remove.has(f.id)),
+            status: toEditableStatus(app.status),
+          };
+        }),
       runCheck: (id) =>
         updateApp(id, (app) => {
           const findings = runPreCheck(app, getStoredRules());
-          return { ...app, status: 'checked', findings };
+          const status =
+            app.status === 'submitted' || app.status === 'expert-review'
+              ? app.status
+              : 'checked';
+          return { ...app, status, findings };
         }),
       updateFinding: (id, findingId, patch) =>
-        updateApp(id, (app) => ({
-          ...app,
-          findings: app.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)),
-        })),
+        {
+          updateApp(id, (app) => ({
+            ...app,
+            findings: app.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)),
+          }), false);
+          void patchServerFinding(id, findingId, patch)
+            .then((serverApp) => {
+              if (!serverApp) return;
+              setApplications((prev) =>
+                prev.map((item) => (item.id === serverApp.id ? serverApp : item))
+              );
+            })
+            .catch((error) => {
+              console.warn(error);
+            });
+        },
       submitApplication: (id) => {
         const app = applications.find((item) => item.id === id);
         if (!app) {

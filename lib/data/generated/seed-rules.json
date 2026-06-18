@@ -1,0 +1,1081 @@
+[
+  {
+    "id": "rule-common-registration",
+    "name": "Общий пакет документов для регистрации",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-cover-letter",
+        "severityIfMissing": "warning"
+      },
+      {
+        "documentTypeId": "doc-registration-dossier",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-gmp",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-instruction-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-instruction-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-labeling-text",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-mockup",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-quality-nd",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-module3",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-stability",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-2"
+  },
+  {
+    "id": "rule-ls-foreign-manufacturer-registration-docs",
+    "name": "Зарубежный производитель: CPP и регистрации в других странах",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-manufacturer-country",
+        "operator": "notEquals",
+        "value": "KZ"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-cpp",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-foreign-registrations",
+        "severityIfMissing": "warning"
+      }
+    ],
+    "sourceNpaId": "npa-2"
+  },
+  {
+    "id": "rule-lab-testing-samples",
+    "name": "Лабораторные испытания: образцы препарата",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-lab-testing-required",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-samples",
+        "severityIfMissing": "serious",
+        "checks": [
+          "required_document_presence_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-8"
+  },
+  {
+    "id": "rule-generic-bioequivalence",
+    "name": "Generic: биоэквивалентность или обоснование отсутствия",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-product-type",
+        "operator": "equals",
+        "value": "generic"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-bioequivalence-report",
+        "severityIfMissing": "critical",
+        "alternativeDocumentTypeId": "doc-bioequivalence-waiver",
+        "checks": [
+          "required_document_presence_check",
+          "bioequivalence_report_check",
+          "bioequivalence_waiver_check"
+        ]
+      },
+      {
+        "documentTypeId": "doc-generic-summary",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-spc-comparison",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-3"
+  },
+  {
+    "id": "rule-biological-risk-management",
+    "name": "Биологический / биоаналогичный: ПУР и фармаконадзор",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-product-type",
+        "operator": "includes",
+        "value": "bio"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-risk-management",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-pharmacovigilance-master",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-pharmacovigilance-contact",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-6"
+  },
+  {
+    "id": "rule-biosimilar-comparison",
+    "name": "Биоаналогичный: сравнительные данные с референтным препаратом",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-product-type",
+        "operator": "equals",
+        "value": "biosimilar"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-generic-summary",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-comparison",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-risk-management",
+        "severityIfMissing": "critical"
+      }
+    ],
+    "sourceNpaId": "npa-2"
+  },
+  {
+    "id": "rule-hybrid-data",
+    "name": "Гибридный: обоснование отличий и доп. данные",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-product-type",
+        "operator": "equals",
+        "value": "hybrid"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-generic-summary",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-comparison",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-2"
+  },
+  {
+    "id": "rule-sterile",
+    "name": "Стерильный препарат: валидация стерильности",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-sterile",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-module3",
+        "severityIfMissing": "critical",
+        "checks": [
+          "sterility_validation_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-4"
+  },
+  {
+    "id": "rule-trademark",
+    "name": "Товарный знак",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-trademark-required",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-trademark",
+        "severityIfMissing": "warning"
+      }
+    ],
+    "sourceNpaId": "npa-8"
+  },
+  {
+    "id": "rule-re-registration",
+    "name": "Пакет документов для перерегистрации",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "re-registration"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-registration-certificate",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-cover-letter",
+        "severityIfMissing": "warning"
+      },
+      {
+        "documentTypeId": "doc-registration-dossier",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-gmp",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-spc-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-instruction-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-instruction-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-post-marketing-data",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-pharmacovigilance-master",
+        "severityIfMissing": "warning"
+      }
+    ],
+    "sourceNpaId": "npa-2"
+  },
+  {
+    "id": "rule-variation",
+    "name": "Пакет документов для внесения изменений",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-registration-certificate",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-variation-description",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-variation-justification",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-variation-comparison",
+        "severityIfMissing": "warning"
+      },
+      {
+        "documentTypeId": "doc-current-spc-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-current-spc-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-updated-spc-ru",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-updated-spc-kz",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-labeling-text",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-mockup",
+        "severityIfMissing": "warning"
+      }
+    ],
+    "sourceNpaId": "npa-7"
+  },
+  {
+    "id": "rule-variation-gmp",
+    "name": "Изменение в области производства / GMP: нужны GMP и CPP",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-variation-area",
+        "operator": "equals",
+        "value": "manufacturing"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-gmp",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-cpp",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-manufacturing-license",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-7"
+  },
+  {
+    "id": "rule-variation-quality",
+    "name": "Изменение в области качества: нужны НДК и Модуль 3",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-variation-area",
+        "operator": "equals",
+        "value": "quality"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-quality-nd",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-module3",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-stability",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-7"
+  },
+  {
+    "id": "rule-variation-pharmacovigilance",
+    "name": "Изменение в области фармаконадзора: нужны ПУР и мастер-файл",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "LS"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-variation-area",
+        "operator": "equals",
+        "value": "pharmacovigilance"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-risk-management",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-pharmacovigilance-master",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-pharmacovigilance-contact",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-7"
+  },
+  {
+    "id": "rule-mi-common-registration",
+    "name": "Общий пакет документов для регистрации МИ",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-cover-letter",
+        "severityIfMissing": "warning"
+      },
+      {
+        "documentTypeId": "doc-mi-registration-dossier",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-technical-tests",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-instructions",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-labeling",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-mockup",
+        "severityIfMissing": "warning"
+      },
+      {
+        "documentTypeId": "doc-mi-qms-certificate",
+        "severityIfMissing": "critical"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-biological-studies",
+    "name": "МИ IIb/III или имплантируемое: нужны исследования биологического действия",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-risk-class",
+        "operator": "equals",
+        "value": "IIb"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-biological-studies",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-biological-studies-iii",
+    "name": "МИ III: нужны исследования биологического действия",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-risk-class",
+        "operator": "equals",
+        "value": "III"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-biological-studies",
+        "severityIfMissing": "critical",
+        "checks": [
+          "mi_registration_consistency_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-clinical-trials",
+    "name": "МИ IIb/III, IVD или имплантируемое: нужны клинические испытания",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-risk-class",
+        "operator": "equals",
+        "value": "IIb"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-clinical-trials",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-clinical-trials-iii",
+    "name": "МИ III: нужны клинические испытания",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-risk-class",
+        "operator": "equals",
+        "value": "III"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-clinical-trials",
+        "severityIfMissing": "critical",
+        "checks": [
+          "mi_registration_consistency_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-clinical-trials-ivd",
+    "name": "IVD МИ: нужны клинические/клинико-лабораторные испытания",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-ivd",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-clinical-trials",
+        "severityIfMissing": "serious",
+        "checks": [
+          "mi_registration_consistency_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-sterile-validation",
+    "name": "Стерильное МИ: валидация стерилизации",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-sterile",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-sterilization-validation",
+        "severityIfMissing": "critical",
+        "checks": [
+          "sterility_validation_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-software-validation",
+    "name": "МИ-ПО: валидация программного обеспечения",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-type",
+        "operator": "equals",
+        "value": "software"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-software-validation",
+        "severityIfMissing": "critical",
+        "checks": [
+          "mi_registration_consistency_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-implantable-extra",
+    "name": "Имплантируемое МИ: дополнительные данные",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "registration"
+      },
+      {
+        "parameterId": "param-mi-implantable",
+        "operator": "equals",
+        "value": "yes"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-biological-studies",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-clinical-trials",
+        "severityIfMissing": "critical"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-re-registration",
+    "name": "Пакет документов для перерегистрации МИ",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "re-registration"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-registration-certificate",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-registration-dossier",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-qms-certificate",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-instructions",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-post-marketing",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-variation",
+    "name": "Пакет документов для внесения изменений МИ",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-application",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-payment",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-registration-certificate",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-variation-description",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-variation-justification",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-mi-current-instructions",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-updated-instructions",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-labeling",
+        "severityIfMissing": "serious"
+      },
+      {
+        "documentTypeId": "doc-mi-mockup",
+        "severityIfMissing": "warning"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-variation-quality",
+    "name": "Изменение качества/дизайна МИ: нужны испытания",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-mi-variation-area",
+        "operator": "equals",
+        "value": "quality"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-technical-tests",
+        "severityIfMissing": "critical"
+      },
+      {
+        "documentTypeId": "doc-mi-biological-studies",
+        "severityIfMissing": "serious"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-variation-manufacturing",
+    "name": "Изменение производства/СМК МИ: нужны документы по СМК",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-mi-variation-area",
+        "operator": "equals",
+        "value": "manufacturing"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-qms-certificate",
+        "severityIfMissing": "critical"
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  },
+  {
+    "id": "rule-mi-variation-software",
+    "name": "Изменение ПО МИ: нужна валидация программного обеспечения",
+    "active": true,
+    "conditions": [
+      {
+        "parameterId": "param-object-type",
+        "operator": "equals",
+        "value": "MI"
+      },
+      {
+        "parameterId": "param-procedure",
+        "operator": "equals",
+        "value": "variation"
+      },
+      {
+        "parameterId": "param-mi-variation-area",
+        "operator": "equals",
+        "value": "software"
+      }
+    ],
+    "requiredDocuments": [
+      {
+        "documentTypeId": "doc-mi-software-validation",
+        "severityIfMissing": "critical",
+        "checks": [
+          "mi_variation_consistency_check"
+        ]
+      }
+    ],
+    "sourceNpaId": "npa-12"
+  }
+]

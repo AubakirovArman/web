@@ -1,0 +1,25 @@
+[Unit]
+Description=NDDA 8040 Web Application
+After=network.target ndda-document-parser.service ndda-gemma-checker.service
+Wants=ndda-document-parser.service ndda-gemma-checker.service
+
+[Service]
+Type=simple
+User=arman
+WorkingDirectory=/mnt/models/NDDA_AI/8040/web
+Environment=NODE_ENV=production
+Environment=HOST=0.0.0.0
+Environment=PORT=8040
+Environment=DOCUMENT_PARSER_URL=http://127.0.0.1:8051
+Environment=GEMMA_CHECKER_URL=http://127.0.0.1:8052
+EnvironmentFile=-/mnt/models/NDDA_AI/8040/web/.env.local
+ExecStart=/home/arman/.nvm/versions/node/v22.20.0/bin/npm run start -- -H 0.0.0.0 -p 8040
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+StandardOutput=append:/mnt/models/NDDA_AI/8040/web/web-8040.log
+StandardError=append:/mnt/models/NDDA_AI/8040/web/web-8040.log
+
+[Install]
+WantedBy=multi-user.target

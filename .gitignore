@@ -61,3 +61,9 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local server runtime data
+.runtime/
+*.log
+.playwright-cli/
+output/

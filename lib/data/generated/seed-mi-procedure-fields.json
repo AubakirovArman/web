@@ -1,0 +1,22 @@
+{
+  "registration": [],
+  "re-registration": [
+    "param-mi-registration-number",
+    "param-mi-registration-issue-date",
+    "param-mi-registration-expiry-date",
+    "param-mi-registration-unlimited",
+    "param-mi-post-market-history"
+  ],
+  "variation": [
+    "param-mi-registration-number",
+    "param-mi-registration-issue-date",
+    "param-mi-registration-expiry-date",
+    "param-mi-registration-unlimited",
+    "param-mi-variation-class",
+    "param-mi-variation-area",
+    "param-mi-variation-old-value",
+    "param-mi-variation-new-value",
+    "param-mi-variation-details-table",
+    "param-mi-post-market-history"
+  ]
+}

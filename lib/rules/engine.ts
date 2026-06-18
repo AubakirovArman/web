@@ -1,11 +1,27 @@
-import { Application, ChecklistItem, Finding, RequiredDoc, RuleCondition, Severity } from '@/lib/types';
+import { Application, ChecklistItem, DocumentType, Finding, RequiredDoc, RuleCondition } from '@/lib/types';
 import { documentTypes, npas, rules as seedRules } from '@/lib/data/seed';
+import {
+  getLsDossierDocumentTypeById,
+  getLsRequiredDossierDocuments,
+  matchesLsRequirementTriggerExpression,
+  type LsDossierSource,
+} from '@/lib/data/ls-document-checks-mapping';
 import { Rule } from '@/lib/types';
 
 export function getRequiredDocuments(
   app: Application,
-  rules: Rule[] = seedRules
+  rules: Rule[] = seedRules,
+  availableDocumentTypes?: DocumentType[],
 ): RequiredDoc[] {
+  if (app.values['param-object-type'] === 'LS') {
+    const adminConfigured = getAdminConfiguredLsRequiredDocuments(app.values, availableDocumentTypes);
+    if (adminConfigured.length > 0) return adminConfigured;
+    return filterByAvailableDocumentTypes(
+      withoutWholeDossierDocuments(getLsRequiredDossierDocuments(app.values)),
+      availableDocumentTypes,
+    );
+  }
+
   const result: RequiredDoc[] = [];
   const seen = new Set<string>();
 
@@ -13,6 +29,7 @@ export function getRequiredDocuments(
     if (rule.active === false) continue;
     if (!matchesConditions(app.values, rule.conditions)) continue;
     for (const req of rule.requiredDocuments) {
+      if (isWholeDossierDocument(req.documentTypeId)) continue;
       if (seen.has(req.documentTypeId)) continue;
       seen.add(req.documentTypeId);
       result.push({
@@ -23,7 +40,77 @@ export function getRequiredDocuments(
       });
     }
   }
+  return filterByAvailableDocumentTypes(result, availableDocumentTypes);
+}
+
+function isWholeDossierDocument(documentTypeId: string) {
+  return ['doc-registration-dossier', 'doc-mi-registration-dossier'].includes(documentTypeId);
+}
+
+function withoutWholeDossierDocuments(items: RequiredDoc[]) {
+  return items.filter((item) => !isWholeDossierDocument(item.documentTypeId));
+}
+
+function filterByAvailableDocumentTypes(items: RequiredDoc[], availableDocumentTypes?: DocumentType[]) {
+  if (!availableDocumentTypes?.length) return items;
+  const availableIds = new Set(availableDocumentTypes.map((doc) => doc.id));
+  return items.filter((item) => availableIds.has(item.documentTypeId) || !!item.alternativeDocumentTypeId && availableIds.has(item.alternativeDocumentTypeId));
+}
+
+function getAdminConfiguredLsRequiredDocuments(
+  values: Application['values'],
+  availableDocumentTypes?: DocumentType[],
+): RequiredDoc[] {
+  if (!availableDocumentTypes?.length) return [];
+
+  const result: RequiredDoc[] = [];
+  const seen = new Set<string>();
+
+  for (const doc of availableDocumentTypes) {
+    if (!isLsDossierDocumentTypeId(doc.id)) continue;
+    if (doc.direction !== 'LS' && doc.direction !== 'both') continue;
+
+    const source = inferLsDossierSourceFromDocumentTypeId(doc.id);
+    const requirement = doc.importedRequirements?.[0];
+    const trigger = doc.requiredWhenExpression || requirement?.applicabilityCondition || '';
+    if (!trigger) continue;
+    if (!matchesLsRequirementTriggerExpression(trigger, values, source)) continue;
+    if (seen.has(doc.id)) continue;
+
+    seen.add(doc.id);
+    result.push({
+      documentTypeId: doc.id,
+      severityIfMissing: normalizeRequiredDocSeverity(doc.severityIfMissing || requirement?.criticality),
+      checks: doc.checkIds?.length ? doc.checkIds : parseCheckIds(requirement?.checkType),
+    });
+  }
+
   return result;
+}
+
+function inferLsDossierSourceFromDocumentTypeId(documentTypeId: string): LsDossierSource | undefined {
+  if (documentTypeId.includes('appendix-2')) return 'appendix-2';
+  if (documentTypeId.includes('appendix-3')) return 'appendix-3';
+  return undefined;
+}
+
+function isLsDossierDocumentTypeId(documentTypeId: string) {
+  return documentTypeId.startsWith('new-ls-') || documentTypeId.startsWith('memo-ls-');
+}
+
+function normalizeRequiredDocSeverity(value: unknown): RequiredDoc['severityIfMissing'] {
+  const text = String(value || '').toLowerCase();
+  if (text.includes('critical') || text.includes('крит')) return 'critical';
+  if (text.includes('serious') || text.includes('significant') || text.includes('знач')) return 'serious';
+  if (text.includes('unknown') || text.includes('неиз')) return 'unknown';
+  return 'warning';
+}
+
+function parseCheckIds(value: unknown): string[] {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function matchesConditions(values: Application['values'], conditions: RuleCondition[]): boolean {
@@ -64,20 +151,123 @@ export function buildChecklist(app: Application, rules: Rule[] = seedRules): Che
   });
 }
 
-function findUploadedRequiredFile(app: Application, req: RequiredDoc) {
-  return app.files.find(
-    (f) => f.documentTypeId === req.documentTypeId || f.documentTypeId === req.alternativeDocumentTypeId
-  );
+export function findUploadedRequiredFile(app: Application, req: RequiredDoc) {
+  return app.files.find((file) => fileMatchesRequiredDocument(app, file, req));
 }
 
-export function evaluateMissingDocuments(app: Application, rules: Rule[] = seedRules): Finding[] {
-  const checklist = buildChecklist(app, rules);
+function fileMatchesRequiredDocument(app: Application, file: Application['files'][number], req: RequiredDoc): boolean {
+  if (file.documentTypeId === req.documentTypeId || file.documentTypeId === req.alternativeDocumentTypeId) return true;
+
+  if (app.values['param-object-type'] !== 'LS') return false;
+  if (!isLsDossierDocumentTypeId(req.documentTypeId)) return false;
+
+  const requiredItem = getLsDossierDocumentTypeById(req.documentTypeId);
+  if (!requiredItem) return false;
+
+  const requiredCode = normalizeCtdCode(requiredItem.code);
+  const requiredName = normalizeText(requiredItem.name);
+  const fileCodes = extractFileCtdCodes(file);
+  const fileText = normalizeText([
+    file.name,
+    file.originalName,
+    file.relativePath,
+    file.dossierFolderName,
+    file.dossierSectionName,
+    file.dossierSectionCode,
+  ].filter(Boolean).join(' '));
+
+  if (requiredCode) return fileCodes.some((code) => ctdCodeCoversRequired(requiredCode, code));
+  if (requiredName) {
+    const exactSectionName = normalizeText(file.dossierSectionName);
+    const exactFolderName = normalizeText(file.dossierFolderName);
+    return exactSectionName === requiredName || exactFolderName === requiredName;
+  }
+
+  if (requiredCode === '2.1') {
+    return fileCodes.some((code) => /^(2|3|4|5)\./.test(code));
+  }
+
+  return false;
+}
+
+function normalizeText(value: unknown): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\w\u0400-\u04ff\d.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeCtdCode(value: unknown): string {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/Р/g, 'P')
+    .replace(/\s+/g, '')
+    .replace(/\.$/, '');
+}
+
+function ctdSummaryToDetailedPrefix(code: string): string {
+  if (code.startsWith('2.3.P')) return code.replace(/^2\.3\.P/, '3.2.P');
+  if (code.startsWith('2.3.S')) return code.replace(/^2\.3\.S/, '3.2.S');
+  if (code === '2.3') return '3.2';
+  return code;
+}
+
+function ctdCodeCoversRequired(requiredCode: string, fileCode: string): boolean {
+  if (!requiredCode || !fileCode) return false;
+  return normalizeCtdCode(requiredCode) === normalizeCtdCode(fileCode);
+}
+
+function extractFileCtdCodes(file: Application['files'][number]): string[] {
+  const source = [
+    file.name,
+    file.originalName,
+    file.relativePath,
+    file.dossierFolderName,
+    file.dossierSectionName,
+    file.dossierSectionCode,
+    getLsDossierDocumentTypeById(file.documentTypeId)?.code,
+  ].filter(Boolean).join(' ');
+
+  const matches = source.match(/\b[1-5](?:\.\d+)+(?:\.[SPР])?(?:\.\d+)*\.?/gi) || [];
+  return Array.from(new Set(matches.map(normalizeCtdCode).filter(Boolean))).sort((a, b) => b.length - a.length);
+}
+
+export function evaluateMissingDocuments(
+  app: Application,
+  rules: Rule[] = seedRules,
+  availableDocumentTypes?: DocumentType[],
+): Finding[] {
+  return evaluateMissingRequiredDocuments(app, getRequiredDocuments(app, rules, availableDocumentTypes), availableDocumentTypes, rules);
+}
+
+export function evaluateMissingRequiredDocuments(
+  app: Application,
+  requiredDocuments: RequiredDoc[],
+  availableDocumentTypes?: DocumentType[],
+  rules: Rule[] = [],
+): Finding[] {
+  const checklist = requiredDocuments.map((req) => {
+    const file = findUploadedRequiredFile(app, req);
+    return {
+      documentTypeId: req.documentTypeId,
+      required: true,
+      uploaded: !!file,
+      fileId: file?.id,
+      severityIfMissing: req.severityIfMissing,
+      alternativeDocumentTypeId: req.alternativeDocumentTypeId,
+      matchedDocumentTypeId: file?.documentTypeId,
+      checks: req.checks,
+    } satisfies ChecklistItem;
+  });
   const findings: Finding[] = [];
+  const documentTypesCatalog = availableDocumentTypes?.length ? availableDocumentTypes : documentTypes;
   for (const item of checklist) {
     if (item.uploaded) continue;
-    const docType = documentTypes.find((d) => d.id === item.documentTypeId);
+    const docType = documentTypesCatalog.find((d) => d.id === item.documentTypeId);
     const altDocType = item.alternativeDocumentTypeId
-      ? documentTypes.find((d) => d.id === item.alternativeDocumentTypeId)
+      ? documentTypesCatalog.find((d) => d.id === item.alternativeDocumentTypeId)
       : undefined;
     const rule = rules.find((r) => r.requiredDocuments.some((d) => d.documentTypeId === item.documentTypeId));
     const npa = rule?.sourceNpaId ? npas.find((n) => n.id === rule.sourceNpaId) : undefined;
