@@ -173,6 +173,7 @@ export interface UploadedFile {
   relativePath?: string;
   dossierSectionId?: string;
   dossierSectionCode?: string;
+  dossierSectionCodeAliases?: string[];
   dossierSectionName?: string;
   dossierFolderName?: string;
   dossierMappingConfidence?: number;

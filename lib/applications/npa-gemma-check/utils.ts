@@ -21,12 +21,20 @@ export function normalizeLimit(value: unknown, fallback: number, min: number, ma
 export function buildCandidates(app: Application, documentTypes: DocumentType[], maxFiles: number, maxTotalRequirements: number, skipCompleted: boolean): Candidate[] {
   const docTypesById = new Map(documentTypes.map((item) => [item.id, item]));
   const filesByBundleKey = new Map<string, Application['files']>();
+  const filesByRelatedSectionKey = new Map<string, Application['files']>();
   for (const file of app.files) {
     const docType = docTypesById.get(file.documentTypeId);
     const key = bundleKeyForFile(file, docType);
     const bucket = filesByBundleKey.get(key) || [];
     bucket.push(file);
     filesByBundleKey.set(key, bucket);
+
+    for (const sectionCode of sectionCodesForFile(file, docType)) {
+      const relatedKey = `section:${sectionCode}`;
+      const relatedBucket = filesByRelatedSectionKey.get(relatedKey) || [];
+      relatedBucket.push(file);
+      filesByRelatedSectionKey.set(relatedKey, relatedBucket);
+    }
   }
 
   const candidates: Candidate[] = [];
@@ -42,7 +50,7 @@ export function buildCandidates(app: Application, documentTypes: DocumentType[],
     const requirements = docType ? getDocumentRequirementsForGemma(docType).filter((requirement) => !skipCompleted || !completedRequirementIds.has(requirement.id)) : [];
     if (!docType || requirements.length === 0) continue;
     const selectedRequirements = requirements.slice(0, maxTotalRequirements - requirementCount);
-    const relatedFiles = findRelatedFilesForRequirements(selectedRequirements, filesByBundleKey);
+    const relatedFiles = findRelatedFilesForRequirements(selectedRequirements, filesByRelatedSectionKey);
     const candidateFiles = uniqueFiles([...files, ...relatedFiles]);
     candidates.push({
       applicationId: app.id,
@@ -75,6 +83,25 @@ function uniqueFiles(files: Application['files']): Application['files'] {
 function bundleKeyForFile(file: Application['files'][number], docType?: DocumentType): string {
   const code = normalizeDocumentCode(file.dossierSectionCode || docType?.docCode || docType?.importedRequirements?.[0]?.sourceDocumentCode);
   return code ? `section:${code}` : `document-type:${file.documentTypeId}`;
+}
+
+function sectionCodesForFile(file: Application['files'][number], docType?: DocumentType): string[] {
+  return Array.from(new Set([
+    normalizeDocumentCode(file.dossierSectionCode || docType?.docCode || docType?.importedRequirements?.[0]?.sourceDocumentCode),
+    ...(file.dossierSectionCodeAliases || []).map(normalizeDocumentCode),
+    ...extractDocumentCodes([
+      file.name,
+      file.originalName,
+      file.relativePath,
+      file.dossierFolderName,
+      file.dossierSectionName,
+    ].filter(Boolean).join(' ')),
+  ].filter(Boolean)));
+}
+
+function extractDocumentCodes(value: string): string[] {
+  const matches = value.match(/(^|[^A-ZА-Я0-9])([1-5](?:[.\s_-]+\d+)+(?:[.\s_-]+[SPР])?(?:[.\s_-]+\d+)*)(?=[^A-ZА-Я0-9]|$)/gi) || [];
+  return Array.from(new Set(matches.map((match) => normalizeDocumentCode(match.replace(/^[^A-ZА-Я0-9]+/i, ''))).filter(Boolean)));
 }
 
 function normalizeDocumentCode(value: unknown): string {
