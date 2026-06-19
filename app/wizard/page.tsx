@@ -42,6 +42,7 @@ export default function WizardPage() {
     removeFile,
     runCheck,
     submitApplication,
+    createTestSubmissionCopy,
     updateStatus,
     importApplication,
   } = useApplications();
@@ -174,11 +175,20 @@ export default function WizardPage() {
     router.push(`/expert/${app.id}`);
   };
 
-  const handleTestSubmit = () => {
+  const handleTestSubmit = async () => {
     if (!app) return;
-    updateStatus(app.id, 'submitted');
-    toast.warning('Заявка тестово отправлена в экспертизу без блокировки по замечаниям');
-    router.push(`/expert/${app.id}`);
+    try {
+      const copy = await createTestSubmissionCopy(app.id);
+      if (!copy) {
+        toast.error('Не удалось найти текущую заявку для тестовой отправки');
+        return;
+      }
+      toast.success('Создана тестовая копия заявки и отправлена в экспертизу');
+      router.push(`/expert/${copy.id}`);
+    } catch (error) {
+      console.warn(error);
+      toast.error('Не удалось создать тестовую копию заявки');
+    }
   };
 
   const handleSaveDraft = () => {

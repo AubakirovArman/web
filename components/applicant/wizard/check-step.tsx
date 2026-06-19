@@ -109,13 +109,13 @@ export function CheckStep({
             </Button>
             <Button variant="secondary" onClick={onTestSubmit}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Тестовая отправка на экспертизу
+              Создать тестовую копию и отправить в экспертизу
             </Button>
           </div>
           {mandatoryCount > 0 && (
             <p className="text-sm text-amber-600">
               Для отправки нужно устранить все замечания уровня «критично» или «серьезно».
-              Для MVP можно использовать тестовую отправку без снятия этих замечаний.
+              Для MVP можно создать тестовую копию и отправить её без снятия этих замечаний.
             </p>
           )}
         </CardContent>

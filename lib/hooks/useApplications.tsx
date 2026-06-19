@@ -111,6 +111,7 @@ interface ApplicationContextValue {
     findings: Finding[];
     blockingFindings: Finding[];
   };
+  createTestSubmissionCopy: (id: string) => Promise<Application | null>;
   updateStatus: (id: string, status: Application['status']) => void;
 }
 
@@ -276,6 +277,29 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           findings,
         }));
         return { success: true, findings, blockingFindings };
+      },
+      createTestSubmissionCopy: async (id) => {
+        const source = applications.find((item) => item.id === id);
+        if (!source) return null;
+
+        const copy = normalizeApplication({
+          ...source,
+          id: uid(),
+          createdAt: new Date().toISOString(),
+          status: 'submitted',
+        });
+
+        setApplications((prev) => [copy, ...prev]);
+        setCurrentId(copy.id);
+
+        try {
+          await saveServerApplication(copy);
+          return copy;
+        } catch (error) {
+          setApplications((prev) => prev.filter((app) => app.id !== copy.id));
+          setCurrentId(source.id);
+          throw error;
+        }
       },
       updateStatus: (id, status) =>
         updateApp(id, (app) => ({
