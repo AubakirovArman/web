@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getReferenceIndex } from '@/lib/reference/experiment-store';
+import { getReferenceIndex, REFERENCE_DB_EMPTY } from '@/lib/reference/experiment-store';
 
 export const runtime = 'nodejs';
 
@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to read experiment data';
-    const isNotFound = message.includes('ENOENT') || message.includes('no such file');
+    const isNotFound = message.includes(REFERENCE_DB_EMPTY);
     return NextResponse.json(
-      { error: isNotFound ? 'Экспериментальный справочник еще не сгенерирован' : message },
+      { error: isNotFound ? 'Справочник НПА еще не загружен в базу данных' : message },
       { status: isNotFound ? 404 : 500 },
     );
   }
