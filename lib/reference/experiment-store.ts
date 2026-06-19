@@ -1,5 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { getReferencePool } from '@/lib/reference/db';
 import type { ReferenceExperimentData, ReferenceExperimentDocument } from '@/components/reference/reference-types';
 
 const DIR = path.join(process.cwd(), 'public', 'reference-intelligence');
@@ -21,6 +22,67 @@ export interface ReferenceIndex {
   documents: ReferenceListItem[];
 }
 
+// ---------------------------------------------------------------------------
+// Primary source: PostgreSQL (reference_experiment_documents / _meta).
+// The /reference page reads from the DB once the migration has run
+// (npm run reference:db:migrate-experiment). If the tables are missing or
+// empty we transparently fall back to the file artifacts so nothing breaks.
+// ---------------------------------------------------------------------------
+
+interface MetaRow {
+  generated_at: string | null;
+  prompt_version: string | null;
+  model: string | null;
+}
+
+async function getIndexFromDb(): Promise<ReferenceIndex | null> {
+  const pool = getReferencePool();
+  try {
+    const [docsResult, metaResult, countsResult] = await Promise.all([
+      pool.query<{ list_item: ReferenceListItem }>(
+        `SELECT list_item FROM reference_experiment_documents ORDER BY sort_order, id`,
+      ),
+      pool.query<MetaRow>(`SELECT generated_at, prompt_version, model FROM reference_experiment_meta WHERE key = 'default' LIMIT 1`),
+      pool.query<{ total: string; processed: string }>(
+        `SELECT count(*)::text AS total, count(*) FILTER (WHERE status = 'processed')::text AS processed FROM reference_experiment_documents`,
+      ),
+    ]);
+
+    const total = Number(countsResult.rows[0]?.total || 0);
+    if (total === 0) return null; // not migrated yet → caller falls back to file
+
+    const meta = metaResult.rows[0];
+    return {
+      generatedAt: meta?.generated_at || '',
+      promptVersion: meta?.prompt_version || '',
+      model: meta?.model ?? null,
+      processedCount: Number(countsResult.rows[0]?.processed || 0),
+      targetCount: total,
+      documents: docsResult.rows.map((row) => row.list_item),
+    };
+  } catch {
+    return null; // table missing / DB unavailable → fall back to file
+  }
+}
+
+async function getDocumentFromDb(id: string): Promise<ReferenceExperimentDocument | null> {
+  const pool = getReferencePool();
+  try {
+    const { rows } = await pool.query<{ data: ReferenceExperimentDocument }>(
+      `SELECT data FROM reference_experiment_documents WHERE id = $1 LIMIT 1`,
+      [id],
+    );
+    return rows[0]?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// File fallback: shared in-memory cache keyed by experiment.json mtime, with
+// pre-split index.json / docs/<id>.json fast paths.
+// ---------------------------------------------------------------------------
+
 interface FullCache {
   mtimeMs: number;
   byId: Map<string, ReferenceExperimentDocument>;
@@ -32,7 +94,6 @@ interface IndexCache {
   index: ReferenceIndex;
 }
 
-// Caches survive HMR / route module reloads by living on globalThis.
 const globalStore = globalThis as unknown as {
   __refFullCache?: FullCache;
   __refIndexCache?: IndexCache;
@@ -63,17 +124,10 @@ export function toReferenceIndex(data: ReferenceExperimentData): ReferenceIndex 
   };
 }
 
-// Sanitize ids before using them as file names to avoid path traversal.
 function safeDocId(id: string): string | null {
   return /^[A-Za-z0-9_-]+$/.test(id) ? id : null;
 }
 
-/**
- * Parse the full 17 MB experiment.json at most once per file version.
- * Cached in memory keyed by file mtime, so it is only re-parsed when the
- * generator rewrites the file — never on a timer and never twice for the
- * list + detail routes.
- */
 async function loadFull(): Promise<FullCache> {
   const mtimeMs = await fileMtime(FULL_PATH);
   if (mtimeMs == null) throw new Error('ENOENT: experiment.json not found');
@@ -89,15 +143,9 @@ async function loadFull(): Promise<FullCache> {
   return next;
 }
 
-/**
- * Lightweight document list. Prefers the pre-split index.json (≈21 KB,
- * trivial to parse); falls back to parsing the full file once if the split
- * artifacts are missing or stale.
- */
-export async function getReferenceIndex(): Promise<ReferenceIndex> {
+async function getIndexFromFile(): Promise<ReferenceIndex> {
   const [indexMtime, fullMtime] = await Promise.all([fileMtime(INDEX_PATH), fileMtime(FULL_PATH)]);
 
-  // Use pre-split index only when it is at least as fresh as the source.
   if (indexMtime != null && (fullMtime == null || indexMtime >= fullMtime)) {
     const cached = globalStore.__refIndexCache;
     if (cached && cached.mtimeMs === indexMtime) return cached.index;
@@ -115,11 +163,7 @@ export async function getReferenceIndex(): Promise<ReferenceIndex> {
   return (await loadFull()).index;
 }
 
-/**
- * Full document by id. Prefers a per-document file (docs/<id>.json) so a
- * detail view never forces a parse of the whole experiment.json.
- */
-export async function getReferenceDocument(id: string): Promise<ReferenceExperimentDocument | null> {
+async function getDocumentFromFile(id: string): Promise<ReferenceExperimentDocument | null> {
   const safeId = safeDocId(id);
   if (safeId) {
     const docPath = path.join(DOCS_DIR, `${safeId}.json`);
@@ -136,4 +180,20 @@ export async function getReferenceDocument(id: string): Promise<ReferenceExperim
   const fullMtime = await fileMtime(FULL_PATH);
   if (fullMtime == null) return null;
   return (await loadFull()).byId.get(id) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Public API: DB first, file fallback.
+// ---------------------------------------------------------------------------
+
+export async function getReferenceIndex(): Promise<ReferenceIndex> {
+  const fromDb = await getIndexFromDb();
+  if (fromDb) return fromDb;
+  return getIndexFromFile();
+}
+
+export async function getReferenceDocument(id: string): Promise<ReferenceExperimentDocument | null> {
+  const fromDb = await getDocumentFromDb(id);
+  if (fromDb) return fromDb;
+  return getDocumentFromFile(id);
 }
