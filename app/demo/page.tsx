@@ -35,7 +35,7 @@ export default function DemoPage() {
         </CardHeader>
         <CardContent className="flex items-center gap-3 text-muted-foreground">
           {error ? (
-            <span className="text-red-600">{error}</span>
+            <span className="text-destructive">{error}</span>
           ) : (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />

@@ -15,7 +15,7 @@ export default function HomePage() {
               <FadeIn>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm">
                   <FlaskConical className="h-4 w-4" />
-                  <span>МVP для фармацевтической экспертизы</span>
+                  <span>MVP для фармацевтической экспертизы</span>
                 </div>
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
                   Предэкспертиза регистрационного досье с помощью ИИ
@@ -98,7 +98,7 @@ export default function HomePage() {
       </main>
       <footer className="border-t py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          NDDA AI — MVP предэкспертизы регистрационного досье. Данные хранятся локально в браузере.
+          NDDA AI — MVP предэкспертизы регистрационного досье. Данные хранятся в защищённой базе данных.
         </div>
       </footer>
     </div>

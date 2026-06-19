@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SeverityBadge, CleanBadge } from '@/components/shared/severity-badge';
 import { toast } from 'sonner';
 import { Application } from '@/lib/types';
 import { ArrowRight, CheckCircle2, ClipboardList, FileText, Loader2, Search, Sparkles, Trash2, XCircle } from 'lucide-react';
@@ -231,14 +232,12 @@ function ExpertListPage() {
                         </TableCell>
                         <TableCell className="min-w-[240px] whitespace-normal">
                           {clean ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-100">
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Без замечаний
-                            </span>
+                            <CleanBadge />
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
-                              {counts.critical > 0 && <Badge className="bg-red-600">Критично {counts.critical}</Badge>}
-                              {counts.serious > 0 && <Badge className="bg-orange-600">Серьёзно {counts.serious}</Badge>}
-                              {counts.warning > 0 && <Badge variant="secondary">Предупр. {counts.warning}</Badge>}
+                              {counts.critical > 0 && <SeverityBadge severity="critical" count={counts.critical} />}
+                              {counts.serious > 0 && <SeverityBadge severity="serious" count={counts.serious} />}
+                              {counts.warning > 0 && <SeverityBadge severity="warning" count={counts.warning} label="Предупр." />}
                             </div>
                           )}
                         </TableCell>

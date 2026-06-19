@@ -27,6 +27,7 @@ export default function ReferencePage() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [domainFilter, setDomainFilter] = useState<'all' | 'LS' | 'MI'>('all');
 
   // Debounce search input — avoid hammering the API on every keystroke
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,10 +90,10 @@ export default function ReferencePage() {
   }, []);
 
   // For the table we still need `ReferenceExperimentDocument` shape — cast is safe since table only reads list fields
-  const tableDocuments = useMemo(
-    () => listDocs as unknown as ReferenceExperimentDocument[],
-    [listDocs],
-  );
+  const tableDocuments = useMemo(() => {
+    const filtered = domainFilter === 'all' ? listDocs : listDocs.filter((doc) => doc.domain === domainFilter);
+    return filtered as unknown as ReferenceExperimentDocument[];
+  }, [listDocs, domainFilter]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -133,14 +134,33 @@ export default function ReferencePage() {
               </div>
               <Card className="bg-background/90 shadow-sm backdrop-blur">
                 <CardContent className="space-y-4 py-4">
-                  <div className="relative max-w-2xl">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={query}
-                      onChange={(event) => handleQueryChange(event.target.value)}
-                      placeholder="Поиск по НПА ядра MVP"
-                      className="pl-9"
-                    />
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative w-full max-w-2xl">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={query}
+                        onChange={(event) => handleQueryChange(event.target.value)}
+                        placeholder="Поиск по НПА ядра MVP"
+                        className="pl-9"
+                      />
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {([
+                        ['all', 'Все'],
+                        ['LS', 'ЛС'],
+                        ['MI', 'МИ'],
+                      ] as const).map(([value, label]) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          size="sm"
+                          variant={domainFilter === value ? 'default' : 'outline'}
+                          onClick={() => setDomainFilter(value)}
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                   {selectedId ? (
                     detailLoading ? (
