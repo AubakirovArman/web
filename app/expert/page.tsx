@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SeverityBadge, CleanBadge } from '@/components/shared/severity-badge';
 import { toast } from 'sonner';
 import { Application } from '@/lib/types';
@@ -165,10 +166,37 @@ function ExpertListPage() {
           </FadeIn>
 
           <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Всего заявок" value={applications.length} icon={<ClipboardList className="h-4 w-4" />} />
-            <MetricCard label="Поданы" value={totals.submitted} icon={<FileText className="h-4 w-4" />} />
-            <MetricCard label="На экспертизе" value={totals.inReview} icon={<ArrowRight className="h-4 w-4" />} />
-            <MetricCard label="Без замечаний" value={totals.clean} icon={<CheckCircle2 className="h-4 w-4" />} />
+            <MetricCard
+              label="Всего заявок"
+              value={applications.length}
+              icon={<ClipboardList className="h-4 w-4" />}
+              onClick={() => {
+                setStatusFilter('all');
+                setSeverityFilter('all');
+              }}
+              active={statusFilter === 'all' && severityFilter === 'all'}
+            />
+            <MetricCard
+              label="Поданы"
+              value={totals.submitted}
+              icon={<FileText className="h-4 w-4" />}
+              onClick={() => setStatusFilter('submitted')}
+              active={statusFilter === 'submitted'}
+            />
+            <MetricCard
+              label="На экспертизе"
+              value={totals.inReview}
+              icon={<ArrowRight className="h-4 w-4" />}
+              onClick={() => setStatusFilter('expert-review')}
+              active={statusFilter === 'expert-review'}
+            />
+            <MetricCard
+              label="Без замечаний"
+              value={totals.clean}
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              onClick={() => setSeverityFilter('clean')}
+              active={severityFilter === 'clean'}
+            />
           </div>
 
           <Card>
@@ -180,19 +208,29 @@ function ExpertListPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по препарату, МНН, заявителю" className="pl-8" />
                   </div>
-                  <select className="h-9 rounded-md border bg-background px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as Application['status'] | 'all')}>
-                    <option value="all">Все статусы</option>
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
-                  <select className="h-9 rounded-md border bg-background px-3 text-sm" value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value as typeof severityFilter)}>
-                    <option value="all">Все результаты</option>
-                    <option value="clean">Без замечаний</option>
-                    <option value="critical">Есть критичные</option>
-                    <option value="serious">Есть серьёзные</option>
-                    <option value="warning">Есть предупреждения</option>
-                  </select>
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as Application['status'] | 'all')}>
+                    <SelectTrigger className="h-9 w-[180px]">
+                      <SelectValue placeholder="Все статусы" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все статусы</SelectItem>
+                      {Object.entries(statusLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as typeof severityFilter)}>
+                    <SelectTrigger className="h-9 w-[190px]">
+                      <SelectValue placeholder="Все результаты" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все результаты</SelectItem>
+                      <SelectItem value="clean">Без замечаний</SelectItem>
+                      <SelectItem value="critical">Есть критичные</SelectItem>
+                      <SelectItem value="serious">Есть серьёзные</SelectItem>
+                      <SelectItem value="warning">Есть предупреждения</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -282,16 +320,47 @@ function ExpertListPage() {
   );
 }
 
-function MetricCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function MetricCard({
+  label,
+  value,
+  icon,
+  onClick,
+  active,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+}) {
+  const content = (
+    <CardContent className="flex items-center justify-between p-4">
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-2xl font-semibold">{value}</p>
+      </div>
+      <div className="rounded-full bg-primary/10 p-2 text-primary">{icon}</div>
+    </CardContent>
+  );
+
+  if (!onClick) return <Card>{content}</Card>;
+
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-4">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-2xl font-semibold">{value}</p>
-        </div>
-        <div className="rounded-full bg-primary/10 p-2 text-primary">{icon}</div>
-      </CardContent>
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={`cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40 ${
+        active ? 'border-primary ring-1 ring-primary' : ''
+      }`}
+    >
+      {content}
     </Card>
   );
 }
