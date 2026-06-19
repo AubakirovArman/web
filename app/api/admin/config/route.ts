@@ -4,9 +4,19 @@ import { readAdminRuntimeConfig, writeAdminRuntimeConfig } from '@/lib/admin/ser
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const config = await readAdminRuntimeConfig();
+    // `?lite=1` returns only what runtime consumers (wizard, expert, fields
+    // panel) actually use — documentTypes + rules — dropping the ~2.3 MB of
+    // lsDossierDocumentTypes + npaRegistry from the response.
+    if (request.nextUrl.searchParams.get('lite') === '1') {
+      return NextResponse.json({
+        documentTypes: config.documentTypes,
+        rules: config.rules,
+        updatedAt: config.updatedAt,
+      });
+    }
     return NextResponse.json(config);
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Failed to read admin config' }, { status: 500 });

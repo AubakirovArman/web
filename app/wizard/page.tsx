@@ -43,6 +43,7 @@ export default function WizardPage() {
     runCheck,
     submitApplication,
     updateStatus,
+    importApplication,
   } = useApplications();
   const { rules, importRules } = useRules();
   const { store, setDocumentTypes } = useStore();
@@ -51,7 +52,7 @@ export default function WizardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/admin/config')
+    fetch('/api/admin/config?lite=1')
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
         if (cancelled || !config) return;
@@ -75,6 +76,25 @@ export default function WizardPage() {
       setCurrentId(applications[0].id);
     }
   }, [currentId, applications, setCurrentId]);
+
+  // The global provider holds lightweight summaries (no per-file extracted
+  // text). When an existing application becomes current, hydrate the full
+  // version so client-side checks have the extracted data.
+  useEffect(() => {
+    if (!currentId) return;
+    let cancelled = false;
+    void fetch(`/api/applications/${encodeURIComponent(currentId)}`, { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.application) importApplication(data.application);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+    // importApplication identity changes on every applications update; depend on currentId only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId]);
 
   const app = useMemo(() => applications.find((a) => a.id === currentId), [applications, currentId]);
   const paramsSubSteps = useMemo(() => getVisibleParamsSubSteps(app?.values), [app?.values]);

@@ -2,6 +2,32 @@ import type { DocumentType, Rule } from '@/lib/types';
 import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
 import { ensureRuntimeSchema, getRuntimePool, normalizeRuntimeUserId, sanitizeJsonForPostgres } from '@/lib/db/runtime-postgres';
 
+// ---------------------------------------------------------------------------
+// In-process TTL cache for the full LS/registration document type list.
+// readLsRegistrationDocumentTypesFromPostgres does a full table scan and is
+// called on every /api/admin/config request (wizard page mount). Cache it for
+// 2 minutes — acceptable staleness for an admin-managed reference table.
+// ---------------------------------------------------------------------------
+const globalForDocTypeCache = globalThis as unknown as {
+  _lsDocTypeCache?: { data: { documentTypes: DocumentType[]; lsDossierDocumentTypes: NewDossierDocumentType[] }; at: number } | null;
+};
+const LS_DOC_TYPE_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+function getLsDocTypeCache() {
+  const entry = globalForDocTypeCache._lsDocTypeCache;
+  if (entry && Date.now() - entry.at < LS_DOC_TYPE_CACHE_TTL_MS) return entry.data;
+  return null;
+}
+
+function setLsDocTypeCache(data: { documentTypes: DocumentType[]; lsDossierDocumentTypes: NewDossierDocumentType[] }) {
+  globalForDocTypeCache._lsDocTypeCache = { data, at: Date.now() };
+}
+
+/** Call this whenever an admin saves document types so the next request is fresh. */
+export function invalidateLsDocTypeCache() {
+  globalForDocTypeCache._lsDocTypeCache = null;
+}
+
 export interface AdminRuntimeConfig {
   documentTypes: DocumentType[];
   rules: Rule[];
@@ -238,9 +264,9 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
 
   const pool = getRuntimePool();
   const whereSql = where.join(' AND ');
-  const countResult = await pool.query<{ count: string }>(`SELECT count(*)::text AS count FROM document_requirement_rules WHERE ${whereSql}`, values);
+  // Single query: window function COUNT(*) OVER() avoids a second round-trip
   values.push(pageSize, offset);
-  const rowsResult = await pool.query<DbDocumentRequirementRule>(
+  const rowsResult = await pool.query<DbDocumentRequirementRule & { _total_count: string }>(
     `
       SELECT
         id,
@@ -260,7 +286,8 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
         condition_json,
         normalization_status,
         source_reference,
-        active
+        active,
+        count(*) OVER()::text AS _total_count
       FROM document_requirement_rules
       WHERE ${whereSql}
       ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id
@@ -270,9 +297,10 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
     values
   );
 
+  const total = Number(rowsResult.rows[0]?._total_count || 0);
   return {
     items: rowsResult.rows.map((rule, index) => buildAdminDossierDocumentTypeSummary(rule, offset + index + 1)),
-    total: Number(countResult.rows[0]?.count || 0),
+    total,
     page,
     pageSize,
   };
@@ -462,6 +490,9 @@ async function readLsRegistrationDocumentTypesFromPostgres(): Promise<{
   documentTypes: DocumentType[];
   lsDossierDocumentTypes: NewDossierDocumentType[];
 }> {
+  const cached = getLsDocTypeCache();
+  if (cached) return cached;
+
   const pool = getRuntimePool();
   const { rows } = await pool.query<DbDocumentRequirementRule>(`
     SELECT
@@ -492,7 +523,9 @@ async function readLsRegistrationDocumentTypesFromPostgres(): Promise<{
 
   const lsDossierDocumentTypes = rows.map((rule, index) => buildAdminDossierDocumentType(rule, index + 1));
   const documentTypes = rows.map((rule) => buildAdminDocumentType(rule));
-  return { documentTypes, lsDossierDocumentTypes };
+  const result = { documentTypes, lsDossierDocumentTypes };
+  setLsDocTypeCache(result);
+  return result;
 }
 
 function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrder: number): NewDossierDocumentType {
@@ -707,6 +740,8 @@ export async function writeAdminRuntimeConfig(config: unknown, userId = 'system'
     updatedByUserId: normalizeRuntimeUserId(userId),
   });
   await writeAdminRuntimeConfigToPostgres(normalized, userId);
+  // Invalidate the document-type cache so the next read reflects the new data
+  invalidateLsDocTypeCache();
   return normalized;
 }
 
