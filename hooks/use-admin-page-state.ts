@@ -274,6 +274,7 @@ export function useAdminPageState() {
   };
 
   return {
+    adminConfigLoaded,
     documentTypes,
     newDossierDocumentTypes,
     newDossierDocumentTypeEditor,

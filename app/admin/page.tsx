@@ -17,6 +17,7 @@ import { ApplicationFieldsPanel } from '@/components/admin/application-fields-pa
 
 export default function AdminPage() {
   const {
+    adminConfigLoaded,
     documentTypes,
     newDossierDocumentTypes,
     newDossierDocumentTypeEditor,
@@ -78,6 +79,7 @@ export default function AdminPage() {
             <TabsContent value="docs-new" className="space-y-3">
               <NewDossierDocumentTypesPanel
                 items={newDossierDocumentTypes}
+                loading={!adminConfigLoaded}
                 onChange={persistNewDossierDocumentTypes}
                 onReset={handleResetNewDossierDocumentTypes}
                 onCreate={() => setNewDossierDocumentTypeEditor({ mode: 'create', values: createBlankNewDossierDocumentType(newDossierDocumentTypes) })}

@@ -10,10 +10,12 @@ import { RequirednessBadge } from '@/components/admin/new-dossier-document-type-
 
 export function NewDossierDocumentTypesTable({
   items,
+  loading = false,
   onOpen,
   onDelete,
 }: {
   items: NewDossierDocumentType[];
+  loading?: boolean;
   onOpen: (item: NewDossierDocumentType) => void;
   onDelete: (id: string) => void;
 }) {
@@ -32,7 +34,23 @@ export function NewDossierDocumentTypesTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
+          {loading && Array.from({ length: 8 }).map((_, index) => (
+            <tr key={`skeleton-${index}`} className="border-b last:border-b-0">
+              {Array.from({ length: 7 }).map((__, cellIndex) => (
+                <td key={cellIndex} className="px-3 py-3 align-top">
+                  <div className="h-4 w-full animate-pulse bg-muted" />
+                </td>
+              ))}
+            </tr>
+          ))}
+          {!loading && items.length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                Типы документов не найдены по текущему фильтру.
+              </td>
+            </tr>
+          )}
+          {!loading && items.map((item) => {
             const requirement = getLsDocumentRequirementForItem(item);
             const requirementSummary = getRequirementSummary(item, requirement);
             return (
@@ -80,4 +98,3 @@ export function NewDossierDocumentTypesTable({
     </div>
   );
 }
-

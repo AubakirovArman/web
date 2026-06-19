@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +14,14 @@ import { NewDossierDocumentTypesTable } from '@/components/admin/new-dossier-doc
 
 export function NewDossierDocumentTypesPanel({
   items,
+  loading = false,
   onChange,
   onReset,
   onCreate,
   onEdit,
 }: {
   items: NewDossierDocumentType[];
+  loading?: boolean;
   onChange: (items: NewDossierDocumentType[]) => void;
   onReset: () => void;
   onCreate: () => void;
@@ -28,11 +30,13 @@ export function NewDossierDocumentTypesPanel({
   const [query, setQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'appendix-2' | 'appendix-3'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const selectedItem = selectedId ? items.find((item) => item.id === selectedId) : null;
   const normalizedQuery = query.trim().toLowerCase();
-  const documentItems = items.filter((item) => item.kind === 'document');
+  const documentItems = useMemo(() => items.filter((item) => item.kind === 'document'), [items]);
   const hiddenServiceRows = items.length - documentItems.length;
-  const filtered = items.filter((item) => {
+  const filtered = useMemo(() => items.filter((item) => {
     if (item.kind !== 'document') return false;
     if (sourceFilter !== 'all' && item.source !== sourceFilter) return false;
     if (!normalizedQuery) return true;
@@ -40,7 +44,14 @@ export function NewDossierDocumentTypesPanel({
       .join(' ')
       .toLowerCase()
       .includes(normalizedQuery);
-  });
+  }), [items, normalizedQuery, sourceFilter]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, pageCount);
+  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [normalizedQuery, sourceFilter, pageSize]);
 
   const deleteItem = (id: string) => {
     onChange(items.filter((item) => item.id !== id));
@@ -84,7 +95,7 @@ export function NewDossierDocumentTypesPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary">{documentItems.length} типов документов</Badge>
+            <Badge variant="secondary">{loading ? 'Загрузка типов документов' : `${documentItems.length} типов документов`}</Badge>
             <Badge variant="outline">Приложение 2: {documentItems.filter((item) => item.source === 'appendix-2').length}</Badge>
             <Badge variant="outline">Приложение 3: {documentItems.filter((item) => item.source === 'appendix-3').length}</Badge>
             {hiddenServiceRows > 0 && <Badge variant="outline">{hiddenServiceRows} служебных строк скрыто</Badge>}
@@ -106,11 +117,40 @@ export function NewDossierDocumentTypesPanel({
       </Card>
 
       <NewDossierDocumentTypesTable
-        items={filtered}
+        items={pageItems}
+        loading={loading}
         onOpen={(item) => setSelectedId(item.id)}
         onDelete={deleteItem}
       />
+
+      <div className="flex flex-col gap-3 border bg-card px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-muted-foreground">
+          {loading
+            ? 'Загрузка данных...'
+            : `Показано ${filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}-${Math.min(safePage * pageSize, filtered.length)} из ${filtered.length}`}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+            <SelectTrigger className="h-9 w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="25">25 на странице</SelectItem>
+              <SelectItem value="50">50 на странице</SelectItem>
+              <SelectItem value="100">100 на странице</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" disabled={loading || safePage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>
+            Назад
+          </Button>
+          <span className="min-w-20 text-center text-muted-foreground">
+            {safePage} / {pageCount}
+          </span>
+          <Button variant="outline" size="sm" disabled={loading || safePage >= pageCount} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}>
+            Далее
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
-
