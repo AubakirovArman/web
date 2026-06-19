@@ -6,6 +6,11 @@ import type { DocumentType } from '@/lib/types';
 import type { AdminNpaRequirement, NpaRequirementAction } from '@/lib/admin/admin-page-types';
 import { EmptyAdminBlock } from '@/components/admin/empty-admin-block';
 
+// Drop the internal "Gemma:" prefix from the stored check type for display.
+function cleanCheckType(value?: string): string {
+  return (value || '').replace(/^\s*gemma\s*[:\-–—]?\s*/i, '').trim();
+}
+
 export function NpaRequirementsTable({
   requirements,
   documentTypes,
@@ -63,7 +68,7 @@ export function NpaRequirementsTable({
               <td className="px-3 py-3 align-top text-xs">
                 <div className="leading-5 font-medium">{requirement.documentName || 'Документ не указан'}</div>
                 <div className="mt-1 text-muted-foreground">
-                  {[requirement.documentCode, requirement.checkType].filter(Boolean).join(' · ') || 'Тип проверки не указан'}
+                  {[requirement.documentCode, cleanCheckType(requirement.checkType)].filter(Boolean).join(' · ') || 'Тип проверки не указан'}
                 </div>
               </td>
               <td className="px-3 py-3 align-top">

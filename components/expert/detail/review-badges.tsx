@@ -50,7 +50,7 @@ function methodLabel(method: CheckMethod): string {
     rule: 'rule',
     parser: 'parser',
     ocr: 'ocr',
-    llm: 'gemma',
+    llm: 'ИИ',
     manual: 'manual',
     hybrid: 'hybrid',
   };

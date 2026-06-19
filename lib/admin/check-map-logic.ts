@@ -195,13 +195,13 @@ export function getCheckImplementationBlueprint(check: CheckDefinition) {
     output: 'Finding с уровнем критичности, документами, объяснением, рекомендацией и ссылкой на НПА.',
     method: `${check.method}: ${methodExplanation(check.method)}`,
     algorithm: 'Запустить runner по check.id, собрать evidence, вернуть структурированный результат проверки.',
-    gemma: 'Gemma 4 используется, когда parser/OCR не может надежно извлечь смысловое требование или нужно сравнить свободный текст.',
+    gemma: 'ИИ-модель используется, когда parser/OCR не может надежно извлечь смысловое требование или нужно сравнить свободный текст.',
     failure: 'Нарушение условия проверки, отсутствие обязательного значения или расхождение между документами.',
   };
 
   const overrides: Record<string, Partial<typeof generic>> = {
     required_fields_check: {
-      input: 'Цифровые параметры заявки; позже также Word/PDF-заявление после parser/OCR/Gemma-извлечения.',
+      input: 'Цифровые параметры заявки; позже также Word/PDF-заявление после parser/OCR/ИИ-извлечения.',
       algorithm: 'Для выбранных objectType/procedure взять getRequiredParameterIds и проверить, что каждое поле заполнено.',
       gemma: 'Нужна только для PDF/Word-заявления, если поля не заполнены в цифровой форме и нужно извлечь их из файла.',
       failure: 'Обязательное поле пустое или невозможно сопоставить извлеченное поле с параметром заявки.',
@@ -248,7 +248,7 @@ export function methodExplanation(method: CheckDefinition['method']) {
     ocr: 'проверка текстового слоя/OCR и качества извлечения',
     llm: 'смысловая автоматическая проверка',
     manual: 'ручная экспертная проверка',
-    hybrid: 'комбинация rules/parser/OCR/Gemma',
+    hybrid: 'комбинация rules/parser/OCR/ИИ',
   };
   return labels[method];
 }

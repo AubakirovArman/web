@@ -173,7 +173,7 @@ export function buildGemmaSourceReference(preview: NpaGemmaPreview) {
   const actTitle = renderGemmaValue(act.title);
   const actNumber = renderGemmaValue(act.number);
   const actDate = renderGemmaValue(act.date);
-  return ['Gemma', actTitle || preview.document.title, actNumber, actDate].filter(Boolean).join(' · ');
+  return ['ИИ-анализ', actTitle || preview.document.title, actNumber, actDate].filter(Boolean).join(' · ');
 }
 
 export function normalizeGemmaCompareValue(value: unknown) {
