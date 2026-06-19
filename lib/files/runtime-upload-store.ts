@@ -50,6 +50,15 @@ export async function writeRuntimeUploadBuffer(
   return record;
 }
 
+export async function copyRuntimeUpload(sourceFileId: string, targetFileId: string): Promise<RuntimeUploadMetadata> {
+  const { metadata, filePath } = await readRuntimeUpload(sourceFileId);
+  const buffer = await fs.readFile(filePath);
+  return writeRuntimeUploadBuffer(targetFileId, buffer, {
+    fileName: metadata.fileName,
+    contentType: metadata.contentType,
+  });
+}
+
 export async function readRuntimeUpload(fileId: string): Promise<{
   metadata: RuntimeUploadMetadata;
   filePath: string;

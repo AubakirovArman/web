@@ -91,6 +91,17 @@ async function deleteServerApplication(id: string): Promise<void> {
   if (!response.ok) throw new Error('Не удалось удалить заявку');
 }
 
+async function createServerTestSubmission(id: string): Promise<Application | null> {
+  const response = await fetch(`${APPLICATIONS_API}/${encodeURIComponent(id)}/test-submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error || 'Не удалось создать тестовую заявку');
+  return data?.application ? normalizeApplication(data.application) : null;
+}
+
 interface ApplicationContextValue {
   applications: Application[];
   currentId: string | null;
@@ -279,27 +290,15 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         return { success: true, findings, blockingFindings };
       },
       createTestSubmissionCopy: async (id) => {
-        const source = applications.find((item) => item.id === id);
-        if (!source) return null;
-
-        const copy = normalizeApplication({
-          ...source,
-          id: uid(),
-          createdAt: new Date().toISOString(),
-          status: 'submitted',
-        });
-
-        setApplications((prev) => [copy, ...prev]);
+        const copy = await createServerTestSubmission(id);
+        if (!copy) return null;
+        setApplications((prev) =>
+          prev.some((item) => item.id === copy.id)
+            ? prev.map((item) => (item.id === copy.id ? copy : item))
+            : [copy, ...prev]
+        );
         setCurrentId(copy.id);
-
-        try {
-          await saveServerApplication(copy);
-          return copy;
-        } catch (error) {
-          setApplications((prev) => prev.filter((app) => app.id !== copy.id));
-          setCurrentId(source.id);
-          throw error;
-        }
+        return copy;
       },
       updateStatus: (id, status) =>
         updateApp(id, (app) => ({

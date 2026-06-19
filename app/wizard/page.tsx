@@ -183,7 +183,7 @@ export default function WizardPage() {
         toast.error('Не удалось найти текущую заявку для тестовой отправки');
         return;
       }
-      toast.success('Создана тестовая копия заявки и отправлена в экспертизу');
+      toast.success('Создана новая тестовая заявка, полный прогон запущен');
       router.push(`/expert/${copy.id}`);
     } catch (error) {
       console.warn(error);
