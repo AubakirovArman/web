@@ -81,7 +81,7 @@ export function ExpertApplicationDetail() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/admin/config')
+    fetch('/api/admin/config?lite=1')
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
         if (cancelled || !config) return;
@@ -105,6 +105,25 @@ export function ExpertApplicationDetail() {
   useEffect(() => {
     if (applicationId) setCurrentId(applicationId);
   }, [applicationId, setCurrentId]);
+
+  // The global list provider only holds lightweight summaries (no per-file
+  // extracted text). Fetch the full application once on open so the detail
+  // view has the complete data.
+  useEffect(() => {
+    if (!applicationId) return;
+    let cancelled = false;
+    void fetch(`/api/applications/${encodeURIComponent(applicationId)}`, { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.application) importApplication(data.application);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+    // importApplication identity changes on every applications update; depend on applicationId only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicationId]);
 
   useEffect(() => {
     if (!applicationId) return;

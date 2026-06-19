@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureRuntimeSchema, getRuntimePool } from '@/lib/db/runtime-postgres';
-import { readApplications } from '@/lib/applications/server-store';
+import { readApplicationById } from '@/lib/applications/server-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,8 +13,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Application id is required' }, { status: 400 });
     }
 
-    const applications = await readApplications();
-    const application = applications.find((item) => item.id === id);
+    const application = await readApplicationById(id);
     if (!application) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }

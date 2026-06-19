@@ -46,7 +46,7 @@ export function ApplicationFieldsPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/admin/config')
+    fetch('/api/admin/config?lite=1')
       .then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
       .then((data) => {
         if (!cancelled) setRuntimeDocumentTypes(Array.isArray(data?.documentTypes) ? data.documentTypes : []);

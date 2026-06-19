@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readApplications, upsertApplication, writeApplications } from '@/lib/applications/server-store';
+import { readApplicationSummaries, upsertApplication, writeApplications } from '@/lib/applications/server-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,8 @@ function rejectStaleClient(request: NextRequest) {
 
 export async function GET() {
   try {
-    const applications = await readApplications();
+    // List view only needs metadata + finding counts, not per-file extracted text.
+    const applications = await readApplicationSummaries();
     return NextResponse.json({ applications });
   } catch (error: any) {
     console.error('Applications GET error:', error);

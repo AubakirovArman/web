@@ -33,6 +33,37 @@ export async function readApplications(): Promise<Application[]> {
   return readApplicationsFromPostgres();
 }
 
+/**
+ * Lightweight list read for the expert table / global provider.
+ * Strips the heavy per-file `extracted` text and inline `url` data so that
+ * mounting any page does not transfer megabytes of OCR/parse output.
+ * Full per-file data is fetched on demand via readApplicationById.
+ */
+export async function readApplicationSummaries(): Promise<Application[]> {
+  const applications = await readApplicationsFromPostgres();
+  return applications.map(stripApplicationHeavyFields);
+}
+
+function stripApplicationHeavyFields(app: Application): Application {
+  if (!Array.isArray(app.files) || app.files.length === 0) return app;
+  return {
+    ...app,
+    files: app.files.map((file) => {
+      const { extracted: _extracted, url: _url, ...rest } = file;
+      return rest;
+    }),
+  };
+}
+
+export async function readApplicationById(id: string): Promise<Application | null> {
+  if (!id) return null;
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const result = await pool.query(`SELECT data FROM runtime_applications WHERE id = $1 LIMIT 1`, [id]);
+  if (result.rows.length === 0) return null;
+  return normalizeApplications([result.rows[0].data])[0] || null;
+}
+
 async function readApplicationsFromPostgres(): Promise<Application[]> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
