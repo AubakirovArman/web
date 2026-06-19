@@ -19,6 +19,7 @@ export function NewDossierDocumentTypesPanel({
   onReset,
   onCreate,
   onEdit,
+  onOpenItem,
 }: {
   items: NewDossierDocumentType[];
   loading?: boolean;
@@ -26,13 +27,14 @@ export function NewDossierDocumentTypesPanel({
   onReset: () => void;
   onCreate: () => void;
   onEdit: (item: NewDossierDocumentType) => void;
+  onOpenItem?: (item: NewDossierDocumentType) => void;
 }) {
   const [query, setQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'appendix-2' | 'appendix-3'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const selectedItem = selectedId ? items.find((item) => item.id === selectedId) : null;
+  const selectedItem = !onOpenItem && selectedId ? items.find((item) => item.id === selectedId) : null;
   const normalizedQuery = query.trim().toLowerCase();
   const documentItems = useMemo(() => items.filter((item) => item.kind === 'document'), [items]);
   const hiddenServiceRows = items.length - documentItems.length;
@@ -119,7 +121,7 @@ export function NewDossierDocumentTypesPanel({
       <NewDossierDocumentTypesTable
         items={pageItems}
         loading={loading}
-        onOpen={(item) => setSelectedId(item.id)}
+        onOpen={(item) => onOpenItem ? onOpenItem(item) : setSelectedId(item.id)}
         onDelete={deleteItem}
       />
 

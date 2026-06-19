@@ -246,7 +246,7 @@ export function methodExplanation(method: CheckDefinition['method']) {
     rule: 'детерминированная проверка по параметрам заявки и правилам',
     parser: 'технический parser файла без LLM',
     ocr: 'проверка текстового слоя/OCR и качества извлечения',
-    llm: 'смысловая проверка через Gemma 4',
+    llm: 'смысловая автоматическая проверка',
     manual: 'ручная экспертная проверка',
     hybrid: 'комбинация rules/parser/OCR/Gemma',
   };
@@ -261,4 +261,3 @@ export function procedureLabel(procedure: Procedure) {
   };
   return labels[procedure];
 }
-

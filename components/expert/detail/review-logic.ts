@@ -192,7 +192,7 @@ function mergeChecks(left: ReviewCheckCell[], right: ReviewCheckCell[]) {
 function semanticCheckDedupeKey(check: ReviewCheckCell) {
   if (check.id.startsWith('npa-requirement-') || check.id.startsWith('fallback-gemma-')) {
     const source = String(check.description || check.name || '')
-      .split('\nGemma:')[0]
+      .split('\nАвтоматическая проверка:')[0]
       .split('\nКомментарий:')[0]
       .split('\nОснование:')[0]
       .split('\nЦитата НПА:')[0];
@@ -338,7 +338,7 @@ function buildCheckCells(
       description: [
         requirement.requirementText,
         requirement.applicabilityCondition ? `Условие: ${requirement.applicabilityCondition}` : '',
-        gemmaResult?.status ? `Gemma: ${npaStatusLabel(gemmaResult.status)}` : '',
+        gemmaResult?.status ? `Автоматическая проверка: ${npaStatusLabel(gemmaResult.status)}` : '',
         gemmaResult?.comment ? `Комментарий: ${gemmaResult.comment}` : '',
         gemmaResult?.evidence ? `Основание: ${gemmaResult.evidence}` : '',
         requirement.quote ? `Цитата НПА: ${requirement.quote}` : '',
@@ -361,14 +361,14 @@ function buildCheckCells(
 
       return {
         id: `fallback-gemma-${result.requirementId || index}`,
-        name: result.sourcePoint ? `Gemma: ${result.sourcePoint}` : `Gemma-проверка ${index + 1}`,
+        name: result.sourcePoint ? `Автоматическая проверка: ${result.sourcePoint}` : `Автоматическая проверка ${index + 1}`,
         status: npaRequirementStatus(result, relatedFindings),
         method: 'llm',
         severity: maxSeverity(relatedFindings),
         findings: relatedFindings,
         description: [
           result.requirementText,
-          result.status ? `Gemma: ${npaStatusLabel(result.status)}` : '',
+          result.status ? `Автоматическая проверка: ${npaStatusLabel(result.status)}` : '',
           result.comment ? `Комментарий: ${result.comment}` : '',
           result.evidence ? `Основание: ${result.evidence}` : '',
         ].filter(Boolean).join('\n'),
@@ -570,7 +570,7 @@ function buildNpaRequirementRemark(
   if (!result) {
     return status === 'skipped'
       ? 'Требование не применяется к текущей заявке или не требует проверки по загруженному пакету.'
-      : 'По этому условию нет сохранённого результата Gemma. Нужно запустить проверку документа или проверить условие вручную.';
+      : 'По этому условию нет сохранённого результата автоматической проверки. Нужно запустить проверку документа или проверить условие вручную.';
   }
 
   const lines: string[] = [];

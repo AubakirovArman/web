@@ -29,7 +29,7 @@ export function FindingsPanel({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle className="text-base">Замечания эксперту</CardTitle>
-            <p className="text-sm text-muted-foreground">Основной список замечаний и отдельный фильтр по НПА/Gemma.</p>
+            <p className="text-sm text-muted-foreground">Основной список замечаний и отдельный фильтр по НПА.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {(['all', 'critical', 'serious', 'warning', 'unknown'] as NpaFindingFilter[]).map((filter) => (
@@ -44,7 +44,7 @@ export function FindingsPanel({
         {npaGemmaFindings.length > 0 && (
           <div className="rounded-xl border bg-muted/20 p-3">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="font-medium">НПА/Gemma замечания</div>
+              <div className="font-medium">Замечания НПА</div>
               <div className="text-sm text-muted-foreground">показано {filteredNpaGemmaFindings.length} из {npaGemmaFindings.length}</div>
             </div>
             <div className="max-h-[420px] space-y-2 overflow-auto pr-1">

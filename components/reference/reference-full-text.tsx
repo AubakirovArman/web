@@ -16,7 +16,7 @@ export function FullText({ document }: { document: ReferenceExperimentDocument }
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <Badge variant="outline">{section.sectionType}</Badge>
                 {section.headingNumber && <Badge variant="secondary">{section.headingNumber}</Badge>}
-                {related.length > 0 && <Badge variant="default"><Sparkles className="mr-1 h-3 w-3" /> Gemma highlight</Badge>}
+                {related.length > 0 && <Badge variant="default"><Sparkles className="mr-1 h-3 w-3" /> Подсветка анализа</Badge>}
               </div>
               <h3 className="font-semibold leading-7">{section.title}</h3>
               {related.length > 0 && (

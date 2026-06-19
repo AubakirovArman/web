@@ -33,7 +33,7 @@ export function ServerTaskCard({
                   : serverTask === 'check'
                     ? 'Серверная проверка'
                     : serverTask === 'npa-gemma'
-                      ? 'Проверка НПА через Gemma'
+                      ? 'Проверка НПА'
                       : 'Последняя операция'}
               </span>
               {serverTask && <Badge variant="outline">{formatElapsed(taskElapsed)}</Badge>}

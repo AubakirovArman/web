@@ -53,7 +53,7 @@ export default function ReferencePage() {
               <div>
                 <div className="mb-2 inline-flex items-center gap-2 rounded-full border bg-background/85 px-3 py-1 text-xs text-muted-foreground shadow-sm"><Brain className="h-3.5 w-3.5" />Reference Intelligence Experiment</div>
                 <h1 className="text-3xl font-bold tracking-tight">Умный справочник НПА</h1>
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">Экспериментальная версия: НПА ядра MVP отсортированы от меньших к большим по оценке токенов. Gemma вытаскивает резюме, требования, параметры, зависимости и подсветки для приложения.</p>
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">Экспериментальная версия: НПА ядра MVP отсортированы от меньших к большим по оценке токенов. Автоматический анализ извлекает резюме, требования, параметры, зависимости и подсветки для приложения.</p>
               </div>
               <Button variant="outline" asChild><Link href="/admin"><ArrowLeft className="mr-2 h-4 w-4" />В админку</Link></Button>
             </div>
@@ -64,7 +64,7 @@ export default function ReferencePage() {
 
           {data && (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4"><Metric label="Документы ядра" value={String(data.targetCount)} /><Metric label="Обработано Gemma" value={`${data.processedCount}/${data.targetCount}`} /><Metric label="Модель" value={data.model || 'metadata'} /><Metric label="Сортировка" value="малые -> большие" /></div>
+              <div className="grid gap-3 md:grid-cols-4"><Metric label="Документы ядра" value={String(data.targetCount)} /><Metric label="Обработано автоматически" value={`${data.processedCount}/${data.targetCount}`} /><Metric label="Модель" value={data.model || 'metadata'} /><Metric label="Сортировка" value="малые -> большие" /></div>
               <Card className="bg-background/90 shadow-sm backdrop-blur">
                 <CardContent className="space-y-4 py-4">
                   <div className="relative max-w-2xl"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по НПА ядра MVP" className="pl-9" /></div>

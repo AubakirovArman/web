@@ -207,7 +207,7 @@ export function runApplicationAndFileChecks(context: CheckRunContext) {
             `Требования НПА к документу: ${docType.name}`,
             `К типу документа привязано требований НПА: ${acceptedRequirements.length}. Требуется экспертная или гибридная проверка содержимого файла.\n${preview}`,
             [docType.name],
-            'Откройте документ в карточке эксперта и проверьте выполнение требований НПА. При необходимости запустите смысловую проверку через Gemma.',
+            'Откройте документ в карточке эксперта и проверьте выполнение требований НПА. При необходимости запустите смысловую автоматическую проверку.',
             acceptedRequirements.slice(0, 5).map((requirement) => ({
               source: requirement.sourcePoint || requirement.sourceDocumentName || 'НПА',
               text: requirement.quote || requirement.requirementText,

@@ -2,7 +2,7 @@ import type { ExperimentStatus, IntelligenceItem, ReferenceExperimentSection } f
 
 export const statusLabels: Record<ExperimentStatus, string> = {
   processed: 'Обработан',
-  pending: 'Ожидает Gemma',
+  pending: 'Ожидает автоматической проверки',
   error: 'Ошибка',
 };
 

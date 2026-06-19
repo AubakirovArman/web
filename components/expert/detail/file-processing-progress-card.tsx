@@ -70,7 +70,7 @@ export function FileProcessingProgressCard({ app }: { app: Application }) {
           <div>
             <CardTitle className="text-base">Прогресс обработки файлов</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Показывает, сколько загруженных файлов уже прошло извлечение текста/OCR и сколько файлов получили результаты НПА/Gemma.
+              Показывает, сколько загруженных файлов уже прошло извлечение текста/OCR и сколько файлов получили результаты НПА.
             </p>
           </div>
           <Badge variant="outline">{overallProgress}% общий прогресс</Badge>
@@ -110,7 +110,7 @@ export function FileProcessingProgressCard({ app }: { app: Application }) {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 {bundlesWithNpaResults > 0 ? <CheckCircle2 className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />}
-                НПА/Gemma
+                НПА
               </div>
               <span className="font-semibold">{bundlesWithNpaResults}/{bundlesTotal}</span>
             </div>
@@ -128,7 +128,7 @@ export function FileProcessingProgressCard({ app }: { app: Application }) {
         {total > 0 && extracted === total && bundlesWithNpaResults === 0 && (
           <div className="flex items-start gap-2 border bg-muted/30 p-3 text-sm text-muted-foreground">
             <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Файлы распознаны, но смысловая проверка НПА/Gemma ещё не запускалась или для этих файлов нет привязанных требований.</span>
+            <span>Файлы распознаны, но автоматическая проверка НПА ещё не запускалась или для этих файлов нет привязанных требований.</span>
           </div>
         )}
       </CardContent>

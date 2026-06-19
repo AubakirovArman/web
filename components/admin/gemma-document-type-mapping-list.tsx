@@ -21,7 +21,7 @@ export function GemmaDocumentTypeMappingList({
   mappings: Record<string, string>;
   onChange: (key: string, documentTypeId: string) => void;
 }) {
-  if (!items.length) return <EmptyAdminBlock text="Gemma не нашла типы документов." />;
+  if (!items.length) return <EmptyAdminBlock text="Автоматический анализ не нашел типы документов." />;
 
   return (
     <div className="space-y-3">

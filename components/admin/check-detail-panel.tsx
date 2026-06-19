@@ -66,13 +66,13 @@ export function CheckDetailPanel({
         <CardHeader>
           <CardTitle className="text-base">Контракт реализации</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Это техническая карта для будущего runner-скрипта или Gemma-проверки по `check.id`.
+            Это техническая карта для будущего runner-скрипта или ИИ-проверки по `check.id`.
           </p>
         </CardHeader>
         <CardContent className="grid gap-3 lg:grid-cols-2">
           <CheckInfoBox label="Метод" value={blueprint.method} />
           <CheckInfoBox label="Алгоритм" value={blueprint.algorithm} />
-          <CheckInfoBox label="Когда нужна Gemma" value={blueprint.gemma} />
+          <CheckInfoBox label="Когда нужен ИИ-анализ" value={blueprint.gemma} />
           <CheckInfoBox label="Что считается ошибкой" value={blueprint.failure} />
         </CardContent>
       </Card>
@@ -82,7 +82,7 @@ export function CheckDetailPanel({
           <CardHeader>
             <CardTitle className="text-base">Обязательные поля заявления</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Матрица строится из профиля заявки: ЛС/МИ и три процедуры. Проверка выполняется по значениям цифровой заявки; для Word/PDF-заявления позже подключается parser/OCR/Gemma-извлечение.
+              Матрица строится из профиля заявки: ЛС/МИ и три процедуры. Проверка выполняется по значениям цифровой заявки; для Word/PDF-заявления позже подключается parser/OCR/ИИ-извлечение.
             </p>
           </CardHeader>
           <CardContent className="p-0">
@@ -156,7 +156,7 @@ export function CheckDetailPanel({
         <CardHeader>
           <CardTitle className="text-base">Документы, на которые распространяется проверка</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Для `file_format_check` здесь видно, какому документу какие форматы разрешены. Для parser/OCR/Gemma видно, какие поля можно извлекать.
+            Для `file_format_check` здесь видно, какому документу какие форматы разрешены. Для parser/OCR/ИИ-анализ видно, какие поля можно извлекать.
           </p>
         </CardHeader>
         <CardContent className="p-0">
@@ -294,7 +294,7 @@ export function CheckDetailPanel({
               </Badge>
             ))
           ) : (
-            <span className="text-sm text-muted-foreground">Источники будут уточняться через справочник и Gemma-извлечение.</span>
+            <span className="text-sm text-muted-foreground">Источники будут уточняться через справочник и автоматическое извлечение.</span>
           )}
         </CardContent>
       </Card>

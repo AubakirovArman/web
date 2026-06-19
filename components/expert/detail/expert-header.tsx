@@ -60,7 +60,7 @@ export function ExpertHeader({
           </Button>
           <Button variant="outline" onClick={onRunNpaGemmaCheck} disabled={serverTask !== null}>
             {serverTask === 'npa-gemma' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDashed className="mr-2 h-4 w-4" />}
-            НПА через Gemma
+            НПА
           </Button>
           <Button variant="outline" onClick={() => onStatusChange('expert-review')}>
             <Send className="mr-2 h-4 w-4" />

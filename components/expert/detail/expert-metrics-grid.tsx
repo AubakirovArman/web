@@ -12,7 +12,7 @@ export function ExpertMetricsGrid({ summary, dossierFilesCount, npaGemmaSummary 
       <MetricCard label="Предупреждения" value={summary.warningDocuments} tone="warning" />
       <MetricCard label="Критично" value={summary.criticalFindings} tone="failed" />
       <MetricCard
-        label="НПА Gemma"
+        label="НПА"
         value={`${npaGemmaSummary.passed}/${npaGemmaSummary.total}`}
         tone={npaGemmaSummary.failed || npaGemmaSummary.uncertain ? 'warning' : npaGemmaSummary.total ? 'passed' : 'neutral'}
       />

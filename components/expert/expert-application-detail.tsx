@@ -239,7 +239,7 @@ export function ExpertApplicationDetail() {
     setTaskStartedAt(Date.now());
     setTaskElapsed(0);
     setTaskResult(null);
-    setTaskMessage('Считаю оставшиеся требования для проверки через Gemma.');
+    setTaskMessage('Считаю оставшиеся требования для автоматической проверки.');
     try {
       const dryRunResponse = await fetch(`/api/applications/${app.id}/npa-gemma-check`, {
         method: 'POST',
@@ -252,12 +252,12 @@ export function ExpertApplicationDetail() {
         }),
       });
       const dryRunData = await dryRunResponse.json();
-      if (!dryRunResponse.ok) throw new Error(dryRunData?.error || 'Не удалось подготовить проверку НПА через Gemma');
+      if (!dryRunResponse.ok) throw new Error(dryRunData?.error || 'Не удалось подготовить автоматическую проверку НПА');
 
       const totalRequirements = dryRunData.totalRequirements || 0;
       if (totalRequirements === 0) {
-        setTaskResult('Проверка НПА через Gemma не запускалась: непроверенных требований не осталось.');
-        toast.success('Непроверенных требований НПА/Gemma не осталось');
+        setTaskResult('Автоматическая проверка НПА не запускалась: непроверенных требований не осталось.');
+        toast.success('Непроверенных требований НПА не осталось');
         return;
       }
 
@@ -268,7 +268,7 @@ export function ExpertApplicationDetail() {
       let skipped = 0;
 
       for (let iteration = 0; iteration < 100 && processed < totalRequirements; iteration += 1) {
-        setTaskMessage(`Gemma проверяет требования чанками: ${processed}/${totalRequirements} обработано.`);
+        setTaskMessage(`Автоматическая проверка анализирует требования чанками: ${processed}/${totalRequirements} обработано.`);
         const response = await fetch(`/api/applications/${app.id}/npa-gemma-check`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -280,7 +280,7 @@ export function ExpertApplicationDetail() {
           }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || 'Не удалось выполнить проверку НПА через Gemma');
+        if (!response.ok) throw new Error(data?.error || 'Не удалось выполнить автоматическую проверку НПА');
         if (data.application) importApplication(data.application);
 
         const stats = data.stats || {};
@@ -294,10 +294,10 @@ export function ExpertApplicationDetail() {
       }
 
       const result = `обработано: ${processed}/${totalRequirements}, пройдено: ${passed}, не подтверждено: ${failed}, неясно: ${uncertain}, пропущено: ${skipped}`;
-      setTaskResult(`Проверка НПА через Gemma завершена: ${result}.`);
-      toast.success(`Проверка НПА через Gemma завершена: ${result}`);
+      setTaskResult(`Автоматическая проверка НПА завершена: ${result}.`);
+      toast.success(`Автоматическая проверка НПА завершена: ${result}`);
     } catch (error: any) {
-      toast.error(error?.message || 'Не удалось выполнить проверку НПА через Gemma');
+      toast.error(error?.message || 'Не удалось выполнить автоматическую проверку НПА');
     } finally {
       setServerTask(null);
       setTaskStartedAt(null);

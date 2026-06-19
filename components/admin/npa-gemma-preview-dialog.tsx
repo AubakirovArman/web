@@ -38,7 +38,7 @@ export function NpaGemmaPreviewDialog({
     <Dialog open={!!job || !!preview} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-[94vw] xl:max-w-7xl">
         <DialogHeader>
-          <DialogTitle>{job?.title || 'Предпросмотр обработки НПА через Gemma'}</DialogTitle>
+          <DialogTitle>{job?.title || 'Предпросмотр автоматической обработки НПА'}</DialogTitle>
           <DialogDescription>
             Результат пока не записывается в правила. Это экран проверки извлеченных типов документов, требований и параметров.
           </DialogDescription>
@@ -67,7 +67,7 @@ export function NpaGemmaPreviewDialog({
                   <Badge variant="secondary">{preview.document.domain}</Badge>
                   <Badge variant="outline">{preview.document.id}</Badge>
                   <Badge variant="outline">{preview.document.sectionsTotal} блоков</Badge>
-                  <Badge variant="outline">{preview.document.payloadChars.toLocaleString('ru-RU')} символов в Gemma</Badge>
+                  <Badge variant="outline">{preview.document.payloadChars.toLocaleString('ru-RU')} символов для анализа</Badge>
                 </div>
                 <p className="font-medium">{preview.document.title}</p>
                 <p className="text-xs text-muted-foreground">{preview.document.fileName}</p>
@@ -108,7 +108,7 @@ export function NpaGemmaPreviewDialog({
                       <div>
                         <p className="text-sm font-medium">Сопоставление с нашими типами документов</p>
                         <p className="text-xs text-muted-foreground">
-                          Выберите, к какому типу документа относится найденный Gemma блок, затем нажмите заливку.
+                          Выберите, к какому типу документа относится найденный блок, затем нажмите заливку.
                         </p>
                       </div>
                       <Button
@@ -132,7 +132,7 @@ export function NpaGemmaPreviewDialog({
                 <TabsContent value="requirements">
                   <GemmaObjectList
                     items={preview.extraction.requirements}
-                    emptyLabel="Gemma не нашла требования."
+                    emptyLabel="Автоматический анализ не нашел требования."
                     fields={[
                       ['document_code', 'Код документа'],
                       ['document_name', 'Документ'],
@@ -148,7 +148,7 @@ export function NpaGemmaPreviewDialog({
                 <TabsContent value="parameters">
                   <GemmaObjectList
                     items={preview.extraction.applicant_parameters}
-                    emptyLabel="Gemma не нашла параметры заявки."
+                    emptyLabel="Автоматический анализ не нашел параметры заявки."
                     fields={[
                       ['key', 'Ключ'],
                       ['label', 'Параметр'],
@@ -162,7 +162,7 @@ export function NpaGemmaPreviewDialog({
                 <TabsContent value="dependencies">
                   <GemmaObjectList
                     items={preview.extraction.parameter_dependencies}
-                    emptyLabel="Gemma не нашла зависимости параметров."
+                    emptyLabel="Автоматический анализ не нашел зависимости параметров."
                     fields={[
                       ['conditions', 'Условия'],
                       ['logic_operator', 'Логика'],

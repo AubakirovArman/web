@@ -158,7 +158,7 @@ function buildFinding(docType: DocumentType, requirement: DocumentTypeRequiremen
     id: `npa-gemma-${evidenceFieldPrefix}-${requirement.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     severity: isFailed ? severityFromCriticality(requirement.criticality) : 'unknown',
     category: isFailed ? 'НПА / несоответствие' : 'НПА / требуется уточнение',
-    title: isFailed ? `Требование НПА не подтверждено: ${docType.name}` : `Gemma не смогла однозначно проверить требование НПА: ${docType.name}`,
+    title: isFailed ? `Требование НПА не подтверждено: ${docType.name}` : `Автоматическая проверка не смогла однозначно проверить требование НПА: ${docType.name}`,
     description: [result.comment || (isFailed ? 'В тексте документа не найдено подтверждение выполнения требования.' : 'Недостаточно текста или контекста для уверенной оценки.'), `Требование: ${requirement.requirementText}`, result.evidence ? `Фрагмент/основание: ${result.evidence}` : ''].filter(Boolean).join('\n'),
     documents: [docType.name, ...fileNames],
     recommendation: isFailed ? 'Проверьте документ вручную, запросите корректировку или дополнительное обоснование у заявителя.' : 'Откройте документ и проверьте требование вручную; при необходимости улучшите OCR/текстовый слой.',

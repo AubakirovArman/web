@@ -11,6 +11,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const result = await runNpaGemmaCheck(id, body, req.headers.get('x-user-id') || 'system');
     return NextResponse.json(result.payload, { status: result.status });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to run NPA Gemma check' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to run NPA automated check' }, { status: 500 });
   }
 }

@@ -10,7 +10,7 @@ export function NpaGemmaSummaryCard({ summary }: { summary: any | null }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="text-base">Сводка НПА/Gemma</CardTitle>
+        <CardTitle className="text-base">Сводка НПА</CardTitle>
         <p className="text-sm text-muted-foreground">Быстрый срез смысловой проверки требований по загруженным документам.</p>
       </CardHeader>
       <CardContent className="space-y-4">

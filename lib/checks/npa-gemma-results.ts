@@ -53,7 +53,7 @@ function buildSavedFinding(
   if (result.status === 'passed' || result.status === 'not_applicable') return null;
 
   const isFailed = result.status === 'failed';
-  const source = result.sourcePoint || requirement?.sourcePoint || requirement?.sourceDocumentName || 'НПА/Gemma';
+  const source = result.sourcePoint || requirement?.sourcePoint || requirement?.sourceDocumentName || 'НПА';
   const requirementText = result.requirementText || requirement?.requirementText || 'Требование не найдено в текущем справочнике.';
   const bundleKey = result.bundleKey || file.id;
   const fileNames = result.fileNames?.length ? result.fileNames : [file.name];
@@ -64,7 +64,7 @@ function buildSavedFinding(
     category: isFailed ? 'НПА / несоответствие' : 'НПА / требуется уточнение',
     title: isFailed
       ? `Требование НПА не подтверждено: ${docType.name}`
-      : `Gemma не смогла однозначно проверить требование НПА: ${docType.name}`,
+      : `Автоматическая проверка не смогла однозначно проверить требование НПА: ${docType.name}`,
     description: [
       result.comment || (isFailed ? 'В тексте документа не найдено подтверждение выполнения требования.' : 'Недостаточно текста или контекста для уверенной оценки.'),
       `Требование: ${requirementText}`,

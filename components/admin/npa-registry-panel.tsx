@@ -17,6 +17,7 @@ export function NpaRegistryPanel({
   onSelect,
   onBack,
   onAdd,
+  loading = false,
 }: {
   records: AdminNpaRecord[];
   documentTypes: DocumentType[];
@@ -24,6 +25,7 @@ export function NpaRegistryPanel({
   onSelect: (id: string) => void;
   onBack: () => void;
   onAdd: () => void;
+  loading?: boolean;
 }) {
   const selected = selectedId ? records.find((record) => record.id === selectedId) : null;
   if (selected) {
@@ -61,7 +63,16 @@ export function NpaRegistryPanel({
               </tr>
             </thead>
             <tbody>
-              {records.map((record) => {
+              {loading && Array.from({ length: 6 }).map((_, index) => (
+                <tr key={`npa-skeleton-${index}`} className="border-b last:border-b-0">
+                  {Array.from({ length: 7 }).map((__, cellIndex) => (
+                    <td key={cellIndex} className="px-4 py-3">
+                      <div className="h-4 animate-pulse bg-muted" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && records.map((record) => {
                 const accepted = record.requirements.filter((requirement) => requirement.action === 'accepted').length;
                 return (
                   <tr
@@ -98,7 +109,7 @@ export function NpaRegistryPanel({
                   </tr>
                 );
               })}
-              {records.length === 0 && (
+              {!loading && records.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8">
                     <EmptyAdminBlock text="Реестр НПА пуст. Добавьте первый нормативный акт." />
@@ -146,4 +157,3 @@ export function NpaRegistryDetail({ record, documentTypes, onBack }: { record: A
     </div>
   );
 }
-
