@@ -50,28 +50,28 @@ export default function HomePage() {
               <p className="mt-4 text-muted-foreground">Проверяет заявку по правилам, основанным на нормативных актах ЕАЭС и РК</p>
             </SlideIn>
             <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <StaggerItem>
+              <StaggerItem className="h-full">
                 <FeatureCard
                   icon={<FileCheck className="h-6 w-6" />}
                   title="Комплектность"
                   description="Определяет обязательный пакет документов по типу процедуры, продукта и параметрам."
                 />
               </StaggerItem>
-              <StaggerItem>
+              <StaggerItem className="h-full">
                 <FeatureCard
                   icon={<BrainCircuit className="h-6 w-6" />}
                   title="ИИ-проверка"
                   description="Извлекает факты из PDF и DOCX, ищет расхождения сроков годности, условий хранения, адресов."
                 />
               </StaggerItem>
-              <StaggerItem>
+              <StaggerItem className="h-full">
                 <FeatureCard
                   icon={<ShieldCheck className="h-6 w-6" />}
                   title="НПА-ориентир"
                   description="Каждое замечание сопровождается ссылкой на нормативный документ и рекомендацией."
                 />
               </StaggerItem>
-              <StaggerItem>
+              <StaggerItem className="h-full">
                 <FeatureCard
                   icon={<Clock className="h-6 w-6" />}
                   title="Экономия времени"
@@ -107,7 +107,7 @@ export default function HomePage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</div>
       <h3 className="text-lg font-semibold">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{description}</p>
