@@ -90,6 +90,12 @@ export interface AdminNpaRequirement {
   condition: string;
   quote: string;
   targetDocumentTypeId?: string;
+  // Injected when requirements are listed across the whole registry:
+  npaId?: string;
+  npaName?: string;
+  npaShortName?: string;
+  /** Point enriched with the source act name, e.g. "Решение № 88 п. 2". */
+  pointLabel?: string;
 }
 
 export interface AdminNpaRecord {

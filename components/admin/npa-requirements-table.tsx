@@ -28,13 +28,13 @@ export function NpaRequirementsTable({
       <table className="w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-sm">
         <thead>
           <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="w-[8%] px-3 py-2 font-medium">Код</th>
-            <th className="w-[8%] px-3 py-2 font-medium">Пункт</th>
-            <th className="w-[34%] px-3 py-2 font-medium">Требование</th>
-            <th className="w-[21%] px-3 py-2 font-medium">Документ / проверка</th>
-            <th className="w-[17%] px-3 py-2 font-medium">Тип документа системы</th>
+            <th className="w-[7%] px-3 py-2 font-medium">Код</th>
+            <th className="w-[15%] px-3 py-2 font-medium">НПА / Пункт</th>
+            <th className="w-[29%] px-3 py-2 font-medium">Требование</th>
+            <th className="w-[20%] px-3 py-2 font-medium">Документ / проверка</th>
+            <th className="w-[16%] px-3 py-2 font-medium">Тип документа системы</th>
             <th className="w-[6%] px-3 py-2 font-medium">Критичность</th>
-            <th className="w-[6%] px-3 py-2 font-medium">Действие</th>
+            <th className="w-[7%] px-3 py-2 font-medium">Действие</th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +45,9 @@ export function NpaRequirementsTable({
             return (
             <tr key={requirement.id} className="border-b last:border-b-0">
               <td className="break-words px-3 py-3 align-top font-mono text-xs">{requirement.code || '—'}</td>
-              <td className="break-words px-3 py-3 align-top text-xs text-muted-foreground">{requirement.point || '—'}</td>
+              <td className="break-words px-3 py-3 align-top text-xs text-muted-foreground">
+                {requirement.pointLabel || requirement.point || '—'}
+              </td>
               <td className="px-3 py-3 align-top">
                 <div className="leading-6">{requirement.requirement}</div>
                 {requirement.condition && (
