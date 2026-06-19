@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +27,8 @@ export default function AdminFieldsPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [usageFilter, setUsageFilter] = useState<'all' | FieldRow['usage']>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -55,6 +58,24 @@ export default function AdminFieldsPage() {
       .toLowerCase()
       .includes(normalizedQuery);
   }), [normalizedQuery, rows, usageFilter]);
+
+  const total = filtered.length;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageItems = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedQuery, usageFilter, pageSize]);
+
+  const rangeText = loading
+    ? 'Загрузка данных…'
+    : total === 0
+      ? 'Показано 0 из 0'
+      : `Показано ${(safePage - 1) * pageSize + 1}-${Math.min(safePage * pageSize, total)} из ${total}`;
 
   return (
     <div className="space-y-4">
@@ -106,7 +127,7 @@ export default function AdminFieldsPage() {
                 {loading && Array.from({ length: 8 }).map((_, index) => (
                   <tr key={index}>{Array.from({ length: 8 }).map((__, cell) => <td key={cell} className="border-b px-3 py-2"><div className="h-4 animate-pulse bg-muted" /></td>)}</tr>
                 ))}
-                {!loading && filtered.map((row) => (
+                {!loading && pageItems.map((row) => (
                   <tr key={row.id} className="align-top hover:bg-muted/30">
                     <td className="border-b px-3 py-2 font-mono text-xs">{row.id}</td>
                     <td className="border-b px-3 py-2 font-medium">{row.label}</td>
@@ -145,6 +166,36 @@ export default function AdminFieldsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-3 border bg-card px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-muted-foreground">{rangeText}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+            <SelectTrigger className="h-9 w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="25">25 на странице</SelectItem>
+              <SelectItem value="50">50 на странице</SelectItem>
+              <SelectItem value="100">100 на странице</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" disabled={loading || safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+            Назад
+          </Button>
+          <span className="min-w-20 text-center text-muted-foreground">
+            {safePage} / {pageCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loading || safePage >= pageCount}
+            onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+          >
+            Далее
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
