@@ -174,6 +174,13 @@ export default function WizardPage() {
     router.push(`/expert/${app.id}`);
   };
 
+  const handleTestSubmit = () => {
+    if (!app) return;
+    updateStatus(app.id, 'submitted');
+    toast.warning('Заявка тестово отправлена в экспертизу без блокировки по замечаниям');
+    router.push(`/expert/${app.id}`);
+  };
+
   const handleSaveDraft = () => {
     if (!app) return;
     updateStatus(app.id, 'draft');
@@ -344,6 +351,7 @@ export default function WizardPage() {
                       rules={rules}
                       onRun={handleRunCheck}
                       onSubmit={handleSubmit}
+                      onTestSubmit={handleTestSubmit}
                       onSaveDraft={handleSaveDraft}
                       mandatoryCount={blockingFindings.length}
                     />

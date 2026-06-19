@@ -18,6 +18,7 @@ export function CheckStep({
   rules,
   onRun,
   onSubmit,
+  onTestSubmit,
   onSaveDraft,
   mandatoryCount,
 }: {
@@ -27,6 +28,7 @@ export function CheckStep({
   rules: Rule[];
   onRun: () => void;
   onSubmit: () => void;
+  onTestSubmit: () => void;
   onSaveDraft: () => void;
   mandatoryCount: number;
 }) {
@@ -105,10 +107,15 @@ export function CheckStep({
               <Send className="mr-2 h-4 w-4" />
               Отправить в экспертизу
             </Button>
+            <Button variant="secondary" onClick={onTestSubmit}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Тестовая отправка на экспертизу
+            </Button>
           </div>
           {mandatoryCount > 0 && (
             <p className="text-sm text-amber-600">
               Для отправки нужно устранить все замечания уровня «критично» или «серьезно».
+              Для MVP можно использовать тестовую отправку без снятия этих замечаний.
             </p>
           )}
         </CardContent>
