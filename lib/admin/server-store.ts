@@ -200,6 +200,209 @@ export async function readAdminRuntimeConfig(): Promise<AdminRuntimeConfig> {
   return readAdminRuntimeConfigFromPostgres();
 }
 
+export interface AdminDocumentTypeListParams {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  source?: 'all' | 'appendix-2' | 'appendix-3';
+}
+
+export interface AdminDocumentTypeListResult {
+  items: NewDossierDocumentType[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function readAdminDocumentTypesList(params: AdminDocumentTypeListParams = {}): Promise<AdminDocumentTypeListResult> {
+  await ensureRuntimeSchema();
+  const page = Math.max(1, Number(params.page) || 1);
+  const pageSize = Math.min(100, Math.max(10, Number(params.pageSize) || 25));
+  const offset = (page - 1) * pageSize;
+  const values: unknown[] = [];
+  const where = [
+    `scope_object_type = 'LS'`,
+    `scope_procedure = 'registration'`,
+    `active = true`,
+    `COALESCE(row_type, 'document') = 'document'`,
+  ];
+  const normalizedQuery = String(params.query || '').trim().toLowerCase();
+  if (normalizedQuery) {
+    values.push(`%${normalizedQuery}%`);
+    where.push(`lower(concat_ws(' ', doc_code, document_name, required_document, module_part, source_reference)) LIKE $${values.length}`);
+  }
+  const source = params.source || 'all';
+  const appendix2Predicate = `(lower(concat_ws(' ', source_structure, dossier_variant, module_part)) LIKE '%приложение 2%' OR lower(concat_ws(' ', source_structure, dossier_variant, module_part)) LIKE '%appendix-2%' OR lower(concat_ws(' ', source_structure, dossier_variant, module_part)) LIKE '%national%')`;
+  if (source === 'appendix-2') where.push(appendix2Predicate);
+  if (source === 'appendix-3') where.push(`NOT ${appendix2Predicate}`);
+
+  const pool = getRuntimePool();
+  const whereSql = where.join(' AND ');
+  const countResult = await pool.query<{ count: string }>(`SELECT count(*)::text AS count FROM document_requirement_rules WHERE ${whereSql}`, values);
+  values.push(pageSize, offset);
+  const rowsResult = await pool.query<DbDocumentRequirementRule>(
+    `
+      SELECT
+        id,
+        doc_code,
+        document_type_id,
+        document_name,
+        row_type,
+        source_structure,
+        dossier_variant,
+        module_part,
+        required_document,
+        applicability,
+        show_logic,
+        condition_text,
+        linked_params,
+        validation_checks,
+        condition_json,
+        normalization_status,
+        source_reference,
+        active
+      FROM document_requirement_rules
+      WHERE ${whereSql}
+      ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id
+      LIMIT $${values.length - 1}
+      OFFSET $${values.length}
+    `,
+    values
+  );
+
+  return {
+    items: rowsResult.rows.map((rule, index) => buildAdminDossierDocumentTypeSummary(rule, offset + index + 1)),
+    total: Number(countResult.rows[0]?.count || 0),
+    page,
+    pageSize,
+  };
+}
+
+export async function readAdminDocumentTypeDetail(id: string): Promise<NewDossierDocumentType | null> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const { rows } = await pool.query<DbDocumentRequirementRule>(
+    `
+      SELECT
+        id,
+        doc_code,
+        document_type_id,
+        document_name,
+        row_type,
+        source_structure,
+        dossier_variant,
+        module_part,
+        required_document,
+        applicability,
+        show_logic,
+        condition_text,
+        linked_params,
+        validation_checks,
+        condition_json,
+        normalization_status,
+        source_reference,
+        active
+      FROM document_requirement_rules
+      WHERE scope_object_type = 'LS'
+        AND scope_procedure = 'registration'
+        AND active = true
+        AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
+      ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id
+      LIMIT 1
+    `,
+    [id]
+  );
+  return rows[0] ? buildAdminDossierDocumentType(rows[0], 1) : null;
+}
+
+export async function updateAdminDocumentTypeDetail(id: string, item: NewDossierDocumentType): Promise<NewDossierDocumentType | null> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const validationChecks = asStringArray(item.validationChecks).length
+    ? asStringArray(item.validationChecks)
+    : String(item.validationChecks || '')
+        .split(/\n|\|/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+  const linkedParams = Array.isArray(item.linkedApplicationParams) ? item.linkedApplicationParams : [];
+  const sourceReference = item.npaReferences?.[0] || null;
+  await pool.query(
+    `
+      UPDATE document_requirement_rules
+      SET
+        required_document = $2,
+        document_name = $3,
+        condition_text = $4,
+        linked_params = $5::jsonb,
+        validation_checks = $6::jsonb,
+        source_reference = $7,
+        active = $8
+      WHERE scope_object_type = 'LS'
+        AND scope_procedure = 'registration'
+        AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
+    `,
+    [
+      id,
+      item.name || item.description || item.code,
+      item.description || item.name || item.code,
+      item.requiredWhenExpression || item.requirednessExplanation || null,
+      JSON.stringify(linkedParams),
+      JSON.stringify(validationChecks),
+      sourceReference,
+      item.active !== false,
+    ]
+  );
+  return readAdminDocumentTypeDetail(id);
+}
+
+export async function deactivateAdminDocumentType(id: string): Promise<boolean> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const result = await pool.query(
+    `
+      UPDATE document_requirement_rules
+      SET active = false
+      WHERE scope_object_type = 'LS'
+        AND scope_procedure = 'registration'
+        AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
+    `,
+    [id]
+  );
+  return Number(result.rowCount || 0) > 0;
+}
+
+export async function readAdminNpaRegistryOnly(): Promise<AdminNpaRecord[]> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const result = await pool.query(`SELECT data->'npaRegistry' AS npa_registry FROM admin_runtime_config WHERE key = 'default' LIMIT 1`);
+  return normalizeNpaRegistry(result.rows[0]?.npa_registry || []);
+}
+
+export async function readAdminNpaDetail(id: string): Promise<AdminNpaRecord | null> {
+  const records = await readAdminNpaRegistryOnly();
+  return records.find((record) => record.id === id) || null;
+}
+
+export async function readAdminApplicationFieldsView() {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const { rows } = await pool.query<{ doc_code: string; document_name: string; linked_params: unknown }>(
+    `
+      SELECT doc_code, document_name, linked_params
+      FROM document_requirement_rules
+      WHERE scope_object_type = 'LS'
+        AND scope_procedure = 'registration'
+        AND active = true
+        AND linked_params IS NOT NULL
+    `
+  );
+  return rows.map((row) => ({
+    code: row.doc_code,
+    name: row.document_name,
+    linkedParams: asStringArray(row.linked_params),
+  }));
+}
+
 async function readAdminRuntimeConfigFromPostgres(): Promise<AdminRuntimeConfig> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
@@ -322,6 +525,16 @@ function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrde
     checkIds: ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'],
     linkedApplicationParams: asStringArray(rule.linked_params),
     severityIfMissing: rule.applicability === 'always_required' || rule.applicability === 'conditional_required' ? 'critical' : 'warning',
+  };
+}
+
+function buildAdminDossierDocumentTypeSummary(rule: DbDocumentRequirementRule, sortOrder: number): NewDossierDocumentType {
+  const full = buildAdminDossierDocumentType(rule, sortOrder);
+  return {
+    ...full,
+    validationChecks: undefined,
+    requirementSources: undefined,
+    npaReferences: rule.source_reference ? [rule.source_reference] : undefined,
   };
 }
 

@@ -1,19 +1,40 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAdminPageState } from '@/hooks/use-admin-page-state';
+import type { AdminNpaRecord } from '@/lib/admin/admin-page-types';
 import { NpaRegistryDetail } from '@/components/admin/npa-registry-panel';
 
 export default function AdminNpaDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { adminConfigLoaded, documentTypes, npaRegistry } = useAdminPageState();
   const id = decodeURIComponent(String(params.id || ''));
-  const record = npaRegistry.find((item) => item.id === id);
+  const [record, setRecord] = useState<AdminNpaRecord | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!adminConfigLoaded) {
+  const loadRecord = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/npa/${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить НПА');
+      setRecord(payload.record || null);
+    } catch (error) {
+      setRecord(null);
+      toast.error(error instanceof Error ? error.message : 'Не удалось загрузить НПА');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadRecord();
+  }, [loadRecord]);
+
+  if (loading) {
     return (
       <Card>
         <CardContent className="space-y-3 p-6">
@@ -39,5 +60,5 @@ export default function AdminNpaDetailPage() {
     );
   }
 
-  return <NpaRegistryDetail record={record} documentTypes={documentTypes} onBack={() => router.push('/admin/npa')} />;
+  return <NpaRegistryDetail record={record} documentTypes={[]} onBack={() => router.push('/admin/npa')} />;
 }

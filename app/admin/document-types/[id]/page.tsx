@@ -1,29 +1,54 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getNewDossierSections } from '@/lib/admin/new-dossier-document-type-utils';
-import { useAdminPageState } from '@/hooks/use-admin-page-state';
+import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
 import { NewDossierDocumentTypeDetail } from '@/components/admin/new-dossier-document-type-detail';
 import { NewDossierDocumentTypeEditorDialog } from '@/components/admin/new-dossier-document-type-editor-dialog';
 
 export default function AdminDocumentTypeDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const {
-    adminConfigLoaded,
-    newDossierDocumentTypes,
-    newDossierDocumentTypeEditor,
-    setNewDossierDocumentTypeEditor,
-    persistNewDossierDocumentTypes,
-  } = useAdminPageState();
   const id = decodeURIComponent(String(params.id || ''));
-  const item = useMemo(() => newDossierDocumentTypes.find((candidate) => candidate.id === id), [id, newDossierDocumentTypes]);
+  const [item, setItem] = useState<NewDossierDocumentType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  if (!adminConfigLoaded) {
+  const loadItem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/document-types/${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить тип документа');
+      setItem(payload.item || null);
+    } catch (error) {
+      setItem(null);
+      toast.error(error instanceof Error ? error.message : 'Не удалось загрузить тип документа');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadItem();
+  }, [loadItem]);
+
+  const deleteItem = async () => {
+    try {
+      const response = await fetch(`/api/admin/document-types/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Не удалось удалить тип документа');
+      toast.success('Тип документа удален');
+      router.push('/admin/document-types');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось удалить тип документа');
+    }
+  };
+
+  if (loading) {
     return (
       <Card>
         <CardContent className="space-y-3 p-6">
@@ -54,21 +79,28 @@ export default function AdminDocumentTypeDetailPage() {
       <NewDossierDocumentTypeDetail
         item={item}
         onBack={() => router.push('/admin/document-types')}
-        onEdit={() => setNewDossierDocumentTypeEditor({ mode: 'edit', values: item })}
-        onDelete={() => {
-          persistNewDossierDocumentTypes(newDossierDocumentTypes.filter((candidate) => candidate.id !== item.id));
-          toast.success('Тип документа удален');
-          router.push('/admin/document-types');
-        }}
+        onEdit={() => setEditorOpen(true)}
+        onDelete={deleteItem}
       />
       <NewDossierDocumentTypeEditorDialog
-        state={newDossierDocumentTypeEditor}
-        sections={getNewDossierSections(newDossierDocumentTypes)}
-        onClose={() => setNewDossierDocumentTypeEditor(null)}
-        onSave={(next) => {
-          persistNewDossierDocumentTypes(newDossierDocumentTypes.map((candidate) => (candidate.id === next.id ? next : candidate)));
-          setNewDossierDocumentTypeEditor(null);
-          toast.success('Тип документа обновлен');
+        state={editorOpen ? { mode: 'edit', values: item } : null}
+        sections={[item.group, item.module].filter(Boolean)}
+        onClose={() => setEditorOpen(false)}
+        onSave={async (next) => {
+          try {
+            const response = await fetch(`/api/admin/document-types/${encodeURIComponent(id)}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ item: next }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || 'Не удалось обновить тип документа');
+            setItem(payload.item || next);
+            setEditorOpen(false);
+            toast.success('Тип документа обновлен');
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Не удалось обновить тип документа');
+          }
         }}
       />
     </>
