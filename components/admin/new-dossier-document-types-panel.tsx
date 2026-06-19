@@ -88,7 +88,7 @@ export function NewDossierDocumentTypesPanel({
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Сбросить
               </Button>
-              <Button onClick={onCreate} className="bg-emerald-700 hover:bg-emerald-800">
+              <Button onClick={onCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Новый тип документа
               </Button>

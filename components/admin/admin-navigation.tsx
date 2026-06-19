@@ -25,7 +25,7 @@ export function AdminNavigation() {
             href={item.href}
             className={[
               'flex min-h-11 items-center justify-center border px-3 py-2 text-sm font-medium transition-colors',
-              active ? 'border-foreground bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+              active ? 'border-primary bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
             ].join(' ')}
           >
             <Icon className="mr-2 h-4 w-4" />

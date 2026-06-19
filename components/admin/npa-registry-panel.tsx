@@ -42,7 +42,7 @@ export function NpaRegistryPanel({
               Реестр нормативных актов. Внутри каждого НПА хранятся только извлеченные требования к документам и проверкам.
             </p>
           </div>
-          <Button onClick={onAdd} className="bg-emerald-700 hover:bg-emerald-800">
+          <Button onClick={onAdd}>
             <Plus className="mr-2 h-4 w-4" />
             Добавить НПА
           </Button>

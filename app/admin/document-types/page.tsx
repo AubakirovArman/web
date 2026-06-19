@@ -90,7 +90,7 @@ export default function AdminDocumentTypesPage() {
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Обновить
               </Button>
-              <Button disabled title="Создание нового типа будет вынесено в отдельный DB endpoint" className="bg-emerald-700 hover:bg-emerald-800">
+              <Button disabled title="Создание нового типа будет вынесено в отдельный DB endpoint">
                 <Plus className="mr-2 h-4 w-4" />
                 Новый тип документа
               </Button>
