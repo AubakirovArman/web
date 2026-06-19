@@ -126,10 +126,9 @@ export default function ReferencePage() {
 
           {!loading && !error && meta && (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 <Metric label="Документы ядра" value={String(meta.targetCount)} />
                 <Metric label="Обработано автоматически" value={`${meta.processedCount}/${meta.targetCount}`} />
-                <Metric label="Модель" value={meta.model || 'metadata'} />
                 <Metric label="Сортировка" value="малые → большие" />
               </div>
               <Card className="bg-background/90 shadow-sm backdrop-blur">
