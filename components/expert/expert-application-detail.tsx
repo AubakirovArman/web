@@ -389,25 +389,25 @@ export function ExpertApplicationDetail() {
             <TabsList className="grid h-auto w-full grid-cols-4 rounded-none bg-transparent p-0">
               <TabsTrigger
                 value="documents"
-                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background"
+                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Документы и проверки
               </TabsTrigger>
               <TabsTrigger
                 value="parameters"
-                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background"
+                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Параметры заявки
               </TabsTrigger>
               <TabsTrigger
                 value="dossier"
-                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background"
+                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Регистрационное досье
               </TabsTrigger>
               <TabsTrigger
                 value="findings"
-                className="rounded-none border px-3 py-3 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background"
+                className="rounded-none border px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Замечания эксперту ({app.findings.length})
               </TabsTrigger>
