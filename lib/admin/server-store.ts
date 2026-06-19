@@ -224,7 +224,7 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
     `scope_object_type = 'LS'`,
     `scope_procedure = 'registration'`,
     `active = true`,
-    `COALESCE(row_type, 'document') = 'document'`,
+    `COALESCE(row_type, 'Документ') IN ('document', 'Документ')`,
   ];
   const normalizedQuery = String(params.query || '').trim().toLowerCase();
   if (normalizedQuery) {
