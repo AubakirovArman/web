@@ -74,5 +74,11 @@
   "param-contract-date",
   "param-contract-term",
   "param-payment-subject",
-  "param-applicant-confirmation"
+  "param-applicant-confirmation",
+  "param-sterile",
+  "param-aseptic",
+  "param-new-excipient",
+  "param-nonclinical-studies",
+  "param-license-or-patent-active",
+  "param-cis-manufacturer"
 ]

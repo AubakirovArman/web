@@ -840,5 +840,41 @@
     "label": "Подтверждение заявителя МИ",
     "type": "textarea",
     "section": "МИ. Подписание"
+  },
+  {
+    "id": "param-sterile",
+    "label": "Стерильный лекарственный препарат",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-aseptic",
+    "label": "Асептическое производство",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-new-excipient",
+    "label": "Новое вспомогательное вещество в составе",
+    "type": "boolean",
+    "section": "ЛС. Применение и состав"
+  },
+  {
+    "id": "param-nonclinical-studies",
+    "label": "Есть доклинические (неклинические) исследования",
+    "type": "boolean",
+    "section": "ЛС. Применение и состав"
+  },
+  {
+    "id": "param-license-or-patent-active",
+    "label": "Действующий патент или лицензионное соглашение",
+    "type": "boolean",
+    "section": "ЛС. Тип и особые статусы"
+  },
+  {
+    "id": "param-cis-manufacturer",
+    "label": "Производитель из страны СНГ",
+    "type": "boolean",
+    "section": "ЛС. Производство"
   }
 ]
