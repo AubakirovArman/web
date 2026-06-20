@@ -7,6 +7,7 @@ import {
   type LsDossierSource,
 } from '@/lib/data/ls-document-checks-mapping';
 import { Rule } from '@/lib/types';
+import { evaluateCondition, hasCondition } from '@/lib/rules/condition-evaluator';
 
 export function getRequiredDocuments(
   app: Application,
@@ -72,9 +73,16 @@ function getAdminConfiguredLsRequiredDocuments(
 
     const source = inferLsDossierSourceFromDocumentTypeId(doc.id);
     const requirement = doc.importedRequirements?.[0];
-    const trigger = doc.requiredWhenExpression || requirement?.applicabilityCondition || '';
-    if (!trigger) continue;
-    if (!matchesLsRequirementTriggerExpression(trigger, values, source)) continue;
+
+    // Приоритет: структурированный предикат из condition_json (точный).
+    // Fallback: устаревший текстовый триггер (хрупкий, оставлен для совместимости).
+    if (hasCondition(doc.requiredWhenCondition)) {
+      if (!evaluateCondition(doc.requiredWhenCondition, values)) continue;
+    } else {
+      const trigger = doc.requiredWhenExpression || requirement?.applicabilityCondition || '';
+      if (!trigger) continue;
+      if (!matchesLsRequirementTriggerExpression(trigger, values, source)) continue;
+    }
     if (seen.has(doc.id)) continue;
 
     seen.add(doc.id);

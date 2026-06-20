@@ -78,11 +78,28 @@ export interface DocumentType {
   npaReferences?: string[];
   requirednessExplanation?: string;
   requiredWhenExpression?: string;
+  /** Структурированный предикат обязательности (из condition_json). Приоритетнее текстового requiredWhenExpression. */
+  requiredWhenCondition?: ConditionNode;
   linkedApplicationParams?: string[];
   severityIfMissing?: Severity;
   validationChecksText?: string;
   importedRequirements?: DocumentTypeRequirement[];
 }
+
+/**
+ * Дерево условия обязательности документа (DSL из condition_json НПА-правил).
+ * Листья: eq/neq (равенство значения поля), in (значение в списке),
+ * not_empty (поле заполнено), contains (поле содержит подстроку/значение).
+ * Узлы: all (И), any (ИЛИ).
+ */
+export type ConditionNode =
+  | { all: ConditionNode[] }
+  | { any: ConditionNode[] }
+  | { eq: [string, string] }
+  | { neq: [string, string] }
+  | { in: [string, string[]] }
+  | { not_empty: [string] }
+  | { contains: [string, string] };
 
 export interface Parameter {
   id: string;

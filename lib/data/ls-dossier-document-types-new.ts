@@ -1,4 +1,5 @@
 import data from '@/lib/data/generated/ls-dossier-document-types-new.json';
+import type { ConditionNode } from '@/lib/types';
 
 export type NewDossierDocumentKind = 'section' | 'document' | 'excluded';
 
@@ -28,6 +29,7 @@ export interface NewDossierDocumentType {
   active: boolean;
   sortOrder: number;
   requiredWhenExpression?: string;
+  requiredWhenCondition?: ConditionNode;
   requirednessExplanation?: string;
   validationChecks?: string;
   npaReferences?: string[];

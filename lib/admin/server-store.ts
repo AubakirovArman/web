@@ -1,6 +1,7 @@
 import type { DocumentType, Rule } from '@/lib/types';
 import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
 import { ensureRuntimeSchema, getRuntimePool, normalizeRuntimeUserId, sanitizeJsonForPostgres } from '@/lib/db/runtime-postgres';
+import { pickConditionPredicate } from '@/lib/rules/condition-evaluator';
 
 // ---------------------------------------------------------------------------
 // In-process TTL cache for the full LS/registration document type list.
@@ -551,6 +552,7 @@ function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrde
     active: rule.active,
     sortOrder,
     requiredWhenExpression: rule.condition_text || rule.show_logic || undefined,
+    requiredWhenCondition: pickConditionPredicate(rule.condition_json),
     requirednessExplanation: rule.condition_text || rule.applicability || undefined,
     validationChecks: asStringArray(rule.validation_checks).join(' | '),
     npaReferences: rule.source_reference ? [rule.source_reference] : undefined,
@@ -590,6 +592,7 @@ function buildAdminDocumentType(rule: DbDocumentRequirementRule): DocumentType {
     npaReferences: rule.source_reference ? [rule.source_reference] : [],
     requirednessExplanation: rule.condition_text || undefined,
     requiredWhenExpression: rule.condition_text || undefined,
+    requiredWhenCondition: pickConditionPredicate(rule.condition_json),
     linkedApplicationParams: asStringArray(rule.linked_params),
     severityIfMissing: rule.applicability === 'always_required' || rule.applicability === 'conditional_required' ? 'critical' : 'warning',
     validationChecksText: validationChecks.join('\n'),
