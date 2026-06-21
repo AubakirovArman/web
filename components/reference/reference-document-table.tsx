@@ -21,7 +21,19 @@ export function ReferenceDocumentTable({ documents, onSelect }: { documents: Ref
         </thead>
         <tbody>
           {documents.map((doc, index) => (
-            <tr key={doc.id} onClick={() => onSelect(doc.id)} className="cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted/40">
+            <tr
+              key={doc.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(doc.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(doc.id);
+                }
+              }}
+              className="cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted/40 focus-visible:bg-muted/60 focus-visible:outline-none"
+            >
               <td className="px-3 py-3 align-top"><Badge variant="secondary">#{index + 1}</Badge></td>
               <td className="px-3 py-3 align-top">
                 <div className="line-clamp-2 font-semibold">{doc.title}</div>

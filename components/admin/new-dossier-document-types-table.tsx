@@ -56,8 +56,16 @@ export function NewDossierDocumentTypesTable({
             return (
             <tr
               key={item.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onOpen(item)}
-              className={`cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted/40 ${item.active ? '' : 'opacity-60'}`}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpen(item);
+                }
+              }}
+              className={`cursor-pointer border-b transition-colors last:border-b-0 hover:bg-muted/40 focus-visible:bg-muted/60 focus-visible:outline-none ${item.active ? '' : 'opacity-60'}`}
             >
               <td className="px-3 py-2 align-top">
                 <div className="font-mono text-xs">{item.code || '—'}</div>
