@@ -16,3 +16,21 @@ SET validation_checks = '[
   "Сверить сведения о производителе(ях) лекарственного препарата (наименование, адрес) из заявления с разделом 3.2.P.3.1; при расхождении учесть наличие пояснительного письма/обоснования."
 ]'::jsonb
 WHERE active AND doc_code = '1.2' AND scope_object_type = 'LS' AND scope_procedure = 'registration';
+
+-- Дополнительно: те же привязки к номерам разделов формы заявления в кросс-сверках
+-- 1.2.3 (раздел 19), 1.2.4 (раздел 20), 3.2.P.3.1 (раздел 22) → по содержанию.
+UPDATE document_requirement_rules
+SET validation_checks = regexp_replace(validation_checks::text,
+  'Сверить производителей и адреса с заявлением, GMP и разделом 22 заявления\.',
+  'Сверить производителей и адреса со сведениями о производителе лекарственного препарата и площадках в заявлении (независимо от номера раздела формы) и с GMP.','g')::jsonb
+WHERE active AND doc_code='3.2.P.3.1' AND scope_object_type='LS' AND scope_procedure='registration';
+UPDATE document_requirement_rules
+SET validation_checks = regexp_replace(validation_checks::text,
+  'Сверить сведения о странах, номерах и датах с разделом 19 заявления\.',
+  'Сверить сведения о странах, номерах и датах со сведениями о регистрации в других странах в заявлении (независимо от номера раздела формы).','g')::jsonb
+WHERE active AND doc_code='1.2.3' AND scope_object_type='LS' AND scope_procedure='registration';
+UPDATE document_requirement_rules
+SET validation_checks = regexp_replace(validation_checks::text,
+  'Сверить сведения о товарном знаке с разделом 20 заявления\.',
+  'Сверить сведения о товарном знаке со сведениями о товарном знаке в заявлении (независимо от номера раздела формы).','g')::jsonb
+WHERE active AND doc_code='1.2.4' AND scope_object_type='LS' AND scope_procedure='registration';
