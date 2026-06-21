@@ -24,6 +24,12 @@ export function isUnusableText(text: string): boolean {
   const letters = (body.match(/[А-Яа-яA-Za-z]/g) || []).length;
   if (letters < 200) return true;
   if (letters / Math.max(t.length, 1) < 0.4) return true; // мусорный OCR
+  // мойибейк/рассыпанный текстовый слой: текст распадается на 1-2-символьные «слова»
+  const tokens = body.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 30) {
+    const shortTokens = tokens.filter((tok) => tok.replace(/[^А-Яа-яA-Za-z]/g, '').length <= 2).length;
+    if (shortTokens / tokens.length > 0.6) return true;
+  }
   return false;
 }
 
