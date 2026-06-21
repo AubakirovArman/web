@@ -1,6 +1,35 @@
-import { getFileText } from '@/lib/applications/npa-gemma-check/file-text';
+import { getFileText, isUnusableText } from '@/lib/applications/npa-gemma-check/file-text';
+import { callGemmaVisionText } from '@/lib/llm/gemma';
 import type { DocumentImagePage, ExtractedDocumentContent, SupportedDocumentFormat } from './types';
 import type { UploadedFile } from '@/lib/types';
+
+const OCR_PAGE_PROMPT =
+  'Распознай и верни ВЕСЬ текст с этой страницы документа дословно, построчно, ' +
+  'сохраняя таблицы. Не комментируй, не сокращай — только распознанный текст.';
+
+async function ocrImagePages(pages: ParserServicePage[]): Promise<string> {
+  const maxOcr = Number(process.env.NDDA_OCR_MAX_PAGES || 14);
+  const timeoutMs = Number(process.env.NDDA_OCR_TIMEOUT_MS || 90000);
+  const parts: string[] = [];
+  let budget = maxOcr;
+  for (const page of pages) {
+    if (budget <= 0) break;
+    if (!page.imageBase64 || String(page.text || '').trim()) continue;
+    budget -= 1;
+    try {
+      const res = await callGemmaVisionText({
+        prompt: OCR_PAGE_PROMPT,
+        imageBase64: String(page.imageBase64),
+        mimeType: page.imageMime || 'image/png',
+        timeoutMs,
+      });
+      if (res.text && res.text.trim().length > 20) parts.push(`--- Страница ${page.page} (OCR) ---\n${res.text.trim()}`);
+    } catch {
+      // пропускаем страницу при ошибке OCR
+    }
+  }
+  return parts.join('\n\n');
+}
 
 export async function extractDocumentContent(file: UploadedFile): Promise<ExtractedDocumentContent> {
   const format = detectDocumentFormat(file);
@@ -58,8 +87,9 @@ async function extractWithParserServiceIfUseful(file: UploadedFile, format: Supp
     const payload = await response.json().catch(() => null) as ParserServiceResponse | null;
     if (!response.ok || !payload) throw new Error(`document parser service failed: ${response.status}`);
 
-    const text = String(payload.textContent || buildTextFromParserPages(payload.pages || '')).trim();
-    const imagePages = (payload.pages || [])
+    const pages = payload.pages || [];
+    const textPages = buildTextFromParserPages(pages);
+    const imagePages = pages
       .filter((page) => page.imageBase64)
       .map((page): DocumentImagePage => ({
         id: `${file.id}:page:${page.page}`,
@@ -68,6 +98,24 @@ async function extractWithParserServiceIfUseful(file: UploadedFile, format: Supp
         imageMime: page.imageMime || 'image/png',
         sourceLabel: `${file.name}, страница ${page.page}`,
       }));
+
+    // Страницы-картинки без текстового слоя → vision-OCR (с кэшем, чтобы не гонять каждый раз).
+    let text = String(payload.textContent || textPages).trim();
+    const imageOnlyPages = pages.filter((page) => page.imageBase64 && !String(page.text || '').trim());
+    if (imageOnlyPages.length && isUnusableText(text)) {
+      const store = await import('@/lib/files/runtime-upload-store');
+      const cached = await store.readRuntimeUploadText(file.id).catch(() => null);
+      if (cached && !isUnusableText(cached)) {
+        text = cached;
+      } else {
+        const ocr = await ocrImagePages(imageOnlyPages);
+        const combined = [textPages, ocr].filter(Boolean).join('\n\n').trim();
+        if (combined && !isUnusableText(combined)) {
+          text = combined;
+          await store.writeRuntimeUploadText(file.id, combined).catch(() => undefined);
+        }
+      }
+    }
 
     return { text, imagePages };
   } catch (error) {
