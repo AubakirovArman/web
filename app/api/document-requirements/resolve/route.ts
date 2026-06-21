@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error?.message || 'Failed to resolve document requirements' },
+      { error: 'Failed to resolve document requirements' },
       { status: 500 },
     );
   }

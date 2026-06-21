@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to read experiment data';
+    const message = 'Failed to read experiment data';
     const isNotFound = message.includes(REFERENCE_DB_EMPTY);
     return NextResponse.json(
       { error: isNotFound ? 'Справочник НПА еще не загружен в базу данных' : message },

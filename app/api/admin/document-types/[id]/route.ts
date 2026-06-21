@@ -11,7 +11,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!item) return NextResponse.json({ error: 'Document type not found' }, { status: 404 });
     return NextResponse.json({ item });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to read document type' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read document type' }, { status: 500 });
   }
 }
 
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!item) return NextResponse.json({ error: 'Document type not found' }, { status: 404 });
     return NextResponse.json({ item });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to update document type' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update document type' }, { status: 500 });
   }
 }
 
@@ -34,6 +34,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (!deleted) return NextResponse.json({ error: 'Document type not found' }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to delete document type' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete document type' }, { status: 500 });
   }
 }

@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Reference database is unavailable',
+        error: 'Reference database is unavailable',
         hint: 'Run npm run reference:db:start && npm run reference:db:ingest',
       },
       { status: 503 }

@@ -53,6 +53,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fil
     if (error?.code === 'ENOENT') {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
-    return NextResponse.json({ error: error?.message || 'Failed to read file' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read file' }, { status: 500 });
   }
 }

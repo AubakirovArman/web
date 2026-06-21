@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to read experiment data' },
+      { error: 'Failed to read experiment data' },
       { status: 500 },
     );
   }

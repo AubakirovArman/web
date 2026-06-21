@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ applications });
   } catch (error: any) {
     console.error('Applications GET error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to read applications' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read applications' }, { status: 500 });
   }
 }
 
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ applications });
   } catch (error: any) {
     console.error('Applications PUT error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to save applications' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save applications' }, { status: 500 });
   }
 }
 
@@ -66,6 +66,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ applications });
   } catch (error: any) {
     console.error('Applications POST error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to save application' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save application' }, { status: 500 });
   }
 }

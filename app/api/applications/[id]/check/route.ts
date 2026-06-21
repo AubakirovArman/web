@@ -74,6 +74,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       adminConfigUpdatedAt: adminConfig.updatedAt,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to run checks' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to run checks' }, { status: 500 });
   }
 }

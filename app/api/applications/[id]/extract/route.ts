@@ -64,7 +64,7 @@ async function writeArtifactSafely(label: string, write: Promise<unknown>) {
   try {
     await write;
   } catch (error) {
-    console.warn(`[extract:artifact-failed] ${label}`, error instanceof Error ? error.message : error);
+    console.warn(`[extract:artifact-failed] ${label}`, error);
   }
 }
 
@@ -199,7 +199,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           appId: id,
           fileId: currentFile.id,
           name: currentFile.name,
-          error: error?.message || 'Extraction failed',
+          error: 'Extraction failed',
           durationMs: Date.now() - fileStartedAt,
         });
         extractedFile = {
@@ -211,7 +211,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             provider: currentFile.processing?.provider || 'document-parser-service',
             startedAt: currentFile.processing?.startedAt || startedAt,
             finishedAt: new Date().toISOString(),
-            errors: [error?.message || 'Extraction failed'],
+            errors: ['Extraction failed'],
             textLayer: false,
             ocrQuality: 0,
           },
@@ -236,6 +236,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       processed: targetFiles.length,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to extract application files' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to extract application files' }, { status: 500 });
   }
 }

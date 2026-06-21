@@ -38,6 +38,6 @@ export async function PATCH(
 
     return NextResponse.json({ application: updated, finding });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to update finding' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update finding' }, { status: 500 });
   }
 }

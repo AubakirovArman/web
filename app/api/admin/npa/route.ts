@@ -9,6 +9,6 @@ export async function GET() {
     const records = await readAdminNpaRegistryOnly();
     return NextResponse.json({ records });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to read NPA registry' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read NPA registry' }, { status: 500 });
   }
 }

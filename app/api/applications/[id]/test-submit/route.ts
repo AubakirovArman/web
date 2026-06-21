@@ -65,7 +65,7 @@ function buildPipelineFailureFinding(error: unknown): Finding {
     severity: 'warning',
     category: 'Тестовый прогон',
     title: 'Полный тестовый прогон не завершился автоматически',
-    description: error instanceof Error ? error.message : 'Неизвестная ошибка при запуске pipeline.',
+    description: 'Неизвестная ошибка при запуске pipeline.',
     documents: [],
     recommendation: 'Откройте заявку у эксперта и запустите извлечение/проверку вручную.',
     checkerId: 'test_submission_pipeline',
@@ -114,7 +114,7 @@ async function runFreshPipeline(applicationId: string, userId: string, origin = 
       await upsertApplication({ ...completed, status: 'submitted' }, userId);
     }
   } catch (error) {
-    console.error('[test-submit:pipeline-failed]', applicationId, error instanceof Error ? error.message : error);
+    console.error('[test-submit:pipeline-failed]', applicationId, error);
     const failed = await readApplicationById(applicationId).catch(() => null);
     if (failed) {
       await upsertApplication(
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const saved = applications.find((item) => item.id === nextId) || nextApplication;
 
     void runFreshPipeline(nextId, userId).catch((error) => {
-      console.error('[test-submit:pipeline-unhandled]', nextId, error instanceof Error ? error.message : error);
+      console.error('[test-submit:pipeline-unhandled]', nextId, error);
     });
 
     return NextResponse.json({
@@ -172,6 +172,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       pipelineStarted: true,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to create test submission' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create test submission' }, { status: 500 });
   }
 }

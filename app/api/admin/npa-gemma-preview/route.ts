@@ -57,6 +57,6 @@ export async function POST(req: NextRequest) {
       summary: previewSummary(extraction),
     });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'NPA preview failed' }, { status: 502 });
+    return NextResponse.json({ error: 'NPA preview failed' }, { status: 502 });
   }
 }

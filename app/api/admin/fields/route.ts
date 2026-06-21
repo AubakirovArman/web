@@ -70,6 +70,6 @@ export async function GET() {
       });
     return NextResponse.json({ rows });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to read fields' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read fields' }, { status: 500 });
   }
 }

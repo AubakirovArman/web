@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json(config);
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to read admin config' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to read admin config' }, { status: 500 });
   }
 }
 
@@ -40,6 +40,6 @@ export async function POST(request: NextRequest) {
     const config = await writeAdminRuntimeConfig(safeBody, userId);
     return NextResponse.json(config);
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to save admin config' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save admin config' }, { status: 500 });
   }
 }
