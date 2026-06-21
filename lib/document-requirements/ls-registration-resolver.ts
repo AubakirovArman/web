@@ -264,10 +264,13 @@ function buildCheckerRoutingRequirements(rule: DbRequirementRuleRow) {
       if (!text) return null;
       const checkTarget = asStringArray(item.check_target);
       const checkerMode = String(item.checker_mode || checkTarget.join('+') || 'document_content').trim();
-      // Кросс-проверки (сверка со смежными разделами) — вторичные консистентности:
-      // их частый провал — отсутствие смежного раздела в пакете, а не дефект самого
-      // документа. Не эскалируем до critical, понижаем до warning (требует уточнения).
-      const isCrossDocument = checkTarget.includes('related_documents') || /related_documents/.test(checkerMode);
+      // Чистые кросс-проверки (сверка ТОЛЬКО со смежными разделами, без сверки с
+      // полями заявления) — вторичные консистентности: их частый провал это
+      // отсутствие смежного раздела в пакете, а не дефект документа → warning.
+      // Проверки, затрагивающие поля заявления (application_fields), оставляем
+      // critical: расхождение «поле заявления ↔ документ» (состав/форма/срок) важно.
+      const isPureCrossDocument =
+        checkTarget.includes('related_documents') && !checkTarget.includes('application_fields');
       return {
         id: String(item.requirement_id || `${rule.id}-checker-routing-${index + 1}`),
         source: 'manual' as const,
@@ -277,7 +280,7 @@ function buildCheckerRoutingRequirements(rule: DbRequirementRuleRow) {
         checkSubject: rule.document_name,
         checkType: checkerMode,
         requirementText: text,
-        criticality: item.applicability_gate_required || isCrossDocument ? 'warning' : severityForRule(rule),
+        criticality: item.applicability_gate_required || isPureCrossDocument ? 'warning' : severityForRule(rule),
         applicabilityCondition: item.applicability_gate_required
           ? item.decision_logic || rule.condition_text || 'Сначала проверить применимость требования.'
           : rule.condition_text || undefined,
