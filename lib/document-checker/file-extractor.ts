@@ -12,9 +12,12 @@ async function ocrImagePages(pages: ParserServicePage[]): Promise<string> {
   const timeoutMs = Number(process.env.NDDA_OCR_TIMEOUT_MS || 90000);
   const parts: string[] = [];
   let budget = maxOcr;
+  // Какие страницы распознавать — решает вызывающий код (он уже отфильтровал
+  // страницы без текстового слоя ИЛИ с мусорным/мойибейк-слоем). Здесь не
+  // пропускаем по наличию текста, иначе форс-OCR испорченного слоя не сработает.
   for (const page of pages) {
     if (budget <= 0) break;
-    if (!page.imageBase64 || String(page.text || '').trim()) continue;
+    if (!page.imageBase64) continue;
     budget -= 1;
     try {
       const res = await callGemmaVisionText({
