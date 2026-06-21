@@ -77,18 +77,45 @@ async function extractWithParserServiceIfUseful(file: UploadedFile, format: Supp
     const { metadata, filePath } = await import('@/lib/files/runtime-upload-store').then((mod) => mod.readRuntimeUpload(file.id));
     const { promises: fs } = await import('fs');
     const buffer = await fs.readFile(filePath);
-    const form = new FormData();
-    form.append('file', new Blob([new Uint8Array(buffer)], { type: metadata.contentType || file.contentType || 'application/octet-stream' }), metadata.fileName || file.name);
-    form.append('min_text_chars', '80');
-    form.append('zoom', '2.4');
-    form.append('include_images', 'true');
+    const blobType = metadata.contentType || file.contentType || 'application/octet-stream';
+    const fileName = metadata.fileName || file.name;
 
-    const response = await fetch(`${parserUrl.replace(/\/+$/, '')}/parse`, { method: 'POST', body: form });
-    const payload = await response.json().catch(() => null) as ParserServiceResponse | null;
-    if (!response.ok || !payload) throw new Error(`document parser service failed: ${response.status}`);
+    const callParser = async (minTextChars: number): Promise<ParserServiceResponse> => {
+      const form = new FormData();
+      form.append('file', new Blob([new Uint8Array(buffer)], { type: blobType }), fileName);
+      form.append('min_text_chars', String(minTextChars));
+      form.append('zoom', '2.4');
+      form.append('include_images', 'true');
+      const response = await fetch(`${parserUrl.replace(/\/+$/, '')}/parse`, { method: 'POST', body: form });
+      const payload = await response.json().catch(() => null) as ParserServiceResponse | null;
+      if (!response.ok || !payload) throw new Error(`document parser service failed: ${response.status}`);
+      return payload;
+    };
 
-    const pages = payload.pages || [];
-    const textPages = buildTextFromParserPages(pages);
+    const payload = await callParser(80);
+    let pages = payload.pages || [];
+    let textPages = buildTextFromParserPages(pages);
+    let text = String(payload.textContent || textPages).trim();
+    let imageOnlyPages = pages.filter((page) => page.imageBase64 && !String(page.text || '').trim());
+
+    // Испорченный/мусорный текстовый слой (мойибейк), а парсер не отрендерил
+    // страницы как изображения (счёл, что текст есть) → форсируем рендер и OCR.
+    if (isUnusableText(text) && imageOnlyPages.length === 0) {
+      const store = await import('@/lib/files/runtime-upload-store');
+      const cached = await store.readRuntimeUploadText(file.id).catch(() => null);
+      if (cached && !isUnusableText(cached)) {
+        text = cached;
+      } else {
+        const forced = await callParser(200000);
+        const forcedPages = forced.pages || [];
+        if (forcedPages.some((page) => page.imageBase64)) {
+          pages = forcedPages;
+          textPages = '';
+          imageOnlyPages = pages.filter((page) => page.imageBase64);
+        }
+      }
+    }
+
     const imagePages = pages
       .filter((page) => page.imageBase64)
       .map((page): DocumentImagePage => ({
@@ -100,8 +127,6 @@ async function extractWithParserServiceIfUseful(file: UploadedFile, format: Supp
       }));
 
     // Страницы-картинки без текстового слоя → vision-OCR (с кэшем, чтобы не гонять каждый раз).
-    let text = String(payload.textContent || textPages).trim();
-    const imageOnlyPages = pages.filter((page) => page.imageBase64 && !String(page.text || '').trim());
     if (imageOnlyPages.length && isUnusableText(text)) {
       const store = await import('@/lib/files/runtime-upload-store');
       const cached = await store.readRuntimeUploadText(file.id).catch(() => null);
