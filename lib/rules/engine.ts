@@ -254,6 +254,20 @@ function ctdSectionKey(code: string): string {
   return c;
 }
 
+/** Чисто структурные/административные разделы (оглавления, контактные сведения). */
+const CTD_STRUCTURAL_SECTIONS = new Set(['2.1', '2.2', '3.1', '1.6.4']);
+
+/** Коды-двойники резюме (модуль 2.3) ↔ детали (модуль 3.2) для одной темы. */
+function ctdCounterpartCodes(code: string): string[] {
+  const c = normalizeCtdCode(code);
+  const out: string[] = [];
+  if (c.startsWith('3.2.P')) out.push(c.replace(/^3\.2\.P/, '2.3.P'));
+  if (c.startsWith('3.2.S')) out.push('2.3.S', c.replace(/^3\.2\.S/, '2.3.S'));
+  if (c.startsWith('2.3.P')) out.push(c.replace(/^2\.3\.P/, '3.2.P'));
+  if (c.startsWith('2.3.S')) out.push('3.2.S');
+  return Array.from(new Set(out.map(normalizeCtdCode))).filter((x) => x && x !== c);
+}
+
 function extractFileCtdCodes(file: Application['files'][number]): string[] {
   const source = [
     file.name,
@@ -330,14 +344,31 @@ export function evaluateMissingRequiredDocuments(
     groups.set(m.key, arr);
   }
 
-  const severityRank: Record<string, number> = { critical: 3, major: 2, minor: 1, info: 0 };
+  const severityRank: Record<string, number> = { critical: 3, serious: 2, warning: 1, unknown: 0 };
   for (const [key, members] of Array.from(groups.entries())) {
     const rep = members.find((m) => m.code === key) || members[0];
     const sectionName = codeToName.get(key) || rep.docType?.name || key;
-    const severity = members.reduce(
+    let severity = members.reduce(
       (acc, m) => ((severityRank[m.severityIfMissing] ?? 0) > (severityRank[acc] ?? 0) ? m.severityIfMissing : acc),
       members[0].severityIfMissing,
     );
+
+    // Понижение серьёзности там, где «отсутствие» формальное:
+    // 1) чисто структурные разделы (оглавления, контакт по фармаконадзору);
+    // 2) деталь модуля 3 отсутствует, но её резюме в модуле 2.3 представлено
+    //    (или наоборот) — тема в досье раскрыта, отдельная карточка не выделена.
+    const counterpart = ctdCounterpartCodes(key).find((cp) =>
+      uploadedCodeList.some((uc) => ctdCodeCoversRequired(cp, uc)),
+    );
+    let downgradeNote = '';
+    if (CTD_STRUCTURAL_SECTIONS.has(key)) {
+      severity = 'warning';
+      downgradeNote = ' Структурный/административный раздел.';
+    } else if (counterpart) {
+      severity = 'warning';
+      downgradeNote = ` Тема раскрыта в смежном разделе ${counterpart}; отдельная карточка раздела не выделена.`;
+    }
+
     const rule = rules.find((r) => r.requiredDocuments.some((d) => d.documentTypeId === rep.documentTypeId));
     const npa = rule?.sourceNpaId ? npas.find((n) => n.id === rule.sourceNpaId) : undefined;
     const subs = members.filter((m) => m.code && m.code !== key).map((m) => m.docType?.name || m.code);
@@ -352,7 +383,7 @@ export function evaluateMissingRequiredDocuments(
       severity,
       category: 'Комплектность',
       title: `Отсутствует раздел: ${codeLabel}${sectionName}`,
-      description: `Раздел «${codeLabel}${sectionName}» обязателен для данного профиля заявки (${productType}), но не найден в загруженном пакете.${subText}`,
+      description: `Раздел «${codeLabel}${sectionName}» обязателен для данного профиля заявки (${productType}), но не найден в загруженном пакете.${subText}${downgradeNote}`,
       documents: [sectionName],
       recommendation: `Добавьте документы раздела ${codeLabel}${sectionName} в пакет досье.`,
       npaReference: npa ? `${npa.number} от ${npa.date}` : undefined,
