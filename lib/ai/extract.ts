@@ -7,7 +7,7 @@ import { pathToFileURL } from 'url';
 import { promisify } from 'util';
 import mammoth from 'mammoth';
 import JSZip from 'jszip';
-import { callGemmaJson, GemmaVisionTextResult } from '@/lib/llm/gemma';
+import { callGemmaJson, callGemmaVisionText, GemmaVisionTextResult } from '@/lib/llm/gemma';
 
 const execFileAsync = promisify(execFile);
 
@@ -275,30 +275,73 @@ async function extractWithParserService(
   }
 }
 
+const OCR_PAGE_PROMPT =
+  'Распознай и верни ВЕСЬ текст с этой страницы документа дословно, построчно, ' +
+  'сохраняя таблицы. Не комментируй, не сокращай — только распознанный текст.';
+
 async function buildPdfTextFromParserPages(
   fileName: string,
   parsedPages: ParserServicePage[],
 ): Promise<{ text: string; vision?: GemmaVisionTextResult }> {
   const pages: string[] = [];
   let imagePages = 0;
+  let ocrPages = 0;
+  const ocrErrors: string[] = [];
+
+  // Страницы-изображения без текстового слоя → распознаём через Gemma-vision (OCR).
+  const maxOcrPages = Number(process.env.NDDA_OCR_MAX_PAGES || 14);
+  const ocrTimeoutMs = Number(process.env.NDDA_OCR_TIMEOUT_MS || 90000);
+  const ocrByPage = new Map<number, string>();
+  let ocrBudget = maxOcrPages;
+  for (const page of parsedPages) {
+    if (ocrBudget <= 0) break;
+    if (!page.imageBase64 || String(page.text || '').trim()) continue;
+    ocrBudget -= 1;
+    try {
+      const res = await callGemmaVisionText({
+        prompt: OCR_PAGE_PROMPT,
+        imageBase64: page.imageBase64,
+        mimeType: 'image/png',
+        timeoutMs: ocrTimeoutMs,
+      });
+      if (res.text && res.text.trim().length > 20) {
+        ocrByPage.set(page.page, res.text.trim());
+        ocrPages += 1;
+      } else if (res.errors?.length) {
+        ocrErrors.push(...res.errors);
+      }
+    } catch (error) {
+      ocrErrors.push(error instanceof Error ? error.message : 'Gemma vision OCR error');
+    }
+  }
 
   for (const page of parsedPages) {
     const text = String(page.text || '').trim();
-    if (text) pages.push(`--- Страница ${page.page} ---\n${text}`);
+    if (text) {
+      pages.push(`--- Страница ${page.page} ---\n${text}`);
+      continue;
+    }
     if (page.imageBase64) {
       imagePages += 1;
-      if (!text) pages.push(`--- Страница ${page.page} ---\n[Страница подготовлена parser-service как изображение для OCR/Gemma. Текстовый слой отсутствует или недостаточен.]`);
+      const ocr = ocrByPage.get(page.page);
+      if (ocr) {
+        pages.push(`--- Страница ${page.page} (OCR) ---\n${ocr}`);
+      } else {
+        pages.push(`--- Страница ${page.page} ---\n[Страница-изображение, текстовый слой отсутствует; OCR не дал результата.]`);
+      }
     }
   }
+
+  logExtractor('parser-pages-ocr', { fileName, imagePages, ocrPages, ocrErrors: ocrErrors.length });
 
   return {
     text: pages.join('\n\n'),
     vision: {
-      text: '',
-      provider: 'document-parser-service',
-      promptVersion: imagePages > 0 ? 'parser-prepared-image-pages-v1' : 'parser-text-layer-v1',
-      status: imagePages > 0 ? 'partial' : 'success',
-      errors: [],
+      text: Array.from(ocrByPage.values()).join('\n\n'),
+      provider: ocrPages > 0 ? 'vllm-vision-ocr' : 'document-parser-service',
+      promptVersion: ocrPages > 0 ? 'gemma-vision-ocr-v1' : imagePages > 0 ? 'parser-prepared-image-pages-v1' : 'parser-text-layer-v1',
+      status: ocrPages > 0 ? 'success' : imagePages > 0 ? 'partial' : 'success',
+      errors: ocrErrors,
       raw: '',
     },
   };
