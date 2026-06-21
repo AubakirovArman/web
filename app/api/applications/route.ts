@@ -37,8 +37,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+    const incoming = body?.applications ?? body;
+    // Защита от разрушительной очистки: пустой массив сотрёт ВСЕ заявки.
+    // Требуем явного подтверждения заголовком x-ndda-wipe=true.
+    if (Array.isArray(incoming) && incoming.length === 0 && request.headers.get('x-ndda-wipe') !== 'true') {
+      return NextResponse.json(
+        { error: 'Отказано: запрос сотрёт все заявки. Для намеренной очистки передайте x-ndda-wipe=true.' },
+        { status: 409 },
+      );
+    }
     const userId = request.headers.get('x-user-id') || body?.userId || 'system';
-    const applications = await writeApplications(body?.applications ?? body, userId);
+    const applications = await writeApplications(incoming, userId);
     return NextResponse.json({ applications });
   } catch (error: any) {
     console.error('Applications PUT error:', error);

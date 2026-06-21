@@ -7,10 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { AdminNpaRecord } from '@/lib/admin/admin-page-types';
 import { NpaRegistryDetail } from '@/components/admin/npa-registry-panel';
+import { useAdminDocumentTypes } from '@/lib/hooks/useAdminDocumentTypes';
 
 export default function AdminNpaDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const documentTypes = useAdminDocumentTypes();
   const id = decodeURIComponent(String(params.id || ''));
   const [record, setRecord] = useState<AdminNpaRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,5 +62,5 @@ export default function AdminNpaDetailPage() {
     );
   }
 
-  return <NpaRegistryDetail record={record} documentTypes={[]} onBack={() => router.push('/admin/npa')} />;
+  return <NpaRegistryDetail record={record} documentTypes={documentTypes} onBack={() => router.push('/admin/npa')} />;
 }

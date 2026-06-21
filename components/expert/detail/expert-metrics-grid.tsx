@@ -13,11 +13,12 @@ export function ExpertMetricsGrid({
   npaGemmaSummary: any;
 }) {
   return (
-    <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+    <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
       <MetricCard label="Разделы" value={`${summary.sectionsPresent}/${summary.sectionsRequired}`} tone="neutral" />
       <MetricCard label="Файлы досье" value={dossierFilesCount} tone="neutral" />
       <MetricCard label="Не хватает разделов" value={summary.sectionsMissing} tone={summary.sectionsMissing ? 'warning' : 'passed'} />
       <MetricCard label="Критично" value={summary.critical} tone="failed" />
+      <MetricCard label="Серьёзно" value={summary.serious} tone={summary.serious ? 'failed' : 'passed'} />
       <MetricCard label="Предупреждения" value={summary.warning} tone="warning" />
       <MetricCard label="Неясно" value={summary.unknown} tone="neutral" />
       <MetricCard

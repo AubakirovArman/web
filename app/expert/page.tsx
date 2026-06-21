@@ -37,7 +37,7 @@ export default function ExpertPage() {
 function ExpertListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { applications, importApplication, deleteApplication, runCheck, setCurrentId } = useApplications();
+  const { applications, isLoading, loadError, importApplication, deleteApplication, runCheck, setCurrentId } = useApplications();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'clean' | 'critical' | 'serious' | 'warning'>('all');
@@ -206,7 +206,7 @@ function ExpertListPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <div className="relative min-w-[260px]">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по препарату, МНН, заявителю" className="pl-8" />
+                    <Input aria-label="Поиск заявок" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по препарату, МНН, заявителю" className="pl-8" />
                   </div>
                   <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as Application['status'] | 'all')}>
                     <SelectTrigger className="h-9 w-[180px]">
@@ -305,8 +305,27 @@ function ExpertListPage() {
                   {rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                        <XCircle className="mx-auto mb-2 h-6 w-6" />
-                        Заявки по выбранным фильтрам не найдены.
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin" />
+                            Загрузка заявок…
+                          </>
+                        ) : loadError ? (
+                          <>
+                            <XCircle className="mx-auto mb-2 h-6 w-6 text-destructive" />
+                            {loadError}
+                          </>
+                        ) : applications.length === 0 ? (
+                          <>
+                            <ClipboardList className="mx-auto mb-2 h-6 w-6" />
+                            Заявок пока нет. Создайте заявку или эталонную демо-заявку.
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="mx-auto mb-2 h-6 w-6" />
+                            Заявки по выбранным фильтрам не найдены.
+                          </>
+                        )}
                       </TableCell>
                     </TableRow>
                   )}

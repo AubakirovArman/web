@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { AdminNpaRequirement } from '@/lib/admin/admin-page-types';
 import { NpaRequirementsTable } from '@/components/admin/npa-requirements-table';
+import { useAdminDocumentTypes } from '@/lib/hooks/useAdminDocumentTypes';
 
 export default function AdminRequirementsPage() {
+  const documentTypes = useAdminDocumentTypes();
   const [requirements, setRequirements] = useState<AdminNpaRequirement[]>([]);
   const [npaCount, setNpaCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -101,7 +103,7 @@ export default function AdminRequirementsPage() {
               ))}
             </div>
           ) : (
-            <NpaRequirementsTable requirements={pageItems} documentTypes={[]} readonly />
+            <NpaRequirementsTable requirements={pageItems} documentTypes={documentTypes} readonly />
           )}
         </CardContent>
       </Card>

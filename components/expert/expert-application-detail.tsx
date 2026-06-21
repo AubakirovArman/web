@@ -73,6 +73,7 @@ export function ExpertApplicationDetail() {
   const { rules, importRules } = useRules();
   const { store, setDocumentTypes } = useStore();
   const [viewingRow, setViewingRow] = useState<DocumentReviewRow | null>(null);
+  const [detailLoading, setDetailLoading] = useState(true);
   const [serverTask, setServerTask] = useState<'extract' | 'check' | 'npa-gemma' | null>(null);
   const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
   const [taskElapsed, setTaskElapsed] = useState(0);
@@ -113,12 +114,16 @@ export function ExpertApplicationDetail() {
   useEffect(() => {
     if (!applicationId) return;
     let cancelled = false;
+    setDetailLoading(true);
     void fetch(`/api/applications/${encodeURIComponent(applicationId)}`, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (!cancelled && data?.application) importApplication(data.application);
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -356,14 +361,23 @@ export function ExpertApplicationDetail() {
           <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                <XCircle className="h-10 w-10 text-muted-foreground" />
-                <div>
-                  <h1 className="text-xl font-semibold">Заявка не найдена</h1>
-                  <p className="text-sm text-muted-foreground">Возможно, она была создана в другом браузере или очищено локальное хранилище.</p>
-                </div>
-                <Button asChild>
-                  <Link href="/expert">Вернуться к списку</Link>
-                </Button>
+                {detailLoading ? (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Загрузка заявки…</p>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-10 w-10 text-muted-foreground" />
+                    <div>
+                      <h1 className="text-xl font-semibold">Заявка не найдена</h1>
+                      <p className="text-sm text-muted-foreground">Возможно, она была создана в другом браузере или очищено локальное хранилище.</p>
+                    </div>
+                    <Button asChild>
+                      <Link href="/expert">Вернуться к списку</Link>
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

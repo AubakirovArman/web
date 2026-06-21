@@ -64,11 +64,15 @@ async function fetchServerApplications(): Promise<Application[]> {
 }
 
 async function saveServerApplication(application: Application) {
-  await fetch(APPLICATIONS_API, {
+  const response = await fetch(APPLICATIONS_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-ndda-client-version': APPLICATIONS_CLIENT_VERSION },
     body: JSON.stringify({ application }),
   });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error || `Не удалось сохранить заявку (${response.status})`);
+  }
 }
 
 async function patchServerFinding(id: string, findingId: string, patch: Partial<Finding>): Promise<Application | null> {
@@ -104,6 +108,8 @@ async function createServerTestSubmission(id: string): Promise<Application | nul
 
 interface ApplicationContextValue {
   applications: Application[];
+  isLoading: boolean;
+  loadError: string | null;
   currentId: string | null;
   setCurrentId: (id: string | null) => void;
   addApplication: () => Application;
@@ -131,23 +137,30 @@ const ApplicationContext = createContext<ApplicationContextValue | null>(null);
 export function ApplicationProvider({ children }: { children: ReactNode }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadApplications = async () => {
+      setIsLoading(true);
+      setLoadError(null);
       const initial = await fetchServerApplications();
 
       if (cancelled) return;
 
       setApplications(initial);
       setCurrentId((current) => current || initial[0]?.id || null);
+      setIsLoading(false);
     };
 
-    void loadApplications().catch(() => {
+    void loadApplications().catch((error) => {
       if (cancelled) return;
       setApplications([]);
       setCurrentId(null);
+      setIsLoading(false);
+      setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить заявки');
     });
 
     return () => {
@@ -175,6 +188,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ApplicationContextValue>(
     () => ({
       applications,
+      isLoading,
+      loadError,
       currentId,
       setCurrentId,
       addApplication: () => {
@@ -306,7 +321,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           status,
         })),
     }),
-    [applications, currentId]
+    [applications, currentId, isLoading, loadError]
   );
 
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>;

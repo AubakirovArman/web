@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { extractDocument, extractDocumentFromBuffer } from '@/lib/ai/extract';
 import { readRuntimeUpload } from '@/lib/files/runtime-upload-store';
+import { checkUploadFile } from '@/lib/api/upload-guard';
 
 function buildExtractionResponse(extracted: Record<string, string>) {
   const status = extracted.extractionStatus || (Object.keys(extracted).length > 0 ? 'success' : 'partial');
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest) {
       if (!file || !documentTypeId) {
         return NextResponse.json({ error: 'file and documentTypeId are required' }, { status: 400 });
       }
+      const uploadError = checkUploadFile(file);
+      if (uploadError) return uploadError;
 
       const buffer = Buffer.from(await file.arrayBuffer());
       const extracted = await extractDocumentFromBuffer(buffer, file.name, documentTypeId);

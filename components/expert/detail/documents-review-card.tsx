@@ -185,11 +185,11 @@ function countStatuses(checks: DocumentReviewRow['checks']): Record<ReviewStatus
 
 function CheckCount({ label, value, tone }: { label: string; value: number; tone?: 'passed' | 'failed' | 'warning' }) {
   const toneClass = tone === 'passed'
-    ? 'text-green-700'
+    ? 'text-green-700 dark:text-green-300'
     : tone === 'failed'
-      ? 'text-red-700'
+      ? 'text-red-700 dark:text-red-300'
       : tone === 'warning'
-        ? 'text-yellow-700'
+        ? 'text-yellow-700 dark:text-yellow-300'
         : 'text-muted-foreground';
 
   return (

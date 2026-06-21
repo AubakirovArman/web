@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { AdminNpaRecord } from '@/lib/admin/admin-page-types';
 import { NpaRegistryPanel } from '@/components/admin/npa-registry-panel';
+import { useAdminDocumentTypes } from '@/lib/hooks/useAdminDocumentTypes';
 
 export default function AdminNpaPage() {
   const router = useRouter();
+  const documentTypes = useAdminDocumentTypes();
   const [records, setRecords] = useState<AdminNpaRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +35,7 @@ export default function AdminNpaPage() {
   return (
     <NpaRegistryPanel
       records={records}
-      documentTypes={[]}
+      documentTypes={documentTypes}
       selectedId={null}
       loading={loading}
       onSelect={(id) => router.push(`/admin/npa/${encodeURIComponent(id)}`)}

@@ -272,7 +272,7 @@ export default function WizardPage() {
                     <CardTitle>Нет активной заявки</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Button onClick={() => addApplication()}>Создать новую заявку</Button>
+                    <Button onClick={() => addApplication()}>Создать демо-заявку</Button>
                   </CardContent>
                 </Card>
               </div>
