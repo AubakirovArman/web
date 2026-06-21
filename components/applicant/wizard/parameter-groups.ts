@@ -102,6 +102,7 @@ export function getLsParameterGroups(procedure: string): ParameterGroup[] {
         'param-sterile',
         'param-aseptic',
         'param-license-or-patent-active',
+        'param-patent-trademark',
         'param-reference-product',
         'param-contains-gmo',
         'param-human-animal-origin',
