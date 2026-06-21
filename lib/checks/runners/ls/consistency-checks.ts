@@ -240,13 +240,32 @@ export function runLsConsistencyChecks(context: CheckRunContext) {
     }
   }
 
-  // 8. Labeling text vs mockup
+  // 8. Согласованность «текст маркировки ↔ макет упаковки»
   if (labeling && mockup) {
+    const labelText = extract(labeling, 'textContent') || '';
     const mockupTrade = extract(mockup, 'tradeName');
     const mockupDosage = extract(mockup, 'dosage');
-    const labelText = labeling.name; // we don't extract labeling text yet; use file content placeholder
-    if (mockupTrade || mockupDosage) {
-      // placeholder check; could be expanded with OCR/AI extraction of labeling text
+    if (labelText) {
+      const missing: string[] = [];
+      if (mockupTrade && !normalize(labelText).includes(normalize(mockupTrade))) missing.push(`торговое наименование («${mockupTrade}»)`);
+      if (mockupDosage && !normalize(labelText).includes(normalize(mockupDosage))) missing.push(`дозировку («${mockupDosage}»)`);
+      if (missing.length > 0) {
+        findings.push(
+          createFinding(
+            'warning',
+            'Расхождения между документами',
+            'Текст маркировки не согласован с макетом упаковки',
+            `В тексте маркировки не найдены значения из макета: ${missing.join(', ')}.`,
+            [getDocName('doc-labeling-text'), getDocName('doc-mockup')],
+            'Приведите текст маркировки в соответствие с макетом упаковки (торговое наименование, дозировка).',
+            [
+              { source: getDocName('doc-mockup'), text: [mockupTrade, mockupDosage].filter(Boolean).join('; ') },
+              { source: getDocName('doc-labeling-text'), text: labelText.slice(0, 200) },
+            ],
+            'Решение Совета ЕЭК № 88, п. 102'
+          )
+        );
+      }
     }
   }
 

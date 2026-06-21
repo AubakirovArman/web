@@ -73,13 +73,16 @@ export function checkDocxFormatting(
 
   const sizes = sizesRaw?.split(',').map((s) => s.trim()).filter(Boolean) || [];
   const bodySizes = sizes.map(halfPointsToPt).filter((n): n is number => n !== null);
-  if (bodySizes.length > 0 && bodySizes.some((s) => s !== 12)) {
+  // Документ обычно содержит несколько размеров (заголовки 14, сноски 10, основной 12).
+  // Флагуем только если 12 пт вообще НЕ используется (значит основной текст не 12 пт),
+  // а не «любой размер ≠ 12» (это давало ложные срабатывания на заголовках/сносках).
+  if (bodySizes.length > 0 && !bodySizes.includes(12)) {
     findings.push(
       createFinding(
         'warning',
         'Оформление',
-        `Размер шрифта в «${docLabel}» отличается от 12 пт`,
-        `Обнаружены размеры: ${bodySizes.join(', ')} пт. Основной текст должен быть 12 пт.`,
+        `Размер основного текста в «${docLabel}» не 12 пт`,
+        `Обнаружены размеры: ${bodySizes.join(', ')} пт. Размер 12 пт (основной текст по Решению №88) не найден.`,
         [docLabel],
         'Приведите основной текст документа к размеру 12 пт.',
         [{ source: docLabel, text: bodySizes.join(', ') + ' пт' }],
@@ -129,7 +132,22 @@ export function checkRequiredSections(
   npaReference: string
 ) {
   const text = extract(file, 'textContent') || '';
-  if (!text) return;
+  if (!text) {
+    // Раньше: молча пропускали. Теперь сообщаем, что проверку выполнить не удалось.
+    findings.push(
+      createFinding(
+        'warning',
+        'Структура документа',
+        `Не удалось проверить разделы «${docLabel}»: текст не извлечён`,
+        'Из файла не извлечён текст (возможен скан без OCR или ошибка извлечения), поэтому наличие обязательных разделов не проверено автоматически.',
+        [docLabel],
+        'Предоставьте текстовую/распознаваемую версию документа или проверьте разделы вручную.',
+        undefined,
+        npaReference
+      )
+    );
+    return;
+  }
   const missing = sections
     .filter((s) => !normalize(text).includes(normalize(s.keyword)))
     .map((s) => s.label);
