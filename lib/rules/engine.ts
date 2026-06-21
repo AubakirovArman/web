@@ -224,7 +224,34 @@ function ctdSummaryToDetailedPrefix(code: string): string {
 
 function ctdCodeCoversRequired(requiredCode: string, fileCode: string): boolean {
   if (!requiredCode || !fileCode) return false;
-  return normalizeCtdCode(requiredCode) === normalizeCtdCode(fileCode);
+  const req = normalizeCtdCode(requiredCode);
+  const file = normalizeCtdCode(fileCode);
+  if (!req || !file) return false;
+  if (req === file) return true;
+  // Методика «укрупнённый пакет»: файл родительского раздела покрывает свои
+  // подразделы (напр. файл 3.2.S засчитывается за требование 3.2.S.1).
+  if (req.startsWith(file + '.')) return true;
+  // Обратное: файл-подраздел засчитывается за требование родителя
+  // (файл 3.2.P.3.1 покрывает требование раздела 3.2.P.3).
+  if (file.startsWith(req + '.')) return true;
+  // Соседнее покрытие для глубоких подразделов качества модуля 3:
+  // если в секции (напр. 3.2.P.5) есть любой загруженный подраздел,
+  // то требование её соседнего подраздела (3.2.P.5.1) считается покрытым.
+  if (req.startsWith('3.2.P.') || req.startsWith('3.2.S.')) {
+    const parent = req.split('.').slice(0, -1).join('.');
+    if (parent.split('.').length >= 4 && (file === parent || file.startsWith(parent + '.'))) return true;
+  }
+  return false;
+}
+
+/** Свод кода подраздела к «разделу-карточке», на уровне которого подаётся пакет. */
+function ctdSectionKey(code: string): string {
+  const c = normalizeCtdCode(code);
+  const parts = c.split('.');
+  if ((c.startsWith('3.2.P.') || c.startsWith('3.2.S.')) && parts.length >= 4) return parts.slice(0, 4).join('.');
+  if (c.startsWith('2.3.S')) return '2.3.S';
+  if (c.startsWith('2.3.P.') && parts.length >= 4) return parts.slice(0, 4).join('.');
+  return c;
 }
 
 function extractFileCtdCodes(file: Application['files'][number]): string[] {
@@ -256,45 +283,78 @@ export function evaluateMissingRequiredDocuments(
   availableDocumentTypes?: DocumentType[],
   rules: Rule[] = [],
 ): Finding[] {
-  const checklist = requiredDocuments.map((req) => {
-    const file = findUploadedRequiredFile(app, req);
-    return {
-      documentTypeId: req.documentTypeId,
-      required: true,
-      uploaded: !!file,
-      fileId: file?.id,
-      severityIfMissing: req.severityIfMissing,
-      alternativeDocumentTypeId: req.alternativeDocumentTypeId,
-      matchedDocumentTypeId: file?.documentTypeId,
-      checks: req.checks,
-    } satisfies ChecklistItem;
-  });
   const findings: Finding[] = [];
   const documentTypesCatalog = availableDocumentTypes?.length ? availableDocumentTypes : documentTypes;
-  for (const item of checklist) {
-    if (item.uploaded) continue;
-    const docType = documentTypesCatalog.find((d) => d.id === item.documentTypeId);
-    const altDocType = item.alternativeDocumentTypeId
-      ? documentTypesCatalog.find((d) => d.id === item.alternativeDocumentTypeId)
-      : undefined;
-    const rule = rules.find((r) => r.requiredDocuments.some((d) => d.documentTypeId === item.documentTypeId));
+
+  // карта: нормализованный CTD-код раздела -> человеко-читаемое имя
+  const codeToName = new Map<string, string>();
+  for (const d of documentTypesCatalog) {
+    const dd = d as DocumentType & { docCode?: string; code?: string };
+    const code = normalizeCtdCode(dd.docCode || dd.code || '');
+    if (code && !codeToName.has(code)) codeToName.set(code, d.name);
+  }
+  const codeOfDocType = (docType?: DocumentType) => {
+    const dd = docType as (DocumentType & { docCode?: string; code?: string }) | undefined;
+    return normalizeCtdCode(dd?.docCode || dd?.code || '');
+  };
+
+  // надёжный набор кодов разделов, реально присутствующих в пакете
+  const uploadedCodes = new Set<string>();
+  for (const file of app.files) {
+    const sc = normalizeCtdCode((file as { dossierSectionCode?: string }).dossierSectionCode || '');
+    if (sc) uploadedCodes.add(sc);
+    for (const c of extractFileCtdCodes(file)) uploadedCodes.add(c);
+  }
+  const uploadedCodeList = Array.from(uploadedCodes);
+  const uploadedDocTypeIds = new Set(app.files.map((f) => f.documentTypeId).filter(Boolean));
+
+  // считаем требование покрытым по: прямому documentTypeId, коду (род/потомок/сосед) или прежней логике
+  const missing = requiredDocuments
+    .map((req) => {
+      const docType = documentTypesCatalog.find((d) => d.id === req.documentTypeId);
+      const code = codeOfDocType(docType) || normalizeCtdCode(getLsDossierDocumentTypeById(req.documentTypeId)?.code || '');
+      const directMatch = uploadedDocTypeIds.has(req.documentTypeId)
+        || (!!req.alternativeDocumentTypeId && uploadedDocTypeIds.has(req.alternativeDocumentTypeId));
+      const codeMatch = code ? uploadedCodeList.some((uc) => ctdCodeCoversRequired(code, uc)) : false;
+      const uploaded = directMatch || codeMatch || !!findUploadedRequiredFile(app, req);
+      const key = code ? ctdSectionKey(code) : req.documentTypeId;
+      return { documentTypeId: req.documentTypeId, severityIfMissing: req.severityIfMissing, docType, code, key, uploaded };
+    })
+    .filter((m) => !m.uploaded);
+
+  // группируем пропуски по разделу-карточке (а не плодим по каждому подразделу)
+  const groups = new Map<string, typeof missing>();
+  for (const m of missing) {
+    const arr = groups.get(m.key) || [];
+    arr.push(m);
+    groups.set(m.key, arr);
+  }
+
+  const severityRank: Record<string, number> = { critical: 3, major: 2, minor: 1, info: 0 };
+  for (const [key, members] of Array.from(groups.entries())) {
+    const rep = members.find((m) => m.code === key) || members[0];
+    const sectionName = codeToName.get(key) || rep.docType?.name || key;
+    const severity = members.reduce(
+      (acc, m) => ((severityRank[m.severityIfMissing] ?? 0) > (severityRank[acc] ?? 0) ? m.severityIfMissing : acc),
+      members[0].severityIfMissing,
+    );
+    const rule = rules.find((r) => r.requiredDocuments.some((d) => d.documentTypeId === rep.documentTypeId));
     const npa = rule?.sourceNpaId ? npas.find((n) => n.id === rule.sourceNpaId) : undefined;
-    const alternatives = altDocType ? ` Допустимая альтернатива: «${altDocType.name}».` : '';
-    const formats = [
-      docType?.acceptedFormats.join(', '),
-      altDocType ? `${altDocType.name}: ${altDocType.acceptedFormats.join(', ')}` : undefined,
-    ]
-      .filter(Boolean)
-      .join('; ');
+    const subs = members.filter((m) => m.code && m.code !== key).map((m) => m.docType?.name || m.code);
+    const subText = subs.length
+      ? ` Не представлены подразделы: ${subs.slice(0, 8).join('; ')}${subs.length > 8 ? '…' : ''}.`
+      : '';
+    const codeLabel = /^[0-9]/.test(key) ? `${key} ` : '';
+    const productType = String(app.values['param-product-type'] || 'ЛС');
 
     findings.push({
-      id: `missing-${item.documentTypeId}-${Date.now()}`,
-      severity: item.severityIfMissing,
+      id: `missing-${key}-${Date.now()}`,
+      severity,
       category: 'Комплектность',
-      title: `Отсутствует документ: ${docType?.name || item.documentTypeId}`,
-      description: `Документ «${docType?.name || item.documentTypeId}» отмечен как обязательный для данного типа заявки, но не загружен.${alternatives}`,
-      documents: [docType?.name || item.documentTypeId, altDocType?.name].filter(Boolean) as string[],
-      recommendation: `Загрузите ${docType?.name || item.documentTypeId}${altDocType ? ` или ${altDocType.name}` : ''} в формате ${formats || 'PDF'}.`,
+      title: `Отсутствует раздел: ${codeLabel}${sectionName}`,
+      description: `Раздел «${codeLabel}${sectionName}» обязателен для данного профиля заявки (${productType}), но не найден в загруженном пакете.${subText}`,
+      documents: [sectionName],
+      recommendation: `Добавьте документы раздела ${codeLabel}${sectionName} в пакет досье.`,
       npaReference: npa ? `${npa.number} от ${npa.date}` : undefined,
       checkerId: 'required_document_presence_check',
       confidence: 1,

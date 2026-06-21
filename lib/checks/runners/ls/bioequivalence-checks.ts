@@ -33,8 +33,11 @@ import {
 
 export function runLsBioequivalenceChecks(context: CheckRunContext) {
   const { app, findings, values, productType, productLabel } = context;
-  // 10. Generic bioequivalence
-  if (productType === 'generic') {
+  // 10. Generic bioequivalence — только если исследование требуется по параметрам
+  // заявки (для в/в водных растворов, газов и т.п. — биовейвер, отчёт не нужен).
+  const bioeqFlag = values['param-bioequivalence-required'];
+  const bioeqRequired = bioeqFlag === 'yes' || String(bioeqFlag) === 'true';
+  if (productType === 'generic' && bioeqRequired) {
     const hasReport = findFile(app, 'doc-bioequivalence-report');
     const hasWaiver = findFile(app, 'doc-bioequivalence-waiver');
     if (!hasReport && !hasWaiver) {
