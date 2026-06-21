@@ -30,7 +30,8 @@ import { FindingCard } from '@/components/expert/detail/finding-card';
 import { Field, LsApplicationSummary, MetricCard, MiniMetric } from '@/components/expert/detail/application-summary';
 import { displayApplicationTitle } from '@/components/expert/detail/application-formatters';
 import { CheckChip, StatusBadge } from '@/components/expert/detail/review-badges';
-import { buildDocumentReviewRows, buildNpaGemmaReviewSummary, labelFor, matchesConditions, npaFilterLabel, summarizeNpaGemmaResults, summarizeRows } from '@/components/expert/detail/review-logic';
+import { buildDocumentReviewRows, buildNpaGemmaReviewSummary, labelFor, matchesConditions, npaFilterLabel, summarizeNpaGemmaResults } from '@/components/expert/detail/review-logic';
+import { computeReviewSummary } from '@/components/expert/detail/review-summary';
 import { buildApplicantRequest, formatElapsed } from '@/components/expert/detail/request-formatters';
 import { DocumentReviewRow, NpaFindingFilter } from '@/components/expert/detail/review-types';
 import { Button } from '@/components/ui/button';
@@ -191,7 +192,10 @@ export function ExpertApplicationDetail() {
     () => (app ? app.files.filter((file) => file.source === 'dossier-folder' || file.dossierSectionId) : []),
     [app]
   );
-  const summary = useMemo(() => summarizeRows(documentRows, app?.findings || []), [app?.findings, documentRows]);
+  const summary = useMemo(
+    () => (app ? computeReviewSummary(app, requiredDocs, documentTypesCatalog) : null),
+    [app, requiredDocs, documentTypesCatalog],
+  );
   const npaGemmaSummary = useMemo(() => summarizeNpaGemmaResults(app?.files || []), [app?.files]);
   const npaGemmaReviewSummary = useMemo(
     () => (app ? buildNpaGemmaReviewSummary(app, documentTypesCatalog) : null),
@@ -383,7 +387,7 @@ export function ExpertApplicationDetail() {
           />
           <ServerTaskCard serverTask={serverTask} taskResult={taskResult} taskMessage={taskMessage} taskElapsed={taskElapsed} />
           <FileProcessingProgressCard app={app} />
-          <ExpertMetricsGrid summary={summary} dossierFilesCount={dossierFiles.length} npaGemmaSummary={npaGemmaSummary} />
+          {summary && <ExpertMetricsGrid summary={summary} dossierFilesCount={dossierFiles.length} npaGemmaSummary={npaGemmaSummary} />}
 
           <Tabs defaultValue="documents" className="mt-4 min-w-0">
             <TabsList className="grid h-auto w-full grid-cols-4 rounded-none bg-transparent p-0">
