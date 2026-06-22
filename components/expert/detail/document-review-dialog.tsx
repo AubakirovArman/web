@@ -60,10 +60,10 @@ export function DocumentReviewDialog({ row, onClose }: { row: DocumentReviewRow;
             <TabsContent value="checks" className="min-h-0 flex-1 overflow-auto p-5">
               <div className="space-y-5">
                 <ChecksGroup
-                  title={`Содержательные условия из БД (${contentChecks.length})`}
-                  description="Это условия из БД для кода раздела. Если загружено несколько файлов, результат схлопывается по всему пакету."
+                  title={`Содержательные условия из НПА (${contentChecks.length})`}
+                  description="Это условия из НПА для кода раздела. Если загружено несколько файлов, результат схлопывается по всему пакету."
                   checks={contentChecks}
-                  emptyText="Для этого документа нет содержательных условий из БД."
+                  emptyText="Для этого документа нет содержательных условий из НПА."
                 />
                 <ChecksGroup
                   title={`Технические проверки файла (${technicalChecks.length})`}

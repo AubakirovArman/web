@@ -69,7 +69,7 @@ export function CheckStep({
           severity: req.severityIfMissing,
           checks: req.checks || documentType?.checkIds || [],
           npaRequirementCount: documentType?.importedRequirements?.length || 0,
-          ruleName: activatingRule?.name || (matrixRule ? `Матрица досье: ${matrixRule.docCode || matrixRule.modulePart}` : 'Правило из БД'),
+          ruleName: activatingRule?.name || (matrixRule ? `Матрица досье: ${matrixRule.docCode || matrixRule.modulePart}` : 'Правило из НПА'),
           conditionText: activatingRule
             ? formatWizardConditions(activatingRule.conditions, app.values)
             : matrixRule?.triggerExpression || documentType?.requiredWhenExpression || '—',

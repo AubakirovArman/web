@@ -56,7 +56,7 @@ export function buildDocumentReviewRows(
         checks,
         findings: rowFindings,
         overall: getOverallStatus(checks),
-        ruleName: activatingRule?.name || (matrixRule ? `Матрица досье: ${matrixRule.docCode || matrixRule.modulePart}` : docType?.requirednessExplanation ? 'Правило из БД' : undefined),
+        ruleName: activatingRule?.name || (matrixRule ? `Матрица досье: ${matrixRule.docCode || matrixRule.modulePart}` : docType?.requirednessExplanation ? 'Правило из НПА' : undefined),
         conditionText: activatingRule ? formatConditions(activatingRule.conditions, app.values) : matrixRule?.triggerExpression || docType?.requiredWhenExpression,
         alternativeName: alternativeDocType?.name,
       };

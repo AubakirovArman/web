@@ -94,7 +94,7 @@ export function DocumentsReviewCard({
                       </div>
                     ) : (
                       <div className="border bg-muted/30 px-2 py-2 text-xs text-muted-foreground">
-                        Содержательные условия из БД отсутствуют
+                        Содержательные условия из НПА отсутствуют
                       </div>
                     )}
                     <div className="mt-1 text-xs text-muted-foreground">Технических проверок файла: {technicalChecksCount}</div>
