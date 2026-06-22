@@ -46,11 +46,31 @@ for (const [id, relativePath] of TARGET_DOCUMENTS) {
 }
 prepared.sort((left, right) => left.tokenEstimate - right.tokenEstimate);
 
+// --only <id[,id2]>: переанализировать только указанные документы, остальные
+// сохранить из существующего experiment.json (не сбрасывать в pending).
+const only = new Set(String(readArg('--only') || '').split(',').map((value) => value.trim()).filter(Boolean));
+const existingById = new Map();
+if (only.size > 0 && fsSync.existsSync(outputPath)) {
+  try {
+    const existing = JSON.parse(fsSync.readFileSync(outputPath, 'utf-8'));
+    for (const doc of existing.documents || []) existingById.set(doc.id, doc);
+    console.log(`[only] режим: ${[...only].join(', ')}; сохраняю ${existingById.size} существующих записей`);
+  } catch {
+    console.warn('[only] не удалось прочитать существующий experiment.json — остальные станут pending');
+  }
+}
+
 const documents = [];
 let processed = 0;
 for (const item of prepared) {
   const base = buildBaseOutput(item);
-  if (config.noGemma || processed >= config.maxDocuments) {
+  const targeted = only.size === 0 || only.has(item.document.id);
+  if (!targeted) {
+    // не цель — сохраняем существующую запись (с её intelligence), иначе pending
+    documents.push(existingById.get(item.document.id) || { ...base, status: 'pending' });
+    continue;
+  }
+  if (config.noGemma || (only.size === 0 && processed >= config.maxDocuments)) {
     documents.push({ ...base, status: 'pending' });
     continue;
   }

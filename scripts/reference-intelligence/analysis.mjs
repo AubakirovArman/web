@@ -20,16 +20,64 @@ export async function analyzeDocument(item, config) {
 }
 
 async function analyzeDocumentChunk(item, chunk, chunkNumber, chunksTotal, config) {
-  const response = await fetch(config.gemma.chatUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(config.gemma.apiKey ? { Authorization: `Bearer ${config.gemma.apiKey}` } : {}) },
-    body: JSON.stringify({ model: config.model, messages: [{ role: 'system', content: 'Ты методолог НЦЭЛС, аналитик НПА и архитектор правил проверки регистрационного досье. Извлекай только подтвержденное текстом. Отвечай строго JSON без markdown.' }, { role: 'user', content: buildIntelligencePrompt(item, chunk, chunkNumber, chunksTotal) }], temperature: 0, max_tokens: 12000 }),
-    signal: AbortSignal.timeout(config.timeoutMs),
-  });
-  if (!response.ok) throw new Error(`Gemma HTTP ${response.status}: ${await response.text()}`);
-  const payload = await response.json();
-  const raw = payload.choices?.[0]?.message?.content || '{}';
-  return normalizeIntelligencePayload(JSON.parse(cleanJson(raw)), item, config);
+  // Устойчивость: до 2 попыток. Если Gemma вернула битый JSON — ремонтируем;
+  // если и после ремонта не парсится — пропускаем чанк (пустой payload),
+  // чтобы один плохой чанк не валил весь документ.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await fetch(config.gemma.chatUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(config.gemma.apiKey ? { Authorization: `Bearer ${config.gemma.apiKey}` } : {}) },
+      body: JSON.stringify({ model: config.model, messages: [{ role: 'system', content: 'Ты методолог НЦЭЛС, аналитик НПА и архитектор правил проверки регистрационного досье. Извлекай только подтвержденное текстом. Отвечай строго JSON без markdown.' }, { role: 'user', content: buildIntelligencePrompt(item, chunk, chunkNumber, chunksTotal) }], temperature: 0, max_tokens: 12000 }),
+      signal: AbortSignal.timeout(config.timeoutMs),
+    });
+    if (!response.ok) {
+      if (attempt < 2) continue;
+      throw new Error(`Gemma HTTP ${response.status}: ${await response.text()}`);
+    }
+    const payload = await response.json();
+    const raw = payload.choices?.[0]?.message?.content || '{}';
+    const parsed = safeParseIntelligenceJson(raw);
+    if (parsed) return normalizeIntelligencePayload(parsed, item, config);
+    console.warn(`[gemma] ${item.document.id} chunk=${chunkNumber}/${chunksTotal} невалидный JSON (попытка ${attempt}/2)`);
+  }
+  console.warn(`[gemma] ${item.document.id} chunk=${chunkNumber}/${chunksTotal} пропущен — JSON не восстановлен`);
+  return normalizeIntelligencePayload({}, item, config);
+}
+
+// Пытается распарсить JSON-ответ Gemma с несколькими стратегиями ремонта.
+function safeParseIntelligenceJson(raw) {
+  const cleaned = cleanJson(raw);
+  const noTrailingCommas = cleaned.replace(/,(\s*[}\]])/g, '$1');
+  const candidates = [cleaned, noTrailingCommas, balanceBrackets(noTrailingCommas)];
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      /* пробуем следующую стратегию */
+    }
+  }
+  return null;
+}
+
+// Достраивает недостающие закрывающие скобки/кавычки при обрыве (truncation).
+function balanceBrackets(text) {
+  let curly = 0;
+  let square = 0;
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') curly += 1; else if (ch === '}') curly -= 1;
+    else if (ch === '[') square += 1; else if (ch === ']') square -= 1;
+  }
+  let out = text;
+  if (inString) out += '"';
+  while (square > 0) { out += ']'; square -= 1; }
+  while (curly > 0) { out += '}'; curly -= 1; }
+  return out;
 }
 
 function buildIntelligencePrompt(item, documentText, chunkNumber, chunksTotal) {
