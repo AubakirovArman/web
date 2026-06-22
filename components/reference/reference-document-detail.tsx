@@ -17,6 +17,11 @@ export function DocumentDetail({ document, onBack }: { document: ReferenceExperi
     parameters: intelligence?.applicant_parameters?.length || 0,
     dependencies: intelligence?.dependencies?.length || 0,
   };
+  const sections = document.sections || [];
+  // tokenEstimate в БД-данных отсутствует — оцениваем по объёму секций (~4 символа/токен).
+  const tokenEstimate = typeof document.tokenEstimate === 'number'
+    ? document.tokenEstimate
+    : Math.round(sections.reduce((sum, section) => sum + (section.rawCharCount || section.text?.length || 0), 0) / 4);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -25,11 +30,11 @@ export function DocumentDetail({ document, onBack }: { document: ReferenceExperi
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <Button variant="ghost" size="sm" className="-ml-2 mb-3" onClick={onBack}><ArrowLeft className="mr-2 h-4 w-4" />Назад к таблице</Button>
-              <div className="mb-2 flex flex-wrap gap-2"><Badge variant="secondary">{document.domain}</Badge><Badge variant="outline">{kindLabels[document.kind] || document.kind}</Badge><Badge variant="outline">{document.number || 'без номера'}</Badge><Badge variant="outline">~{document.tokenEstimate.toLocaleString('ru-RU')} токенов</Badge></div>
+              <div className="mb-2 flex flex-wrap gap-2"><Badge variant="secondary">{document.domain}</Badge><Badge variant="outline">{kindLabels[document.kind] || document.kind}</Badge><Badge variant="outline">{document.number || 'без номера'}</Badge>{tokenEstimate > 0 && <Badge variant="outline">~{tokenEstimate.toLocaleString('ru-RU')} токенов</Badge>}{sections.length > 0 && <Badge variant="outline">{sections.length} разделов</Badge>}</div>
               <CardTitle className="text-xl leading-7">{document.title}</CardTitle>
               <p className="mt-2 text-xs text-muted-foreground">{document.fileName}</p>
             </div>
-            <Badge variant={document.status === 'processed' ? 'default' : document.status === 'error' ? 'destructive' : 'outline'}>{statusLabels[document.status]}</Badge>
+            {document.status && <Badge variant={document.status === 'processed' ? 'default' : document.status === 'error' ? 'destructive' : 'outline'}>{statusLabels[document.status] || document.status}</Badge>}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -49,6 +54,22 @@ export function DocumentDetail({ document, onBack }: { document: ReferenceExperi
           <TabsContent value="checks"><EntityList empty="Автоматический анализ не нашел проверок." items={intelligence.checks} fields={[["name", "Проверка"], ["check_type", "Тип"], ["target_document", "Документ"], ["automation_hint", "Как автоматизировать"], ["source_point", "Пункт"]]} /></TabsContent>
           <TabsContent value="text"><FullText document={document} /></TabsContent>
         </Tabs>
+      )}
+
+      {!intelligence && sections.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Полный текст</CardTitle>
+            <p className="text-sm text-muted-foreground">Автоматический анализ для этого документа не выполнялся — показан распознанный текст по разделам.</p>
+          </CardHeader>
+          <CardContent>
+            <FullText document={document} />
+          </CardContent>
+        </Card>
+      )}
+
+      {!intelligence && sections.length === 0 && (
+        <EmptyState title="Нет содержимого" text="Для документа нет распознанного текста и автоматического анализа." />
       )}
     </div>
   );
