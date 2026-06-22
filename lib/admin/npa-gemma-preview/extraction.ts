@@ -69,24 +69,66 @@ function splitLongBlock(block: string, maxChars: number) {
 async function analyzeWithGemma(env: EnvConfig, documentText: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (env.apiKey) headers.Authorization = `Bearer ${env.apiKey}`;
-  const response = await fetch(env.chatUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: env.model,
-      messages: [
-        { role: 'system', content: 'Ты методолог НЦЭЛС и аналитик НПА. Извлекай только подтвержденное текстом документа. Верни только валидный JSON без markdown.' },
-        { role: 'user', content: npaExtractionPrompt(documentText) },
-      ],
-      temperature: 0,
-      max_tokens: 8192,
-    }),
-    signal: AbortSignal.timeout(240000),
-  });
-  if (!response.ok) throw new Error(`Gemma HTTP ${response.status}: ${await response.text()}`);
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '{}';
-  return normalizeAiPayload(JSON.parse(cleanJson(content)), env.model);
+  // До 2 попыток. Битый JSON от Gemma чиним; если не восстановим — пустой
+  // результат для этого чанка (не валим весь анализ документа).
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await fetch(env.chatUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: env.model,
+        messages: [
+          { role: 'system', content: 'Ты методолог НЦЭЛС и аналитик НПА. Извлекай только подтвержденное текстом документа. Верни только валидный JSON без markdown.' },
+          { role: 'user', content: npaExtractionPrompt(documentText) },
+        ],
+        temperature: 0,
+        max_tokens: 8192,
+      }),
+      signal: AbortSignal.timeout(240000),
+    });
+    if (!response.ok) {
+      if (attempt < 2) continue;
+      throw new Error(`Gemma HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    const parsed = safeParseJson(content);
+    if (parsed) return normalizeAiPayload(parsed, env.model);
+  }
+  return normalizeAiPayload({}, env.model);
+}
+
+function safeParseJson(raw: string): any | null {
+  const cleaned = cleanJson(raw);
+  const noTrailingCommas = cleaned.replace(/,(\s*[}\]])/g, '$1');
+  for (const candidate of [cleaned, noTrailingCommas, balanceBrackets(noTrailingCommas)]) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      /* следующая стратегия */
+    }
+  }
+  return null;
+}
+
+function balanceBrackets(text: string): string {
+  let curly = 0;
+  let square = 0;
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') curly += 1; else if (ch === '}') curly -= 1;
+    else if (ch === '[') square += 1; else if (ch === ']') square -= 1;
+  }
+  let out = text;
+  if (inString) out += '"';
+  while (square > 0) { out += ']'; square -= 1; }
+  while (curly > 0) { out += '}'; curly -= 1; }
+  return out;
 }
 
 function npaExtractionPrompt(documentText: string) {
