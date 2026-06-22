@@ -18,7 +18,7 @@ const FILE_PROCESSING_STATUSES: FileProcessingStatus[] = [
   'failed',
   'skipped',
 ];
-const FILE_EXTRACTION_TIMEOUT_MS = Number(process.env.NDDA_FILE_EXTRACTION_TIMEOUT_MS || 120000);
+const FILE_EXTRACTION_TIMEOUT_MS = Number(process.env.NDDA_FILE_EXTRACTION_TIMEOUT_MS || 300000);
 
 function logExtract(event: string, payload: Record<string, unknown>) {
   console.log(`[extract:${event}] ${JSON.stringify(payload)}`);

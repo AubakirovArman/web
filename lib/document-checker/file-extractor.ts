@@ -10,28 +10,36 @@ const OCR_PAGE_PROMPT =
 async function ocrImagePages(pages: ParserServicePage[]): Promise<string> {
   const maxOcr = Number(process.env.NDDA_OCR_MAX_PAGES || 14);
   const timeoutMs = Number(process.env.NDDA_OCR_TIMEOUT_MS || 90000);
-  const parts: string[] = [];
-  let budget = maxOcr;
-  // Какие страницы распознавать — решает вызывающий код (он уже отфильтровал
-  // страницы без текстового слоя ИЛИ с мусорным/мойибейк-слоем). Здесь не
-  // пропускаем по наличию текста, иначе форс-OCR испорченного слоя не сработает.
-  for (const page of pages) {
-    if (budget <= 0) break;
-    if (!page.imageBase64) continue;
-    budget -= 1;
-    try {
-      const res = await callGemmaVisionText({
-        prompt: OCR_PAGE_PROMPT,
-        imageBase64: String(page.imageBase64),
-        mimeType: page.imageMime || 'image/png',
-        timeoutMs,
-      });
-      if (res.text && res.text.trim().length > 20) parts.push(`--- Страница ${page.page} (OCR) ---\n${res.text.trim()}`);
-    } catch {
-      // пропускаем страницу при ошибке OCR
+  const concurrency = Math.max(1, Number(process.env.NDDA_OCR_CONCURRENCY || 4));
+  // Какие страницы распознавать — решает вызывающий код. Распознаём параллельно
+  // батчами, чтобы многостраничные сканы укладывались в таймаут.
+  const targets = pages.filter((page) => page.imageBase64).slice(0, maxOcr);
+  const byPage = new Map<number, string>();
+  for (let offset = 0; offset < targets.length; offset += concurrency) {
+    const batch = targets.slice(offset, offset + concurrency);
+    const results = await Promise.all(
+      batch.map(async (page) => {
+        try {
+          const res = await callGemmaVisionText({
+            prompt: OCR_PAGE_PROMPT,
+            imageBase64: String(page.imageBase64),
+            mimeType: page.imageMime || 'image/png',
+            timeoutMs,
+          });
+          return { page: page.page, text: res.text?.trim() || '' };
+        } catch {
+          return { page: page.page, text: '' };
+        }
+      }),
+    );
+    for (const result of results) {
+      if (result.text && result.text.length > 20) byPage.set(result.page, result.text);
     }
   }
-  return parts.join('\n\n');
+  return targets
+    .map((page) => (byPage.has(page.page) ? `--- Страница ${page.page} (OCR) ---\n${byPage.get(page.page)}` : ''))
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export async function extractDocumentContent(file: UploadedFile): Promise<ExtractedDocumentContent> {

@@ -289,29 +289,38 @@ async function buildPdfTextFromParserPages(
   const ocrErrors: string[] = [];
 
   // Страницы-изображения без текстового слоя → распознаём через Gemma-vision (OCR).
+  // Параллельно батчами, чтобы многостраничные сканы укладывались в таймаут извлечения.
   const maxOcrPages = Number(process.env.NDDA_OCR_MAX_PAGES || 14);
   const ocrTimeoutMs = Number(process.env.NDDA_OCR_TIMEOUT_MS || 90000);
+  const ocrConcurrency = Math.max(1, Number(process.env.NDDA_OCR_CONCURRENCY || 4));
   const ocrByPage = new Map<number, string>();
-  let ocrBudget = maxOcrPages;
-  for (const page of parsedPages) {
-    if (ocrBudget <= 0) break;
-    if (!page.imageBase64 || String(page.text || '').trim()) continue;
-    ocrBudget -= 1;
-    try {
-      const res = await callGemmaVisionText({
-        prompt: OCR_PAGE_PROMPT,
-        imageBase64: page.imageBase64,
-        mimeType: 'image/png',
-        timeoutMs: ocrTimeoutMs,
-      });
-      if (res.text && res.text.trim().length > 20) {
-        ocrByPage.set(page.page, res.text.trim());
+  const pagesToOcr = parsedPages
+    .filter((page) => page.imageBase64 && !String(page.text || '').trim())
+    .slice(0, maxOcrPages);
+  for (let offset = 0; offset < pagesToOcr.length; offset += ocrConcurrency) {
+    const batch = pagesToOcr.slice(offset, offset + ocrConcurrency);
+    const batchResults = await Promise.all(
+      batch.map(async (page) => {
+        try {
+          const res = await callGemmaVisionText({
+            prompt: OCR_PAGE_PROMPT,
+            imageBase64: String(page.imageBase64),
+            mimeType: 'image/png',
+            timeoutMs: ocrTimeoutMs,
+          });
+          return { page: page.page, text: res.text?.trim() || '', errors: res.errors || [] };
+        } catch (error) {
+          return { page: page.page, text: '', errors: [error instanceof Error ? error.message : 'Gemma vision OCR error'] };
+        }
+      }),
+    );
+    for (const result of batchResults) {
+      if (result.text && result.text.length > 20) {
+        ocrByPage.set(result.page, result.text);
         ocrPages += 1;
-      } else if (res.errors?.length) {
-        ocrErrors.push(...res.errors);
+      } else if (result.errors.length) {
+        ocrErrors.push(...result.errors);
       }
-    } catch (error) {
-      ocrErrors.push(error instanceof Error ? error.message : 'Gemma vision OCR error');
     }
   }
 
