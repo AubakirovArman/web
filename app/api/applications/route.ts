@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readApplicationSummaries, upsertApplication, writeApplications } from '@/lib/applications/server-store';
+import { gzipJson } from '@/lib/api/gzip-json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,11 @@ function rejectStaleClient(request: NextRequest) {
   );
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // List view only needs metadata + finding counts, not per-file extracted text.
     const applications = await readApplicationSummaries();
-    return NextResponse.json({ applications });
+    return gzipJson(request, { applications });
   } catch (error: any) {
     console.error('Applications GET error:', error);
     return NextResponse.json({ error: 'Failed to read applications' }, { status: 500 });

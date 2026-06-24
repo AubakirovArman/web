@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readAdminRuntimeConfig, writeAdminRuntimeConfig } from '@/lib/admin/server-store';
+import { gzipJson } from '@/lib/api/gzip-json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,13 +12,13 @@ export async function GET(request: NextRequest) {
     // panel) actually use — documentTypes + rules — dropping the ~2.3 MB of
     // lsDossierDocumentTypes + npaRegistry from the response.
     if (request.nextUrl.searchParams.get('lite') === '1') {
-      return NextResponse.json({
+      return gzipJson(request, {
         documentTypes: config.documentTypes,
         rules: config.rules,
         updatedAt: config.updatedAt,
       });
     }
-    return NextResponse.json(config);
+    return gzipJson(request, config);
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to read admin config' }, { status: 500 });
   }

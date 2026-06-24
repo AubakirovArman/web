@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureRuntimeSchema, getRuntimePool } from '@/lib/db/runtime-postgres';
 import { readApplicationById } from '@/lib/applications/server-store';
+import { gzipJson } from '@/lib/api/gzip-json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
@@ -18,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ application });
+    return gzipJson(request, { application });
   } catch (error: any) {
     console.error('Applications GET by id error:', error);
     return NextResponse.json({ error: 'Failed to read application' }, { status: 500 });

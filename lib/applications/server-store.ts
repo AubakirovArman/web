@@ -53,7 +53,9 @@ function stripApplicationHeavyFields(app: Application): Application {
   return {
     ...app,
     files: app.files.map((file) => {
-      const { extracted: _extracted, url: _url, ...rest } = file;
+      // Для списка не нужны тяжёлые поля файла: извлечённый текст, inline-url
+      // и результаты NPA-проверок (большие массивы). Полные данные — в detail.
+      const { extracted: _extracted, url: _url, npaRequirementResults: _npa, ...rest } = file;
       return rest;
     }),
   };
