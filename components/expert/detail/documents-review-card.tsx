@@ -5,20 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { StatusBadge } from '@/components/expert/detail/review-badges';
 import { DocumentReviewRow, ReviewStatus } from '@/components/expert/detail/review-types';
+import { ExpertiseStage, STAGE_HINTS, checksForStage, overallForChecks } from '@/components/expert/detail/review-stages';
 
 export function DocumentsReviewCard({
   rows,
   requestText,
+  stage = 'primary',
   onCopyRequest,
   onOpenRow,
 }: {
   rows: DocumentReviewRow[];
   requestText: string;
+  stage?: ExpertiseStage;
   onCopyRequest: () => void;
   onOpenRow: (row: DocumentReviewRow) => void;
 }) {
-  const uploadedRows = rows.filter((row) => row.file || row.files?.length);
-  const missingRows = rows.filter((row) => !row.file);
+  const sorted = [...rows].sort((a, b) => compareSection(sectionCode(a), sectionCode(b)));
+  // Первичный этап — все разделы (комплектность). Специализированный — только разделы с содержательными проверками.
+  const allRows = stage === 'specialized' ? sorted.filter((row) => checksForStage(row, 'specialized').length > 0) : sorted;
+  const loadedCount = rows.filter((row) => row.file || row.files?.length).length;
 
   return (
     <Card className="min-w-0">
@@ -27,7 +32,9 @@ export function DocumentsReviewCard({
           <div>
             <CardTitle className="text-base">Документы и проверки</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Основная таблица показывает загруженные документы. Отсутствующие типы вынесены ниже отдельно, чтобы не забивать рабочий экран эксперта.
+              {stage === 'specialized'
+                ? STAGE_HINTS.specialized
+                : `Показаны все разделы по порядку: загружено ${loadedCount} из ${rows.length}. Незагруженные разделы отмечены «Файл не загружен».`}
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={onCopyRequest} disabled={!requestText}>Сформировать запрос</Button>
@@ -47,17 +54,20 @@ export function DocumentsReviewCard({
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
-              {uploadedRows.length === 0 ? (
+              {allRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                    Загруженные документы не найдены.
+                    Разделы не найдены.
                   </td>
                 </tr>
-              ) : uploadedRows.map((row) => {
-                const counts = countStatuses(row.checks.filter(isContentCheck));
+              ) : allRows.map((row) => {
+                const loaded = Boolean(row.file || row.files?.length);
+                const stageChecks = checksForStage(row, stage);
+                const counts = countStatuses(stageChecks);
+                const stageOverall = overallForChecks(stageChecks);
                 const technicalChecksCount = row.checks.filter((check) => !isContentCheck(check)).length;
                 return (
-                  <tr key={row.key} className="border-b transition-colors hover:bg-muted/50">
+                  <tr key={row.key} className={`border-b transition-colors hover:bg-muted/50 ${loaded ? '' : 'bg-muted/10 text-muted-foreground'}`}>
                   <td className="break-words px-2 py-3 align-top whitespace-normal">
                     <div className="font-semibold">{sectionCode(row)}</div>
                     <div className="mt-1 text-xs text-muted-foreground">{row.documentTypeId}</div>
@@ -84,24 +94,32 @@ export function DocumentsReviewCard({
                     ) : <span className="text-sm text-muted-foreground">Файл не загружен</span>}
                   </td>
                   <td className="px-2 py-3 align-top">
-                    {counts.total > 0 ? (
-                      <div className="grid grid-cols-5 border text-center text-xs">
-                        <CheckCount label="Условий" value={counts.total} />
-                        <CheckCount label="ОК" value={counts.passed} tone="passed" />
-                        <CheckCount label="Вопр." value={counts.warning} tone="warning" />
-                        <CheckCount label="Нет" value={counts.failed} tone="failed" />
-                        <CheckCount label="Н/П" value={counts.skipped} />
-                      </div>
+                    {!loaded ? (
+                      <span className="text-xs text-muted-foreground">—</span>
                     ) : (
-                      <div className="border bg-muted/30 px-2 py-2 text-xs text-muted-foreground">
-                        Содержательные условия из НПА отсутствуют
-                      </div>
+                      <>
+                        {counts.total > 0 ? (
+                          <div className="grid grid-cols-5 border text-center text-xs">
+                            <CheckCount label="Проверок" value={counts.total} />
+                            <CheckCount label="ОК" value={counts.passed} tone="passed" />
+                            <CheckCount label="Вопр." value={counts.warning} tone="warning" />
+                            <CheckCount label="Нет" value={counts.failed} tone="failed" />
+                            <CheckCount label="Н/П" value={counts.skipped} />
+                          </div>
+                        ) : (
+                          <div className="border bg-muted/30 px-2 py-2 text-xs text-muted-foreground">
+                            {stage === 'specialized' ? 'Содержательных проверок нет' : 'Проверок этапа нет'}
+                          </div>
+                        )}
+                        {stage === 'primary' && (
+                          <div className="mt-1 text-xs text-muted-foreground">Технических проверок файла: {technicalChecksCount}</div>
+                        )}
+                        {row.findings.length > 0 && <div className="mt-1 text-xs text-muted-foreground">Замечаний: {row.findings.length}</div>}
+                      </>
                     )}
-                    <div className="mt-1 text-xs text-muted-foreground">Технических проверок файла: {technicalChecksCount}</div>
-                    {row.findings.length > 0 && <div className="mt-1 text-xs text-muted-foreground">Замечаний: {row.findings.length}</div>}
                   </td>
                   <td className="px-2 py-3 align-top">
-                    <StatusBadge status={row.overall} />
+                    {loaded ? <StatusBadge status={stageOverall} /> : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
                   <td className="px-2 py-3 text-right align-top">
                     <Button variant="outline" size="sm" className="px-2" onClick={() => onOpenRow(row)}>
@@ -115,44 +133,6 @@ export function DocumentsReviewCard({
             </tbody>
           </table>
         </div>
-        {missingRows.length > 0 && (
-          <details className="mx-1 mb-1 border bg-muted/20">
-            <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
-              Не загружены: {missingRows.length} типов документов
-              <span className="ml-2 text-xs font-normal text-muted-foreground">Раскрыть для проверки комплектности</span>
-            </summary>
-            <div className="max-h-[420px] overflow-auto border-t">
-              <table className="w-full table-fixed text-sm">
-                <thead>
-                  <tr className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="w-[14%] px-3 py-2 font-medium">Код</th>
-                    <th className="w-[54%] px-3 py-2 font-medium">Тип документа</th>
-                    <th className="w-[20%] px-3 py-2 font-medium">Статус</th>
-                    <th className="w-[12%] px-3 py-2 text-right font-medium">Действие</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {missingRows.map((row) => (
-                    <tr key={row.key} className="border-t">
-                      <td className="break-words px-3 py-2 align-top font-semibold">{sectionCode(row)}</td>
-                      <td className="break-words px-3 py-2 align-top">
-                        <div className="font-medium">{row.name}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">Форматы: {row.formats.join(', ') || '—'}</div>
-                      </td>
-                      <td className="px-3 py-2 align-top text-sm text-muted-foreground">Файл не загружен</td>
-                      <td className="px-3 py-2 text-right align-top">
-                        <Button variant="outline" size="sm" className="px-2" onClick={() => onOpenRow(row)}>
-                          <Eye className="h-3.5 w-3.5" />
-                          <span className="sr-only">Открыть</span>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        )}
       </CardContent>
     </Card>
   );
@@ -165,6 +145,28 @@ function sectionCode(row: DocumentReviewRow) {
     .replace(/^ls-national-/i, '')
     .replace(/^mi-/i, '')
     .replace(/-/g, '.');
+}
+
+// Натуральная сортировка по коду раздела: "1.2" < "1.6.4" < "3.2.P.8" < "10.1"
+function compareSection(a: string, b: string): number {
+  const pa = a.split('.');
+  const pb = b.split('.');
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const sa = pa[i] ?? '';
+    const sb = pb[i] ?? '';
+    const na = parseInt(sa, 10);
+    const nb = parseInt(sb, 10);
+    const aNum = !Number.isNaN(na) && /^\d+$/.test(sa);
+    const bNum = !Number.isNaN(nb) && /^\d+$/.test(sb);
+    if (aNum && bNum) {
+      if (na !== nb) return na - nb;
+    } else {
+      const cmp = sa.localeCompare(sb, 'ru');
+      if (cmp !== 0) return cmp;
+    }
+  }
+  return 0;
 }
 
 function isContentCheck(check: DocumentReviewRow['checks'][number]) {

@@ -154,13 +154,6 @@ function ExpertListPage() {
                 <Button variant="outline" asChild>
                   <Link href="/wizard">Создать заявку</Link>
                 </Button>
-                <Button onClick={handleSeedDemo} disabled={seeding}>
-                  {seeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                  Эталонная заявка
-                </Button>
-                <Button variant="secondary" onClick={handleSeedNegativeScenarios} disabled={seeding}>
-                  Негативные кейсы
-                </Button>
               </div>
             </div>
           </FadeIn>

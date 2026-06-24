@@ -2,12 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, ClipboardList, FileText, SlidersHorizontal, Users } from 'lucide-react';
+import { BookOpen, FileText, SlidersHorizontal, Users } from 'lucide-react';
 
 const adminNavItems = [
   { href: '/admin/document-types', label: 'Типы документов', icon: FileText },
   { href: '/admin/npa', label: 'НПА', icon: BookOpen },
-  { href: '/admin/requirements', label: 'Требования', icon: ClipboardList },
   { href: '/admin/fields', label: 'Поля', icon: SlidersHorizontal },
   { href: '/admin/users', label: 'Пользователи', icon: Users },
 ];
@@ -16,7 +15,7 @@ export function AdminNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="mb-6 grid gap-2 md:grid-cols-3 xl:grid-cols-5">
+    <nav className="mb-6 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
       {adminNavItems.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

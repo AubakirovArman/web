@@ -321,6 +321,13 @@ export interface ReferenceSearchItem {
   anchor?: string;
 }
 
+export interface ExpertCheckDecision {
+  status: 'passed' | 'failed';
+  comment?: string;
+  decidedBy?: string;
+  decidedAt?: string;
+}
+
 export interface Application {
   id: string;
   createdAt: string;
@@ -329,6 +336,8 @@ export interface Application {
   files: UploadedFile[];
   checklist: ChecklistItem[];
   findings: Finding[];
+  // Решения эксперта по отдельным проверкам: ключ = `${rowKey}::${checkId}`
+  expertCheckDecisions?: Record<string, ExpertCheckDecision>;
 }
 
 export interface ChecklistItem {

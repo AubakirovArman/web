@@ -26,6 +26,7 @@ import { FindingsPanel } from '@/components/expert/detail/findings-panel';
 import { NpaGemmaSummaryCard } from '@/components/expert/detail/npa-gemma-summary-card';
 import { ServerTaskCard } from '@/components/expert/detail/server-task-card';
 import { DocumentReviewDialog } from '@/components/expert/detail/document-review-dialog';
+import { ExpertiseStage, STAGE_LABELS, STAGE_HINTS, checksForStage, overallForChecks } from '@/components/expert/detail/review-stages';
 import { FindingCard } from '@/components/expert/detail/finding-card';
 import { Field, LsApplicationSummary, MetricCard, MiniMetric } from '@/components/expert/detail/application-summary';
 import { displayApplicationTitle } from '@/components/expert/detail/application-formatters';
@@ -69,10 +70,11 @@ const statusLabels: Record<Application['status'], string> = {
 export function ExpertApplicationDetail() {
   const params = useParams<{ id: string }>();
   const applicationId = params.id;
-  const { applications, importApplication, updateFinding, updateStatus, setCurrentId } = useApplications();
+  const { applications, importApplication, updateFinding, updateStatus, setCurrentId, setCheckDecision } = useApplications();
   const { rules, importRules } = useRules();
   const { store, setDocumentTypes } = useStore();
   const [viewingRow, setViewingRow] = useState<DocumentReviewRow | null>(null);
+  const [stage, setStage] = useState<ExpertiseStage>('primary');
   const [detailLoading, setDetailLoading] = useState(true);
   const [serverTask, setServerTask] = useState<'extract' | 'check' | 'npa-gemma' | null>(null);
   const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
@@ -404,7 +406,7 @@ export function ExpertApplicationDetail() {
           {summary && <ExpertMetricsGrid summary={summary} dossierFilesCount={dossierFiles.length} npaGemmaSummary={npaGemmaSummary} />}
 
           <Tabs defaultValue="documents" className="mt-4 min-w-0">
-            <TabsList className="grid h-auto w-full grid-cols-4 rounded-none bg-transparent p-0">
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-none bg-transparent p-0">
               <TabsTrigger
                 value="documents"
                 className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -419,21 +421,44 @@ export function ExpertApplicationDetail() {
               </TabsTrigger>
               <TabsTrigger
                 value="dossier"
-                className="rounded-none border border-r-0 px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Регистрационное досье
-              </TabsTrigger>
-              <TabsTrigger
-                value="findings"
                 className="rounded-none border px-3 py-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Замечания эксперту ({app.findings.length})
+                Регистрационное досье
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="documents" className="mt-4 min-w-0 space-y-4">
-              <NpaGemmaSummaryCard summary={npaGemmaReviewSummary} />
-              <DocumentsReviewCard rows={documentRows} requestText={requestText} onCopyRequest={handleCopyRequest} onOpenRow={setViewingRow} />
+              <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="inline-flex rounded-md border p-0.5">
+                  {(['primary', 'specialized'] as ExpertiseStage[]).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setStage(s)}
+                      className={[
+                        'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+                        stage === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                      ].join(' ')}
+                    >
+                      {STAGE_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const failed = documentRows.filter(
+                    (r) => (r.file || r.files?.length) && overallForChecks(checksForStage(r, 'primary')) === 'failed',
+                  ).length;
+                  const missing = documentRows.filter((r) => r.required && !(r.file || r.files?.length)).length;
+                  const ok = failed === 0 && missing === 0;
+                  return (
+                    <div className={`text-sm font-medium ${ok ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                      Первичная экспертиза: {ok ? 'замечаний нет' : `${missing ? `не хватает ${missing} разд.` : ''}${missing && failed ? ', ' : ''}${failed ? `${failed} с замечаниями` : ''}`}
+                    </div>
+                  );
+                })()}
+              </div>
+              <p className="text-xs text-muted-foreground">{STAGE_HINTS[stage]}</p>
+              {stage === 'specialized' && <NpaGemmaSummaryCard summary={npaGemmaReviewSummary} />}
+              <DocumentsReviewCard rows={documentRows} requestText={requestText} stage={stage} onCopyRequest={handleCopyRequest} onOpenRow={setViewingRow} />
             </TabsContent>
 
             <TabsContent value="parameters" className="mt-4 min-w-0">
@@ -441,34 +466,24 @@ export function ExpertApplicationDetail() {
             </TabsContent>
 
             <TabsContent value="dossier" className="mt-4 min-w-0">
-              {dossierFiles.length > 0 ? (
-                <DossierExpertPanel files={dossierFiles} />
-              ) : (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Регистрационное досье</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">Файлы регистрационного досье по разделам пока не загружены.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="findings" className="mt-4 min-w-0">
-              <FindingsPanel
-                app={app}
-                npaFindingFilter={npaFindingFilter}
-                npaGemmaFindings={npaGemmaFindings}
-                filteredNpaGemmaFindings={filteredNpaGemmaFindings}
-                onFilterChange={setNpaFindingFilter}
-                onFindingPatch={handleFindingStatus}
+              <DossierExpertPanel
+                files={dossierFiles}
+                objectType={app.values['param-object-type'] === 'MI' ? 'MI' : 'LS'}
               />
             </TabsContent>
+
           </Tabs>
         </div>
       </main>
-      {viewingRow && <DocumentReviewDialog row={viewingRow} onClose={() => setViewingRow(null)} />}
+      {viewingRow && (
+        <DocumentReviewDialog
+          row={viewingRow}
+          decisions={app.expertCheckDecisions || {}}
+          onDecision={(checkKey, decision) => setCheckDecision(app.id, checkKey, decision)}
+          stage={stage}
+          onClose={() => setViewingRow(null)}
+        />
+      )}
     </div>
   );
 }

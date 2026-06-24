@@ -13,6 +13,7 @@ const ROLE_GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: '/expert', roles: ['expert', 'admin'] },
   { prefix: '/reference', roles: ['expert', 'admin'] },
   { prefix: '/api/reference', roles: ['expert', 'admin'] },
+  { prefix: '/applicant', roles: ['applicant', 'admin', 'expert'] },
   { prefix: '/wizard', roles: ['applicant', 'admin', 'expert'] },
 ];
 

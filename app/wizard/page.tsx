@@ -72,8 +72,17 @@ export default function WizardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Открытие конкретной заявки по ?id= (из кабинета заявителя)
   useEffect(() => {
-    if (!currentId && applications.length > 0) {
+    const idParam = new URLSearchParams(window.location.search).get('id');
+    if (idParam) {
+      setCurrentId(idParam);
+    }
+  }, [setCurrentId]);
+
+  useEffect(() => {
+    const idParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : null;
+    if (!currentId && !idParam && applications.length > 0) {
       setCurrentId(applications[0].id);
     }
   }, [currentId, applications, setCurrentId]);

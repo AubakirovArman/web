@@ -26,6 +26,10 @@ function normalizeApplications(value: unknown): Application[] {
       files: Array.isArray(item.files) ? item.files : [],
       checklist: Array.isArray(item.checklist) ? item.checklist : [],
       findings: Array.isArray(item.findings) ? item.findings : [],
+      expertCheckDecisions:
+        item.expertCheckDecisions && typeof item.expertCheckDecisions === 'object'
+          ? item.expertCheckDecisions
+          : {},
     })) as Application[];
 }
 

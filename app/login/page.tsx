@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ShieldCheck } from 'lucide-react';
 
 const roleHome: Record<string, string> = {
-  applicant: '/wizard',
+  applicant: '/applicant',
   expert: '/expert',
   admin: '/admin',
 };

@@ -13,6 +13,7 @@ export function ApplicationSidePanel({ app, matrixRows, activeRules }: { app: Ap
           <CardTitle className="text-base">Параметры заявки</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <Field label="Тип процедуры" value={labelFor('param-procedure', app.values['param-procedure'])} />
           {app.values['param-object-type'] === 'MI' ? (
             <>
               <Field label="Класс риска" value={labelFor('param-mi-risk-class', app.values['param-mi-risk-class'])} />
@@ -26,7 +27,7 @@ export function ApplicationSidePanel({ app, matrixRows, activeRules }: { app: Ap
             <LsApplicationSummary values={app.values} />
           )}
           <Field label="Производитель" value={app.values['param-manufacturer']} />
-          <Field label="Адрес площадки" value={app.values['param-manufacturer-address']} />
+          <Field label="Адрес производителя" value={app.values['param-manufacturer-address']} />
           <Field label="Заявитель" value={app.values['param-applicant']} />
         </CardContent>
       </Card>

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { FlaskConical, LogOut, Moon, Sun } from 'lucide-react';
 
 const NAV: Array<{ href: string; label: string; roles: string[] }> = [
-  { href: '/wizard', label: 'Заявитель', roles: ['applicant', 'admin', 'expert'] },
+  { href: '/applicant', label: 'Заявитель', roles: ['applicant', 'admin', 'expert'] },
   { href: '/expert', label: 'Эксперт', roles: ['expert', 'admin'] },
   { href: '/reference', label: 'Справочник', roles: ['expert', 'admin'] },
+  { href: '/chat', label: 'Чат', roles: ['applicant', 'expert', 'admin'] },
   { href: '/admin', label: 'Админ', roles: ['admin'] },
 ];
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { Application, Finding, UploadedFile } from '@/lib/types';
+import { Application, ExpertCheckDecision, Finding, UploadedFile } from '@/lib/types';
 import { defaultApplicationValues } from '@/lib/data/seed';
 import { demoFiles } from '@/lib/data/demoFiles';
 import { runPreCheck, runSubmissionValidation } from '@/lib/checks';
@@ -35,6 +35,29 @@ function createDemoApplication(): Application {
   return app;
 }
 
+// Чистый черновик новой заявки: только структурные параметры маршрутизации,
+// без демо-файлов и без заполненных данных продукта — заявитель заполняет сам.
+function createBlankApplication(): Application {
+  const values: Application['values'] = {
+    'param-object-type': 'LS',
+    'param-procedure': 'registration',
+    'param-dossier-type': 'ctd',
+    'param-expertise-mode': 'standard',
+    'param-product-type': 'generic',
+  };
+
+  return {
+    id: uid(),
+    createdAt: new Date().toISOString(),
+    status: 'draft',
+    values,
+    files: [],
+    checklist: [],
+    findings: [],
+    expertCheckDecisions: {},
+  };
+}
+
 function normalizeApplication(app: Partial<Application>): Application {
   const status = validStatuses.includes(app.status as Application['status'])
     ? (app.status as Application['status'])
@@ -51,6 +74,9 @@ function normalizeApplication(app: Partial<Application>): Application {
     files: Array.isArray(app.files) ? app.files : [],
     checklist: Array.isArray(app.checklist) ? app.checklist : [],
     findings: Array.isArray(app.findings) ? app.findings : [],
+    expertCheckDecisions: app.expertCheckDecisions && typeof app.expertCheckDecisions === 'object'
+      ? app.expertCheckDecisions
+      : {},
   };
 }
 
@@ -113,6 +139,7 @@ interface ApplicationContextValue {
   currentId: string | null;
   setCurrentId: (id: string | null) => void;
   addApplication: () => Application;
+  createApplication: () => Application;
   seedDemoApplication: () => Application;
   importApplication: (app: Application) => void;
   deleteApplication: (id: string) => Promise<void>;
@@ -123,6 +150,7 @@ interface ApplicationContextValue {
   removeFiles: (id: string, fileIds: string[]) => void;
   runCheck: (id: string) => void;
   updateFinding: (id: string, findingId: string, patch: Partial<Finding>) => void;
+  setCheckDecision: (id: string, checkKey: string, decision: ExpertCheckDecision | null) => void;
   submitApplication: (id: string) => {
     success: boolean;
     findings: Finding[];
@@ -199,6 +227,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         void saveServerApplication(app).catch((error) => console.warn(error));
         return app;
       },
+      createApplication: () => {
+        const app = createBlankApplication();
+        setApplications((prev) => [app, ...prev]);
+        setCurrentId(app.id);
+        void saveServerApplication(app).catch((error) => console.warn(error));
+        return app;
+      },
       seedDemoApplication: () => {
         const app = createDemoApplication();
         setApplications((prev) => [app, ...prev]);
@@ -263,6 +298,16 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
               ? app.status
               : 'checked';
           return { ...app, status, findings };
+        }),
+      setCheckDecision: (id, checkKey, decision) =>
+        updateApp(id, (app) => {
+          const current = { ...(app.expertCheckDecisions || {}) };
+          if (decision) {
+            current[checkKey] = decision;
+          } else {
+            delete current[checkKey];
+          }
+          return { ...app, expertCheckDecisions: current };
         }),
       updateFinding: (id, findingId, patch) =>
         {
