@@ -7,7 +7,8 @@ import { findUploadedRequiredFile, getRequiredDocuments } from '@/lib/rules/engi
 import { SeverityBadge } from '@/components/shared/severity-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Save, Send, Sparkles } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CheckCircle2, Info, Save, Send, Sparkles } from 'lucide-react';
 import { CompactMetric, StatusPill } from '@/components/applicant/wizard/check-step-primitives';
 import { formatParameterTitle, formatWizardConditions, matchesWizardConditions, shortCheckName } from '@/components/applicant/wizard/check-step-formatters';
 
@@ -165,8 +166,30 @@ export function CheckStep({
                       <SeverityBadge severity={row.severity} />
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <div className="max-w-[280px] font-medium">{row.ruleName}</div>
-                      <div className="mt-1 max-w-[320px] text-xs text-muted-foreground">{row.conditionText}</div>
+                      <div className="flex max-w-[280px] items-center gap-1.5 font-medium">
+                        <span>{row.ruleName}</span>
+                        {row.conditionText && row.conditionText !== '—' && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label="Показать правило из НПА"
+                                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              >
+                                <Info className="h-3.5 w-3.5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="max-h-80 w-96 overflow-y-auto">
+                              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Почему требуется
+                              </div>
+                              <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
+                                {row.conditionText}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                       {row.linkedParams.length > 0 && (
                         <div className="mt-2 flex max-w-[360px] flex-wrap gap-1">
                           {row.linkedParams.map((param) => (
