@@ -23,7 +23,13 @@ export function getRuntimePool() {
 
 export async function ensureRuntimeSchema() {
   if (!globalForRuntimeDb.runtimeSchemaReady) {
-    globalForRuntimeDb.runtimeSchemaReady = createRuntimeSchema();
+    // Не кэшируем неудачу: если инициализация схемы упала транзиентно
+    // (например, гонка/недоступность БД при первом запросе после рестарта),
+    // сбрасываем промис, чтобы следующий вызов попробовал снова.
+    globalForRuntimeDb.runtimeSchemaReady = createRuntimeSchema().catch((error) => {
+      globalForRuntimeDb.runtimeSchemaReady = undefined;
+      throw error;
+    });
   }
   return globalForRuntimeDb.runtimeSchemaReady;
 }

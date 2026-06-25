@@ -80,13 +80,25 @@ function normalizeApplication(app: Partial<Application>): Application {
   };
 }
 
-async function fetchServerApplications(): Promise<Application[]> {
-  const response = await fetch(APPLICATIONS_API, { cache: 'no-store' });
-  if (!response.ok) throw new Error('Не удалось загрузить серверные заявки');
-
-  const data = await response.json();
-  const applications = data?.applications;
-  return Array.isArray(applications) ? applications.map(normalizeApplication) : [];
+async function fetchServerApplications(retries = 3): Promise<Application[]> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      const response = await fetch(APPLICATIONS_API, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Не удалось загрузить серверные заявки');
+      const data = await response.json();
+      const applications = data?.applications;
+      return Array.isArray(applications) ? applications.map(normalizeApplication) : [];
+    } catch (error) {
+      lastError = error;
+      // Транзиентный сбой (часто — первый запрос после рестарта сервиса):
+      // ждём и пробуем снова, прежде чем показывать ошибку пользователю.
+      if (attempt < retries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Не удалось загрузить серверные заявки');
 }
 
 async function saveServerApplication(application: Application) {
