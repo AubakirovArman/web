@@ -1,0 +1,241 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Создание заявки</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="wizard" data-title="Создание заявки" data-crumbs="Мои заявки / <b>Новая заявка</b>">
+<main class="content">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <h1>Создание заявки</h1>
+      <div class="muted small">Заполните параметры — система сама определит набор разделов CTD</div>
+    </div>
+    <div class="seg">
+      <button class="on">Параметры</button>
+      <button>Документы</button>
+      <button>Проверка</button>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="num">1<span class="muted">/3</span></div>
+      <div class="lab">Текущий шаг</div>
+    </div>
+    <div class="metric ok">
+      <div class="num">12</div>
+      <div class="lab">Применимых разделов</div>
+    </div>
+    <div class="metric warn">
+      <div class="num">4</div>
+      <div class="lab">Пробелов</div>
+    </div>
+    <div class="metric">
+      <div class="num">10:42</div>
+      <div class="lab">Черновик сохранён</div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="split">
+
+    <!-- ====== ШАГ: ПАРАМЕТРЫ ====== -->
+    <div class="card pad">
+      <h2>Шаг 1 · Параметры</h2>
+      <div class="muted small">Основные сведения о заявке и продукте</div>
+
+      <div class="sep"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="k">Объект</div>
+          <div class="input" role="combobox">ЛС — Лекарственное средство<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="xs muted">ЛС / МИ</div>
+        </div>
+        <div>
+          <div class="k">Процедура</div>
+          <div class="input" role="combobox">Регистрация<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="xs muted">Регистрация / Перерегистрация / Внесение изменений</div>
+        </div>
+
+        <div>
+          <div class="k">Тип ЛП</div>
+          <div class="input" role="combobox">Воспроизведённый<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="xs muted">Оригинальный / Воспроизведённый / Биоаналог</div>
+        </div>
+        <div>
+          <div class="k">МНН</div>
+          <input class="input" value="Парацетамол" placeholder="Международное непатентованное наименование">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="k">Торговое наименование</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <input class="input" value="Парацетамол-Тева" placeholder="KZ">
+          <div class="xs muted">KZ — казахский</div>
+        </div>
+        <div>
+          <input class="input" value="Парацетамол-Тева" placeholder="RU">
+          <div class="xs muted">RU — русский</div>
+        </div>
+        <div>
+          <input class="input" value="Paracetamol-Teva" placeholder="EN">
+          <div class="xs muted">EN — английский</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="k">Лекарственная форма</div>
+          <div class="input" role="combobox">Таблетки<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        </div>
+        <div>
+          <div class="k">Дозировка</div>
+          <input class="input" value="500 мг" placeholder="напр. 500 мг">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="k">Производитель</div>
+          <input class="input" value="Teva Pharmaceutical Industries Ltd." placeholder="Наименование производителя">
+        </div>
+        <div>
+          <div class="k">Страна</div>
+          <div class="input" role="combobox">Израиль<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div>
+        <div class="k">Адрес производителя</div>
+        <input class="input" value="Industrial Zone, Kiryat Shmona 1101001, Israel" placeholder="Юридический / производственный адрес">
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="pillrow">
+        <span class="pill">ЛС</span>
+        <span class="pill">Регистрация</span>
+        <span class="pill">Воспроизведённый</span>
+        <span class="pill">Таблетки</span>
+        <span class="pill">500 мг</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="muted small">Параметры определяют, какие разделы потребуются.</div>
+
+      <div class="sep"></div>
+
+      <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
+        <button class="btn btn-ghost">Назад</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn">Сохранить черновик</button>
+          <button class="btn btn-primary">Далее</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== ПРЕВЬЮ: ДОКУМЕНТЫ ====== -->
+    <div class="card pad sticky-col">
+      <h2>Превью · Документы</h2>
+      <div class="muted small">Применимые разделы CTD и предварительная проверка</div>
+
+      <div class="sep"></div>
+
+      <div class="kv">
+        <div>
+          <div class="k">Готовность</div>
+          <div class="v"><span class="badge b-warn">4 пробела</span></div>
+        </div>
+        <div>
+          <div class="k">Разделов применимо</div>
+          <div class="v">12</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <table class="tbl">
+        <thead><tr><th>Код</th><th>Раздел</th><th>Слот</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="code">1.1</span></td>
+            <td>Оглавление</td>
+            <td><span class="badge b-ok">Готово</span></td>
+          </tr>
+          <tr>
+            <td><span class="code">1.2</span></td>
+            <td>Заявление</td>
+            <td><span class="badge b-ok">Готово</span></td>
+          </tr>
+          <tr>
+            <td><span class="code">1.2.1</span></td>
+            <td>Форма заявления</td>
+            <td><span class="badge b-ok">Готово</span></td>
+          </tr>
+          <tr class="dim">
+            <td><span class="code">1.3.3</span></td>
+            <td>Макеты упаковки</td>
+            <td><button class="btn btn-sm btn-ghost">Загрузить</button></td>
+          </tr>
+          <tr class="dim">
+            <td><span class="code">1.6.2</span></td>
+            <td>Сведения о GMP</td>
+            <td><button class="btn btn-sm btn-ghost">Загрузить</button></td>
+          </tr>
+          <tr>
+            <td><span class="code">2.3.P.1</span></td>
+            <td>Состав препарата</td>
+            <td><span class="badge b-ok">Готово</span></td>
+          </tr>
+          <tr class="dim">
+            <td><span class="code">3.2.S.2</span></td>
+            <td>Производство субстанции</td>
+            <td><button class="btn btn-sm btn-ghost">Загрузить</button></td>
+          </tr>
+          <tr class="dim">
+            <td><span class="code">3.2.P.5</span></td>
+            <td>Контроль готового продукта</td>
+            <td><button class="btn btn-sm btn-ghost">Загрузить</button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sep"></div>
+
+      <div class="metrics metrics-2">
+        <div class="metric ok">
+          <div class="num">8</div>
+          <div class="lab">Готово</div>
+        </div>
+        <div class="metric warn">
+          <div class="num">4</div>
+          <div class="lab">Пробелов</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="muted xs">Набор разделов пересчитывается автоматически при изменении параметров заявки.</div>
+
+      <div class="sep"></div>
+
+      <button class="btn" style="width:100%">Перейти к документам</button>
+    </div>
+
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>

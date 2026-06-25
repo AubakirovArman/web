@@ -1,0 +1,147 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мои заявки</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="applicant" data-title="Мои заявки" data-crumbs="<b>Мои заявки</b>">
+<main class="content">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+    <div>
+      <h1>Мои заявки</h1>
+      <div class="muted small" style="margin-top:4px">Кабинет заявителя · 11 заявок</div>
+    </div>
+    <a class="btn btn-primary" href="wizard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Создать заявку</a>
+  </div>
+
+  <div class="metrics" style="margin-bottom:12px">
+    <div class="metric"><div class="num">2</div><div class="lab">Черновики</div></div>
+    <div class="metric warn"><div class="num">1</div><div class="lab">На доработке</div></div>
+    <div class="metric"><div class="num">3</div><div class="lab">В процессе</div></div>
+    <div class="metric ok"><div class="num">5</div><div class="lab">Завершено</div></div>
+  </div>
+
+  <div class="card pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="seg">
+        <button class="on">Все</button>
+        <button>Черновик</button>
+        <button>Подана</button>
+        <button>На доработке</button>
+        <button>На экспертизе</button>
+        <button>Зарегистрировано</button>
+      </div>
+      <input class="input" placeholder="Поиск по наименованию…" style="max-width:240px">
+    </div>
+
+    <table class="tbl clickable">
+      <colgroup><col><col style="width:64px"><col style="width:170px"><col style="width:104px"><col style="width:76px"><col style="width:160px"><col style="width:116px"></colgroup>
+      <thead>
+        <tr>
+          <th>Торговое наименование</th>
+          <th>Объект</th>
+          <th>Процедура</th>
+          <th>Дата</th>
+          <th class="r">Файлов</th>
+          <th>Статус</th>
+          <th class="r">Действие</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div style="font-weight:600">Парацетамол-Тева, таблетки 500 мг</div>
+            <div class="xs muted">Воспроизведённый · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">24.06.2026</td>
+          <td class="num r">40</td>
+          <td><span class="badge b-accent"><span class="dot"></span>На экспертизе</span></td>
+          <td style="text-align:right"><a class="btn btn-sm" href="expert.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Амоксиклав, порошок 875 мг/125 мг</div>
+            <div class="xs muted">Воспроизведённый · Lek d.d.</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">19.06.2026</td>
+          <td class="num r">36</td>
+          <td><span class="badge b-warn"><span class="dot"></span>На доработке</span></td>
+          <td style="text-align:right"><a class="btn btn-sm" href="wizard.html">Продолжить</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Ибупрофен-Здоровье, капсулы 200 мг</div>
+            <div class="xs muted">Воспроизведённый · Здоровье ФК</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Внесение изменений</td>
+          <td class="muted num">15.06.2026</td>
+          <td class="num r">28</td>
+          <td><span class="badge b-accent"><span class="dot"></span>На экспертизе</span></td>
+          <td style="text-align:right"><a class="btn btn-sm" href="expert.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Метформин-Сандоз, таблетки 1000 мг</div>
+            <div class="xs muted">Воспроизведённый · Sandoz</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">10.06.2026</td>
+          <td class="num r">31</td>
+          <td><span class="badge b-ok"><span class="dot"></span>Подана</span></td>
+          <td style="text-align:right"><a class="btn btn-sm" href="expert.html">Открыть</a></td>
+        </tr>
+
+        <tr class="dim">
+          <td>
+            <div style="font-weight:600">Кардиомонитор КМ-300, портативный</div>
+            <div class="xs muted">МИ класс IIa · Mindray</div>
+          </td>
+          <td><span class="pill">МИ</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">08.06.2026</td>
+          <td class="num r">12</td>
+          <td><span class="badge b-mut"><span class="dot"></span>Черновик</span></td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="wizard.html">Продолжить</a></td>
+        </tr>
+
+        <tr class="dim">
+          <td>
+            <div style="font-weight:600">Лозартан-Тева, таблетки 50 мг</div>
+            <div class="xs muted">Воспроизведённый · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">03.06.2026</td>
+          <td class="num r">5</td>
+          <td><span class="badge b-mut"><span class="dot"></span>Черновик</span></td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="wizard.html">Продолжить</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Аторвастатин-Тева, таблетки 20 мг</div>
+            <div class="xs muted">Воспроизведённый · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td class="muted num">21.05.2026</td>
+          <td class="num r">40</td>
+          <td><span class="badge b-ok"><span class="dot"></span>Зарегистрировано</span></td>
+          <td style="text-align:right"><a class="btn btn-sm" href="expert.html">Открыть</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="sep"></div>
+    <div class="small muted">Показано 7 из 11 · Состав досье — формат CTD (модули 1–5)</div>
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>

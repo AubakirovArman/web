@@ -1,0 +1,198 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет эксперта</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="expert" data-title="Кабинет эксперта" data-crumbs="<b>Заявки на экспертизе</b>">
+<main class="content">
+
+  <div class="row" style="align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <h1>Заявки на экспертизе</h1>
+      <div class="muted small" style="margin-top:4px">Регистрационные досье, назначенные эксперту</div>
+    </div>
+    <div class="row" style="gap:8px">
+      <button class="btn">Экспорт</button>
+      <button class="btn btn-primary">Назначить заявку</button>
+    </div>
+  </div>
+
+  <div class="metrics" style="margin-bottom:12px">
+    <div class="metric"><div class="num">4</div><div class="lab">Подано</div></div>
+    <div class="metric warn"><div class="num">6</div><div class="lab">На экспертизе</div></div>
+    <div class="metric bad"><div class="num">2</div><div class="lab">С критичными</div></div>
+    <div class="metric ok"><div class="num">5</div><div class="lab">Чисто</div></div>
+  </div>
+
+  <div class="card pad">
+
+    <div class="row" style="align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="seg">
+        <button class="on">Все</button>
+        <button>Подано</button>
+        <button>На экспертизе</button>
+        <button>С критичными</button>
+        <button>Чисто</button>
+      </div>
+      <div class="row" style="gap:8px;align-items:center">
+        <input class="input" style="width:280px" placeholder="Поиск по наименованию, МНН, заявителю…">
+        <button class="btn btn-sm">Фильтры</button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <table class="tbl clickable">
+      <colgroup><col><col style="width:64px"><col style="width:180px"><col style="width:160px"><col style="width:210px"><col style="width:104px"><col style="width:104px"></colgroup>
+      <thead>
+        <tr>
+          <th>Наименование / МНН</th>
+          <th>Объект</th>
+          <th>Процедура</th>
+          <th>Этап</th>
+          <th>Замечания</th>
+          <th>Поступило</th>
+          <th class="r">Действие</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Парацетамол-Тева, таблетки 500 мг</div>
+            <div class="xs muted">МНН: Парацетамол · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td><span class="badge b-accent"><span class="dot"></span>Специализированная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-bad">3 критично</span>
+              <span class="badge b-warn">5 вопросов</span>
+            </div>
+          </td>
+          <td class="muted num">12.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Амоксиклав, порошок д/сусп. 250 мг/5 мл</div>
+            <div class="xs muted">МНН: Амоксициллин + Клавулановая к-та · Sandoz</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td><span class="badge b-mut"><span class="dot"></span>Первичная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-warn">2 вопроса</span>
+            </div>
+          </td>
+          <td class="muted num">14.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Ибупрофен-Акрихин, капсулы 200 мг</div>
+            <div class="xs muted">МНН: Ибупрофен · Акрихин</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Внесение изменений</td>
+          <td><span class="badge b-accent"><span class="dot"></span>Специализированная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-bad">1 критично</span>
+              <span class="badge b-warn">3 вопроса</span>
+            </div>
+          </td>
+          <td class="muted num">15.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Омепразол-Тева, капсулы кишечнораств. 20 мг</div>
+            <div class="xs muted">МНН: Омепразол · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td><span class="badge b-accent"><span class="dot"></span>Специализированная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-ok">Замечаний нет</span>
+            </div>
+          </td>
+          <td class="muted num">16.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Цетиризин-Вертекс, таблетки п/о 10 мг</div>
+            <div class="xs muted">МНН: Цетиризин · Вертекс</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td><span class="badge b-mut"><span class="dot"></span>Первичная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-warn">4 вопроса</span>
+            </div>
+          </td>
+          <td class="muted num">18.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Лозартан-СЗ, таблетки п/о 50 мг</div>
+            <div class="xs muted">МНН: Лозартан · Северная звезда</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Подтверждение регистрации</td>
+          <td><span class="badge b-accent"><span class="dot"></span>Специализированная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-ok">Замечаний нет</span>
+            </div>
+          </td>
+          <td class="muted num">20.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+        <tr>
+          <td>
+            <div style="font-weight:600">Метформин-Тева, таблетки п/о 850 мг</div>
+            <div class="xs muted">МНН: Метформин · Teva</div>
+          </td>
+          <td><span class="pill">ЛС</span></td>
+          <td>Регистрация</td>
+          <td><span class="badge b-mut"><span class="dot"></span>Первичная</span></td>
+          <td>
+            <div class="pillrow">
+              <span class="badge b-mut">— на проверке</span>
+            </div>
+          </td>
+          <td class="muted num">22.06.2026</td>
+          <td style="text-align:right"><a class="btn btn-sm btn-primary" href="expert-detail.html">Открыть</a></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+    <div class="sep"></div>
+
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div class="muted xs">Показано 7 из 17 заявок</div>
+      <div class="row" style="gap:6px">
+        <button class="btn btn-sm btn-ghost">Назад</button>
+        <button class="btn btn-sm">1</button>
+        <button class="btn btn-sm btn-ghost">2</button>
+        <button class="btn btn-sm btn-ghost">3</button>
+        <button class="btn btn-sm btn-ghost">Вперёд</button>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>

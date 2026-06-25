@@ -1,0 +1,43 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NDDA AI — прототип (рабочая консоль)</title><link rel="stylesheet" href="app.css">
+<style>
+  .map-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+  .map-card{display:flex;gap:10px;align-items:flex-start;transition:border-color .15s,box-shadow .15s}
+  .map-card:hover{border-color:var(--accent);box-shadow:0 2px 6px rgba(16,24,40,.08)}
+  .map-ic{flex:0 0 30px;width:30px;height:30px;border-radius:7px;background:var(--accent-weak);color:var(--accent-text);display:grid;place-items:center}
+  .map-ic svg{width:16px;height:16px;stroke-width:1.9}
+</style></head>
+<body data-page="" data-title="Прототип" data-crumbs="<b>Карта прототипа</b>">
+<main class="content">
+  <div style="margin-bottom:12px">
+    <h1>Прототип интерфейса · рабочая консоль</h1>
+    <div class="muted small measure" style="margin-top:4px">Кликабельный прототип всех экранов. Переход — по карточкам или через левое меню. Акцентный цвет переключается кружками вверху справа.</div>
+  </div>
+
+  <div class="grid map-grid" id="map"></div>
+
+  <div class="card pad" style="margin-top:12px;max-width:80ch">
+    <h3>Как смотреть</h3>
+    <div class="muted small" style="margin-top:6px">Левое меню — переход между разделами. Кружки вверху справа — смена акцента (синий / индиго / бирюза / фиолет / графит). Это макет: данные демонстрационные.</div>
+  </div>
+</main>
+<script src="app.js"></script>
+<script>
+  var I = window.NDDA_ICONS, eye = window.ndIcon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>');
+  var grid = window.ndIcon('<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>');
+  var MAP = [
+    ['applicant.html', I.clipboard, 'Мои заявки (заявитель)', 'Список заявок, статусы, метрики, создание'],
+    ['wizard.html', I.plus, 'Создание заявки', 'Параметры → документы → предварительная проверка'],
+    ['expert.html', I.expert, 'Кабинет эксперта', 'Заявки на экспертизе, фильтры, метрики'],
+    ['expert-detail.html', grid, 'Карточка заявки (эксперт)', 'Этапы, метрики, документы и проверки'],
+    ['doc-review.html', eye, 'Окно проверки документа', 'Проверки этапа + решение эксперта'],
+    ['reference.html', I.book, 'Справочник НПА', 'Поиск, список документов, карточка'],
+    ['chat.html', I.chat, 'Чат по документам', 'Ответы со ссылками на НПА'],
+    ['admin.html', I.admin, 'Администрирование', 'Типы документов, правила, поля, пользователи'],
+  ];
+  document.getElementById('map').innerHTML = MAP.map(function(m){
+    return '<a class="card pad map-card" href="'+m[0]+'"><span class="map-ic">'+m[1]+'</span><span><h3>'+m[2]+'</h3><div class="muted small" style="margin-top:3px">'+m[3]+'</div></span></a>';
+  }).join('');
+</script>
+</body></html>

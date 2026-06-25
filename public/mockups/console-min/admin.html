@@ -1,0 +1,184 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Администрирование</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="admin" data-title="Администрирование" data-crumbs="<b>Администрирование</b>">
+<main class="content">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <h1>Администрирование</h1>
+      <div class="muted small">Справочники, правила валидации и пользователи системы</div>
+    </div>
+    <div class="pillrow">
+      <span class="pill">ЛС</span>
+      <span class="pill">CTD</span>
+      <span class="pill">ЕАЭС</span>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="seg">
+    <button class="on">Типы документов</button>
+    <button>Правила</button>
+    <button>Поля</button>
+    <button>Пользователи</button>
+    <button>НПА</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">42</div><div class="lab">Типов документов</div></div>
+    <div class="metric ok"><div class="num">36</div><div class="lab">Обязательных</div></div>
+    <div class="metric warn"><div class="num">6</div><div class="lab">Опциональных</div></div>
+    <div class="metric"><div class="num">5</div><div class="lab">Модулей CTD</div></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="card pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <h2>Типы документов</h2>
+        <div class="muted small">Перечень типов документов CTD-досье и их параметры</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="input" placeholder="Поиск по коду или названию.." style="width:240px">
+        <button class="btn">Импорт</button>
+        <button class="btn btn-primary">Добавить НПА</button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:90px">Код</th>
+          <th>Название</th>
+          <th style="width:130px">Модуль</th>
+          <th style="width:160px">Форматы</th>
+          <th style="width:140px">Обязательность</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="code">1.1</span></td>
+          <td>Сопроводительное письмо</td>
+          <td>Модуль 1</td>
+          <td class="muted small">PDF, DOCX</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr>
+          <td><span class="code">1.2</span></td>
+          <td>Заявление о регистрации</td>
+          <td>Модуль 1</td>
+          <td class="muted small">PDF</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr>
+          <td><span class="code">1.2.1</span></td>
+          <td>Доверенность на уполномоченное лицо</td>
+          <td>Модуль 1</td>
+          <td class="muted small">PDF</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr class="dim">
+          <td><span class="code">1.3.3</span></td>
+          <td>Макеты упаковки и инструкция по применению</td>
+          <td>Модуль 1</td>
+          <td class="muted small">PDF, PNG</td>
+          <td><span class="badge b-warn">Условно</span></td>
+        </tr>
+        <tr>
+          <td><span class="code">1.6.2</span></td>
+          <td>Сертификат GMP производителя</td>
+          <td>Модуль 1</td>
+          <td class="muted small">PDF</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr>
+          <td><span class="code">2.3.P.1</span></td>
+          <td>Состав и описание лекарственной формы</td>
+          <td>Модуль 2</td>
+          <td class="muted small">PDF, DOCX</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr>
+          <td><span class="code">3.2.S.2</span></td>
+          <td>Производство фармацевтической субстанции</td>
+          <td>Модуль 3</td>
+          <td class="muted small">PDF</td>
+          <td><span class="badge b-ok">Обязательно</span></td>
+        </tr>
+        <tr class="dim">
+          <td><span class="code">3.2.P.8</span></td>
+          <td>Стабильность готового продукта</td>
+          <td>Модуль 3</td>
+          <td class="muted small">PDF, XLSX</td>
+          <td><span class="badge b-mut">Опционально</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="sep"></div>
+    <div class="muted xs">Показано 8 из 42 типов · ЛС «Парацетамол-Тева, таблетки 500 мг» · процедура Регистрация · тип воспроизведённый · производитель Teva</div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="card pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <h2>Пользователи</h2>
+        <div class="muted small">Превью · учётные записи и роли</div>
+      </div>
+      <button class="btn btn-ghost btn-sm">Все пользователи</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:160px">Логин</th>
+          <th>Имя</th>
+          <th style="width:160px">Роль</th>
+          <th style="width:200px">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="code">i.petrov</span></td>
+          <td>Петров Иван Сергеевич</td>
+          <td><span class="badge b-accent">Администратор</span></td>
+          <td>
+            <button class="btn btn-sm">Изменить</button>
+            <button class="btn btn-ghost btn-sm">Удалить</button>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="code">e.sokolova</span></td>
+          <td>Соколова Елена Викторовна</td>
+          <td><span class="badge b-ok">Эксперт</span></td>
+          <td>
+            <button class="btn btn-sm">Изменить</button>
+            <button class="btn btn-ghost btn-sm">Удалить</button>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="code">a.kuznetsov</span></td>
+          <td>Кузнецов Алексей Дмитриевич</td>
+          <td><span class="badge b-mut">Заявитель</span></td>
+          <td>
+            <button class="btn btn-sm">Изменить</button>
+            <button class="btn btn-ghost btn-sm">Удалить</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>

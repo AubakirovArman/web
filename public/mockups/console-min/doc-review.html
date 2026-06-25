@@ -1,0 +1,162 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка документа</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="expert" data-title="Проверка документа" data-crumbs="Парацетамол-Тева / <b>1.2.1 Сертификат GMP</b>">
+<main class="content">
+
+  <!-- Шапка раздела -->
+  <div class="card pad" style="margin-bottom:14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="code">1.2.1</span>
+          <h2>1.2.1 — Сертификат GMP</h2>
+          <span class="badge b-warn"><span class="dot"></span>Вопрос</span>
+        </div>
+        <div class="muted small" style="margin-top:6px">2 файла в разделе · Парацетамол-Тева, таблетки 500 мг · производитель Teva Pharmaceutical Industries</div>
+      </div>
+      <div style="min-width:300px">
+        <div class="kv">
+          <div>
+            <div class="k">Документ для просмотра</div>
+            <select class="input">
+              <option>GMP_certificate_Teva_2023.pdf · 4 стр.</option>
+              <option>GMP_appendix_sites_2023.pdf · 2 стр.</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вкладки -->
+  <div style="margin-bottom:12px">
+    <div class="seg">
+      <button class="on">Проверки</button>
+      <button>Файлы</button>
+      <button>Просмотр</button>
+      <button>Текст</button>
+      <button>Данные</button>
+    </div>
+  </div>
+
+  <!-- Индикатор этапа + метрики -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="muted small">Этап:</span>
+      <span class="badge b-accent"><span class="dot"></span>Первичная экспертиза</span>
+    </div>
+    <div class="muted xs">Проверено автоматически · ожидает решения эксперта по 2 пунктам</div>
+  </div>
+
+  <div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+    <div class="metric"><div class="num">5</div><div class="lab">Проверок всего</div></div>
+    <div class="metric ok"><div class="num">3</div><div class="lab">Пройдено</div></div>
+    <div class="metric warn"><div class="num">1</div><div class="lab">Вопрос</div></div>
+    <div class="metric bad"><div class="num">1</div><div class="lab">Не пройдено</div></div>
+  </div>
+
+  <!-- Таблица проверок -->
+  <div class="card">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:21%">Проверка</th>
+          <th style="width:9%">Статус</th>
+          <th style="width:24%">Описание</th>
+          <th style="width:20%">Замечания</th>
+          <th style="width:26%">Решение эксперта</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- passed -->
+        <tr>
+          <td><b>Наличие сертификата GMP</b><div class="muted xs" style="margin-top:3px">Автопроверка</div></td>
+          <td><span class="badge b-ok"><span class="dot"></span>Пройдено</span></td>
+          <td>В разделе загружен действующий сертификат GMP установленного образца.</td>
+          <td class="muted">Сертификат найден, формат PDF, текстовый слой распознан.</td>
+          <td>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btn btn-primary btn-sm">Принять</button>
+              <button class="btn btn-sm">Отменить</button>
+            </div>
+            <input class="input" placeholder="Комментарий эксперта…">
+          </td>
+        </tr>
+
+        <!-- passed -->
+        <tr>
+          <td><b>Срок действия ≤ 3 лет</b><div class="muted xs" style="margin-top:3px">Автопроверка</div></td>
+          <td><span class="badge b-ok"><span class="dot"></span>Пройдено</span></td>
+          <td>Дата выдачи и срок действия сертификата в пределах 3 лет на дату подачи.</td>
+          <td class="muted">Выдан 12.04.2023, действует до 11.04.2026. Заявка подана 10.06.2026 — в пределах срока.</td>
+          <td>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btn btn-primary btn-sm">Принять</button>
+              <button class="btn btn-sm">Отменить</button>
+            </div>
+            <input class="input" placeholder="Комментарий эксперта…">
+          </td>
+        </tr>
+
+        <!-- failed -->
+        <tr>
+          <td><b>Все страницы загружены</b><div class="muted xs" style="margin-top:3px">Автопроверка</div></td>
+          <td><span class="badge b-bad"><span class="dot"></span>Нет</span></td>
+          <td>Комплектность сертификата: все страницы присутствуют и читаемы.</td>
+          <td>Отсутствует страница 4 из 4 (приложение с перечнем площадок). Нумерация прерывается.</td>
+          <td>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btn btn-primary btn-sm">Принять</button>
+              <button class="btn btn-sm">Отменить</button>
+            </div>
+            <input class="input" placeholder="Комментарий эксперта…">
+          </td>
+        </tr>
+
+        <!-- question -->
+        <tr>
+          <td><b>Сверка адреса с заявлением</b><div class="muted xs" style="margin-top:3px">Раздел 1.2</div></td>
+          <td><span class="badge b-warn"><span class="dot"></span>Вопрос</span></td>
+          <td>Адрес производственной площадки в сертификате совпадает с адресом из заявления (1.2).</td>
+          <td>Город и улица совпадают, отличается номер корпуса: в заявлении «корп. 2», в сертификате «корп. 2А».</td>
+          <td>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btn btn-sm">Прошёл</button>
+              <button class="btn btn-sm">Не прошёл</button>
+            </div>
+            <input class="input" placeholder="Комментарий эксперта…">
+          </td>
+        </tr>
+
+        <!-- passed -->
+        <tr>
+          <td><b>Сверка площадки с 3.2.P.1</b><div class="muted xs" style="margin-top:3px">Раздел 3.2.P.1</div></td>
+          <td><span class="badge b-ok"><span class="dot"></span>Пройдено</span></td>
+          <td>Производственная площадка в сертификате соответствует указанной в 3.2.P.1 (производство ГЛФ).</td>
+          <td class="muted">Площадка «Teva, Debrecen (HU)» совпадает с разделом 3.2.P.1.</td>
+          <td>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btn btn-primary btn-sm">Принять</button>
+              <button class="btn btn-sm">Отменить</button>
+            </div>
+            <input class="input" placeholder="Комментарий эксперта…">
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Нижние действия -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap">
+    <div class="muted xs">Изменения сохраняются автоматически · последнее решение: 24.06.2026 18:42</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn">Скачать</button>
+      <button class="btn btn-ghost">Закрыть</button>
+    </div>
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>

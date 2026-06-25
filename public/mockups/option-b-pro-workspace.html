@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Макет B — Рабочая консоль</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:-apple-system,Segoe UI,Roboto,Inter,sans-serif}</style>
+</head>
+<body class="bg-zinc-100 text-zinc-800">
+<!-- ВАРИАНТ B: Рабочая консоль — боковая навигация, плотная компоновка, максимум данных на экране -->
+<div class="flex min-h-screen">
+  <!-- Сайдбар -->
+  <aside class="hidden w-56 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
+    <div class="px-4 py-4 text-lg font-semibold">NDDA <span class="text-blue-600">AI</span></div>
+    <nav class="flex-1 space-y-0.5 px-2 text-sm">
+      <a class="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-500 hover:bg-zinc-100">📋 Заявитель</a>
+      <a class="flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 font-medium text-blue-700">🔬 Эксперт</a>
+      <a class="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-500 hover:bg-zinc-100">📚 Справочник</a>
+      <a class="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-500 hover:bg-zinc-100">💬 Чат</a>
+      <a class="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-500 hover:bg-zinc-100">⚙ Админ</a>
+    </nav>
+    <div class="border-t border-zinc-200 p-3 text-xs text-zinc-500">Эксперт (демо)</div>
+  </aside>
+
+  <div class="flex-1">
+    <!-- Топ-полоса заявки -->
+    <div class="border-b border-zinc-200 bg-white px-6 py-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-zinc-400"><a class="hover:text-zinc-600">Заявки</a> / <span>Парацетамол-Тева</span></div>
+          <h1 class="text-lg font-semibold">Парацетамол-Тева, таблетки 500 мг</h1>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="rounded bg-zinc-100 px-2 py-1">ЛС</span>
+          <span class="rounded bg-zinc-100 px-2 py-1">Регистрация</span>
+          <span class="rounded bg-amber-100 px-2 py-1 font-medium text-amber-700">На экспертизе</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex">
+      <!-- Рейка этапов (вертикальная) -->
+      <div class="w-48 shrink-0 border-r border-zinc-200 bg-white p-3">
+        <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Этапы</div>
+        <button class="mb-1 w-full rounded-md border-l-2 border-blue-600 bg-blue-50 px-3 py-2 text-left text-sm font-medium text-blue-700">Первичная<div class="text-[11px] font-normal text-blue-500">3 замечания</div></button>
+        <button class="mb-1 w-full rounded-md px-3 py-2 text-left text-sm text-zinc-600 hover:bg-zinc-50">Специализированная<div class="text-[11px] text-zinc-400">по существу</div></button>
+        <button class="mb-1 w-full rounded-md px-3 py-2 text-left text-sm text-zinc-600 hover:bg-zinc-50">Лабораторные</button>
+        <button class="w-full rounded-md px-3 py-2 text-left text-sm text-zinc-600 hover:bg-zinc-50">Заключение</button>
+        <div class="mt-4 border-t border-zinc-200 pt-3">
+          <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Параметры</div>
+          <dl class="space-y-2 text-xs">
+            <div><dt class="text-zinc-400">Процедура</dt><dd class="font-medium">Регистрация</dd></div>
+            <div><dt class="text-zinc-400">Тип ЛП</dt><dd class="font-medium">Воспроизведённый</dd></div>
+            <div><dt class="text-zinc-400">Производитель</dt><dd class="font-medium">Teva Pharm.</dd></div>
+            <div><dt class="text-zinc-400">Адрес</dt><dd class="font-medium">Израиль, Кфар-Сава</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Контент -->
+      <div class="flex-1 p-5">
+        <!-- компактные метрики строкой -->
+        <div class="mb-4 flex flex-wrap gap-2 text-sm">
+          <div class="rounded-md border border-zinc-200 bg-white px-3 py-1.5">Разделы <b>28/40</b></div>
+          <div class="rounded-md border border-rose-200 bg-white px-3 py-1.5 text-rose-600">Критично <b>3</b></div>
+          <div class="rounded-md border border-amber-200 bg-white px-3 py-1.5 text-amber-600">Вопросов <b>7</b></div>
+          <div class="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-emerald-600">ОК <b>112</b></div>
+          <div class="ml-auto rounded-md bg-zinc-900 px-3 py-1.5 text-white">Срок: 14 р.д.</div>
+        </div>
+
+        <!-- плотная таблица документов -->
+        <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+          <table class="w-full text-sm">
+            <thead class="bg-zinc-50 text-left text-xs uppercase text-zinc-400">
+              <tr><th class="px-3 py-2">Код</th><th class="px-3 py-2">Документ</th><th class="px-3 py-2">Файлы</th><th class="px-3 py-2">Проверки</th><th class="px-3 py-2">Итог</th><th class="px-3 py-2"></th></tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100">
+              <tr class="hover:bg-zinc-50"><td class="px-3 py-2 font-medium text-zinc-500">1.2.1</td><td class="px-3 py-2">Сертификат GMP</td><td class="px-3 py-2 text-zinc-500">2</td><td class="px-3 py-2"><span class="text-emerald-600">5✓</span></td><td class="px-3 py-2"><span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">ОК</span></td><td class="px-3 py-2 text-right text-zinc-400">👁</td></tr>
+              <tr class="hover:bg-zinc-50"><td class="px-3 py-2 font-medium text-zinc-500">1.3.3</td><td class="px-3 py-2">Проекты ОХЛП и инструкции</td><td class="px-3 py-2 text-zinc-500">3</td><td class="px-3 py-2"><span class="text-amber-600">2?</span> <span class="text-emerald-600">4✓</span></td><td class="px-3 py-2"><span class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Вопрос</span></td><td class="px-3 py-2 text-right text-zinc-400">👁</td></tr>
+              <tr class="hover:bg-zinc-50"><td class="px-3 py-2 font-medium text-zinc-500">1.2.5</td><td class="px-3 py-2">Декларация об отсутствии отличий</td><td class="px-3 py-2 text-zinc-500">1</td><td class="px-3 py-2"><span class="text-rose-600">1✗</span></td><td class="px-3 py-2"><span class="rounded bg-rose-100 px-2 py-0.5 text-xs text-rose-700">Нет</span></td><td class="px-3 py-2 text-right text-zinc-400">👁</td></tr>
+              <tr class="bg-zinc-50/50 text-zinc-400 hover:bg-zinc-50"><td class="px-3 py-2 font-medium">1.6.2</td><td class="px-3 py-2">ПСУР</td><td class="px-3 py-2">—</td><td class="px-3 py-2">—</td><td class="px-3 py-2">не загр.</td><td class="px-3 py-2 text-right">👁</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-2 text-xs text-zinc-400">Все 40 разделов по порядку · незагруженные показаны</p>
+
+        <!-- решение эксперта компактно -->
+        <div class="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+          <div class="text-xs font-semibold uppercase text-zinc-400">Решение по проверке 1.2.5</div>
+          <div class="mt-2 flex items-center gap-2">
+            <button class="rounded bg-emerald-600 px-3 py-1 text-sm text-white">Принять</button>
+            <button class="rounded border border-rose-300 px-3 py-1 text-sm text-rose-600">Отменить</button>
+            <input class="flex-1 rounded border border-zinc-200 px-2 py-1 text-sm" placeholder="Комментарий"/>
+            <button class="rounded bg-zinc-900 px-3 py-1 text-sm text-white">Сохранить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

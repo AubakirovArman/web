@@ -1,0 +1,231 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Справочник НПА</title><link rel="stylesheet" href="app.css"></head>
+<body data-page="reference" data-title="Справочник НПА" data-crumbs="<b>Справочник НПА</b>">
+<main class="content">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+    <div>
+      <h1>Справочник НПА</h1>
+      <div class="muted small" style="margin-top:4px">Нормативные правовые акты ЕАЭС и национальные требования к регистрации ЛС и МИ</div>
+    </div>
+    <div class="seg">
+      <button class="on">Все</button>
+      <button>ЛС</button>
+      <button>МИ</button>
+    </div>
+  </div>
+
+  <div class="card pad" style="margin:10px 0">
+    <div class="row" style="align-items:center">
+      <input class="input" placeholder="Поиск по номеру, названию, ключевому слову (CTD, модуль 3, стабильность…)">
+      <button class="btn btn-primary btn-sm" style="white-space:nowrap">Найти</button>
+      <button class="btn btn-ghost btn-sm" style="white-space:nowrap">Сбросить</button>
+    </div>
+    <div class="pillrow" style="margin-top:12px">
+      <span class="pill">CTD</span>
+      <span class="pill">Регистрация</span>
+      <span class="pill">Стабильность</span>
+      <span class="pill">Биоэквивалентность</span>
+      <span class="pill">Маркировка</span>
+      <span class="pill">Фармаконадзор</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:10px;align-items:start">
+
+    <!-- ЛЕВО: список документов -->
+    <div class="card sticky-col" style="overflow:hidden">
+      <div class="pad" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px">
+        <h2>Документы</h2>
+        <span class="badge b-mut">12</span>
+      </div>
+      <table class="tbl clickable">
+        <tbody>
+          <tr style="background:var(--accent-weak)">
+            <td>
+              <div style="font-weight:650;color:var(--accent-text)">Решение Совета ЕЭК №78</div>
+              <div class="xs muted">Правила регистрации и экспертизы ЛС · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Решение Совета ЕЭК №46</div>
+              <div class="xs muted">Требования к маркировке ЛС · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Решение Коллегии ЕЭК №88</div>
+              <div class="xs muted">Требования к инструкции по применению · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Решение Коллегии ЕЭК №89</div>
+              <div class="xs muted">Правила надлежащей практики фармаконадзора · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Приказ ДСМ-10</div>
+              <div class="xs muted">Нац. требования к регистрационному досье · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Решение Совета ЕЭК №100</div>
+              <div class="xs muted">Номенклатура лекарственных форм · ЛС</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="font-weight:600">Руководство ICH Q1A(R2)</div>
+              <div class="xs muted">Исследования стабильности · ЛС</div>
+            </td>
+          </tr>
+          <tr class="dim">
+            <td>
+              <div style="font-weight:600">Решение Совета ЕЭК №27</div>
+              <div class="xs muted">Общие требования к безопасности МИ · МИ</div>
+            </td>
+          </tr>
+          <tr class="dim">
+            <td>
+              <div style="font-weight:600">Решение Коллегии ЕЭК №173</div>
+              <div class="xs muted">Классификация МИ по степени риска · МИ</div>
+            </td>
+          </tr>
+          <tr class="dim">
+            <td>
+              <div style="font-weight:600">Приказ ДСМ-142</div>
+              <div class="xs muted">Регистрация и экспертиза МИ · МИ</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ПРАВО: карточка выбранного документа -->
+    <div class="grid">
+
+      <div class="card pad">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div class="pillrow" style="margin-bottom:8px">
+              <span class="badge b-accent">ЛС</span>
+              <span class="badge b-ok"><span class="dot"></span>Действует</span>
+            </div>
+            <h1 style="font-size:18px">Решение Совета ЕЭК №78</h1>
+            <div class="muted" style="margin-top:4px">Правила регистрации и экспертизы лекарственных средств для медицинского применения</div>
+          </div>
+          <button class="btn btn-primary" style="white-space:nowrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Открыть в чате</button>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="kv" style="grid-template-columns:repeat(4,1fr)">
+          <div><div class="k">Номер</div><div class="v">№78</div></div>
+          <div><div class="k">Дата принятия</div><div class="v">03.11.2016</div></div>
+          <div><div class="k">Домен</div><div class="v">Лекарственные средства</div></div>
+          <div><div class="k">Орган</div><div class="v">Совет ЕЭК</div></div>
+          <div><div class="k">Редакция</div><div class="v">от 04.10.2024</div></div>
+          <div><div class="k">Приложений</div><div class="v">23</div></div>
+          <div><div class="k">Связано с заявкой</div><div class="v">Парацетамол-Тева</div></div>
+          <div><div class="k">Статус</div><div class="v">Действует</div></div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="num">23</div><div class="lab">Приложений</div></div>
+        <div class="metric"><div class="num">186</div><div class="lab">Пунктов</div></div>
+        <div class="metric ok"><div class="num">47</div><div class="lab">Релевантно досье</div></div>
+        <div class="metric warn"><div class="num">5</div><div class="lab">Изменено в ред.</div></div>
+      </div>
+
+      <div class="card pad">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <h2>Оглавление: разделы и пункты</h2>
+          <span class="muted small">CTD-привязка</span>
+        </div>
+        <table class="tbl clickable">
+          <thead>
+            <tr>
+              <th style="width:90px">Пункт</th>
+              <th>Наименование</th>
+              <th style="width:120px">Раздел CTD</th>
+              <th style="width:130px">Релевантность</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="code">п. 4</span></td>
+              <td>Общие положения и сфера применения</td>
+              <td><span class="code">1.1</span></td>
+              <td><span class="badge b-mut">—</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 12</span></td>
+              <td>Состав регистрационного досье (формат CTD)</td>
+              <td><span class="code">1.2</span></td>
+              <td><span class="badge b-ok">Высокая</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 12.1</span></td>
+              <td>Сопроводительное письмо и заявление</td>
+              <td><span class="code">1.2.1</span></td>
+              <td><span class="badge b-ok">Высокая</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 18</span></td>
+              <td>Информация о производителе</td>
+              <td><span class="code">1.3.3</span></td>
+              <td><span class="badge b-warn">Вопрос</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 24</span></td>
+              <td>Образцы макетов упаковки и маркировки</td>
+              <td><span class="code">1.6.2</span></td>
+              <td><span class="badge b-ok">Высокая</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 41</span></td>
+              <td>Общее резюме по качеству — лекарственный препарат</td>
+              <td><span class="code">2.3.P.1</span></td>
+              <td><span class="badge b-ok">Высокая</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 58</span></td>
+              <td>Контроль действующего вещества</td>
+              <td><span class="code">3.2.S.2</span></td>
+              <td><span class="badge b-warn">Вопрос</span></td>
+            </tr>
+            <tr class="dim">
+              <td><span class="code">п. 63</span></td>
+              <td>Данные по биоэквивалентности (воспроизв.)</td>
+              <td><span class="code">5.3.1</span></td>
+              <td><span class="badge b-mut">Не загружено</span></td>
+            </tr>
+            <tr>
+              <td><span class="code">п. 71</span></td>
+              <td>Требования к стабильности и срокам годности</td>
+              <td><span class="code">3.2.P.8</span></td>
+              <td><span class="badge b-ok">Высокая</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="sep"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="muted small">Контекст заявки: <b>Парацетамол-Тева, таблетки 500 мг</b> · Регистрация · воспроизведённый · Teva</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm">Скачать PDF</button>
+            <button class="btn btn-primary btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Открыть в чате</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+<script src="app.js"></script></body></html>
