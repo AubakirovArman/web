@@ -53,6 +53,14 @@ export interface ReferenceExperimentDocument {
     quality_notes: string[];
     meta?: Record<string, unknown>;
   };
+  /** Lightweight counts for the list view (intelligence is not shipped in the list). */
+  intelligenceCounts?: {
+    requirements: number;
+    document_types: number;
+    applicant_parameters: number;
+    dependencies: number;
+    checks: number;
+  };
 }
 
 export interface ReferenceExperimentData {

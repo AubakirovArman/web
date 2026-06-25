@@ -34,8 +34,21 @@ interface MetaRow {
 export async function getReferenceIndex(): Promise<ReferenceIndex> {
   const pool = getReferencePool();
   const [docsResult, metaResult, countsResult] = await Promise.all([
-    pool.query<{ list_item: ReferenceListItem }>(
-      `SELECT list_item FROM reference_experiment_documents ORDER BY sort_order, id`,
+    pool.query<{
+      list_item: ReferenceListItem;
+      req_count: number;
+      doc_count: number;
+      param_count: number;
+      dep_count: number;
+      check_count: number;
+    }>(
+      `SELECT list_item,
+         jsonb_array_length(COALESCE(data->'intelligence'->'requirements','[]'::jsonb)) AS req_count,
+         jsonb_array_length(COALESCE(data->'intelligence'->'document_types','[]'::jsonb)) AS doc_count,
+         jsonb_array_length(COALESCE(data->'intelligence'->'applicant_parameters','[]'::jsonb)) AS param_count,
+         jsonb_array_length(COALESCE(data->'intelligence'->'dependencies','[]'::jsonb)) AS dep_count,
+         jsonb_array_length(COALESCE(data->'intelligence'->'checks','[]'::jsonb)) AS check_count
+       FROM reference_experiment_documents ORDER BY sort_order, id`,
     ),
     pool.query<MetaRow>(
       `SELECT generated_at, prompt_version, model FROM reference_experiment_meta WHERE key = 'default' LIMIT 1`,
@@ -57,7 +70,16 @@ export async function getReferenceIndex(): Promise<ReferenceIndex> {
     model: meta?.model ?? null,
     processedCount: Number(countsResult.rows[0]?.processed || 0),
     targetCount: total,
-    documents: docsResult.rows.map((row) => row.list_item),
+    documents: docsResult.rows.map((row) => ({
+      ...row.list_item,
+      intelligenceCounts: {
+        requirements: Number(row.req_count) || 0,
+        document_types: Number(row.doc_count) || 0,
+        applicant_parameters: Number(row.param_count) || 0,
+        dependencies: Number(row.dep_count) || 0,
+        checks: Number(row.check_count) || 0,
+      },
+    })),
   };
 }
 

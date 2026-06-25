@@ -43,7 +43,7 @@ export function ReferenceDocumentTable({ documents, onSelect }: { documents: Ref
               <td className="px-3 py-3 align-top">{kindLabels[doc.kind] || doc.kind}</td>
               <td className="px-3 py-3 align-top text-xs text-muted-foreground"><div>{doc.number || 'без номера'}</div><div>{doc.date || 'без даты'}</div></td>
               <td className="px-3 py-3 align-top"><Badge variant={doc.status === 'processed' ? 'default' : doc.status === 'error' ? 'destructive' : 'outline'}>{statusLabels[doc.status]}</Badge></td>
-              <td className="px-3 py-3 align-top text-xs"><div>Треб.: {doc.intelligence?.requirements?.length || 0}</div><div className="text-muted-foreground">Док.: {doc.intelligence?.document_types?.length || 0} · Парам.: {doc.intelligence?.applicant_parameters?.length || 0}</div></td>
+              <td className="px-3 py-3 align-top text-xs"><div>Треб.: {doc.intelligenceCounts?.requirements ?? doc.intelligence?.requirements?.length ?? 0}</div><div className="text-muted-foreground">Док.: {doc.intelligenceCounts?.document_types ?? doc.intelligence?.document_types?.length ?? 0} · Парам.: {doc.intelligenceCounts?.applicant_parameters ?? doc.intelligence?.applicant_parameters?.length ?? 0}</div></td>
               <td className="px-3 py-3 align-top text-xs text-muted-foreground"><div>{doc.sectionsCount} пунктов</div><div>~{doc.tokenEstimate.toLocaleString('ru-RU')} ток.</div></td>
             </tr>
           ))}
