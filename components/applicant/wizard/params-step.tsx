@@ -152,7 +152,7 @@ function ParameterField({
       ) : (
         <Input
           id={param.id}
-          type={param.type === 'date' ? 'date' : param.id === 'param-dosage-amount' ? 'number' : 'text'}
+          type={param.type === 'date' ? 'date' : param.type === 'number' || param.id === 'param-dosage-amount' ? 'number' : 'text'}
           value={getStringValue(values[param.id])}
           onChange={(e) => onChange(param.id, e.target.value)}
           placeholder={param.label}

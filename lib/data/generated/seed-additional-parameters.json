@@ -876,5 +876,431 @@
     "label": "Производитель из страны СНГ",
     "type": "boolean",
     "section": "ЛС. Производство"
+  },
+  {
+    "id": "param-mi-accelerated-expertise",
+    "label": "Вид экспертизы: ускоренная",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-basis",
+    "label": "Основание",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-gmdn-code",
+    "label": "Номенклатурный код GMDN (глобальный)",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-tech-characteristic-ru",
+    "label": "Краткая техническая характеристика (рус.)",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-tech-characteristic-kz",
+    "label": "Краткая техническая характеристика (каз.)",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-contains-medicine",
+    "label": "В составе имеется лекарственное средство",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-ivd-closed-system",
+    "label": "In vitro: закрытая система",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-is-kit",
+    "label": "Изделие является набором",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "yes",
+        "label": "Да"
+      },
+      {
+        "value": "no",
+        "label": "Нет"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-shelf-life-value",
+    "label": "Срок хранения (значение)",
+    "type": "number",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-shelf-life-unit",
+    "label": "Срок хранения (ед. изм.)",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "year",
+        "label": "Год"
+      },
+      {
+        "value": "month",
+        "label": "Месяц"
+      },
+      {
+        "value": "day",
+        "label": "День"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-warranty-value",
+    "label": "Гарантийный срок эксплуатации (значение)",
+    "type": "number",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-warranty-unit",
+    "label": "Гарантийный срок (ед. изм.)",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "year",
+        "label": "Год"
+      },
+      {
+        "value": "month",
+        "label": "Месяц"
+      },
+      {
+        "value": "day",
+        "label": "День"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-transport-conditions",
+    "label": "Условия транспортирования",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-production-mode",
+    "label": "Производство",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "full-here",
+        "label": "Полностью на данном производстве"
+      },
+      {
+        "value": "partial-here",
+        "label": "Частично на данном производстве"
+      },
+      {
+        "value": "full-other",
+        "label": "Полностью на другом производстве"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-mfr-type",
+    "label": "Тип производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-legal-form",
+    "label": "Организационная форма производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-country",
+    "label": "Страна производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-name-ru",
+    "label": "Наименование производителя (рус.)",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-name-kz",
+    "label": "Наименование производителя (каз.)",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-name-en",
+    "label": "Наименование производителя (англ.)",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-permit-number",
+    "label": "№ разрешительного документа производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-permit-issue-date",
+    "label": "Дата выдачи разрешительного документа",
+    "type": "date",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-permit-expiry-date",
+    "label": "Срок действия разрешительного документа",
+    "type": "date",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-head",
+    "label": "ФИО / должность руководителя (контактного лица) производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-phone",
+    "label": "Телефон / факс производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-email",
+    "label": "Электронная почта производителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-legal-address",
+    "label": "Юридический адрес производителя",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-mfr-actual-address",
+    "label": "Фактический адрес производителя",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-bin-iin",
+    "label": "БИН / ИИН уполномоченного представителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-name",
+    "label": "Наименование организации / ФИО представителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-country",
+    "label": "Страна представителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-legal-address",
+    "label": "Юридический адрес представителя",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-actual-address",
+    "label": "Фактический адрес представителя",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-phone",
+    "label": "Телефон / факс представителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-email",
+    "label": "Электронная почта представителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-authority-doc",
+    "label": "Документ, подтверждающий полномочия",
+    "type": "select",
+    "section": "МИ. Доп. поля (официальная форма)",
+    "options": [
+      {
+        "value": "power-of-attorney",
+        "label": "Доверенность"
+      },
+      {
+        "value": "contract",
+        "label": "Договор"
+      },
+      {
+        "value": "agreement",
+        "label": "Соглашение"
+      }
+    ]
+  },
+  {
+    "id": "param-mi-rep-authority-number",
+    "label": "Номер документа полномочий",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-authority-issue-date",
+    "label": "Дата выдачи документа полномочий",
+    "type": "date",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-authority-expiry-date",
+    "label": "Срок действия документа полномочий",
+    "type": "date",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-rep-applicant-head",
+    "label": "ФИО / должность руководителя организации-заявителя",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-name",
+    "label": "Субъект оплаты: наименование юридического лица",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-country",
+    "label": "Субъект оплаты: страна",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-legal-address",
+    "label": "Субъект оплаты: юридический адрес",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-actual-address",
+    "label": "Субъект оплаты: фактический адрес",
+    "type": "textarea",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-person",
+    "label": "Субъект оплаты: ФИО",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-phone",
+    "label": "Субъект оплаты: телефон",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-fax",
+    "label": "Субъект оплаты: факс",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-email",
+    "label": "Субъект оплаты: электронная почта",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-bin",
+    "label": "Субъект оплаты: БИН",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-iin",
+    "label": "Субъект оплаты: ИИН",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-bank",
+    "label": "Субъект оплаты: банк",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-account",
+    "label": "Субъект оплаты: расчётный счёт",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-currency-account",
+    "label": "Субъект оплаты: валютный счёт",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-knp",
+    "label": "Субъект оплаты: код (КНП/КБК)",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
+  },
+  {
+    "id": "param-mi-payer-bik",
+    "label": "Субъект оплаты: БИК",
+    "type": "text",
+    "section": "МИ. Доп. поля (официальная форма)"
   }
 ]

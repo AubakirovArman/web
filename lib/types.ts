@@ -104,7 +104,7 @@ export type ConditionNode =
 export interface Parameter {
   id: string;
   label: string;
-  type: 'select' | 'text' | 'textarea' | 'date' | 'multiselect' | 'boolean';
+  type: 'select' | 'text' | 'textarea' | 'date' | 'multiselect' | 'boolean' | 'number';
   options?: { value: string; label: string }[];
   section?: string;
   sourceNpa?: string;
