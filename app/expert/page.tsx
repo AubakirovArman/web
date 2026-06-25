@@ -37,7 +37,7 @@ export default function ExpertPage() {
 function ExpertListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { applications, isLoading, loadError, importApplication, deleteApplication, runCheck, setCurrentId } = useApplications();
+  const { applications, isLoading, loadError, reload, importApplication, deleteApplication, runCheck, setCurrentId } = useApplications();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'clean' | 'critical' | 'serious' | 'warning'>('all');
@@ -306,7 +306,11 @@ function ExpertListPage() {
                         ) : loadError ? (
                           <>
                             <XCircle className="mx-auto mb-2 h-6 w-6 text-destructive" />
-                            {loadError}
+                            <div>{loadError}</div>
+                            <div className="mt-1 text-xs">Проверьте соединение — на медленном интернете загрузка может занять время.</div>
+                            <Button variant="outline" size="sm" className="mt-3" onClick={() => reload()}>
+                              <Loader2 className="mr-2 h-4 w-4" /> Повторить
+                            </Button>
                           </>
                         ) : applications.length === 0 ? (
                           <>

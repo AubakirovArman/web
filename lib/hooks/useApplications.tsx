@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Application, ExpertCheckDecision, Finding, UploadedFile } from '@/lib/types';
 import { defaultApplicationValues } from '@/lib/data/seed';
 import { demoFiles } from '@/lib/data/demoFiles';
@@ -80,22 +80,29 @@ function normalizeApplication(app: Partial<Application>): Application {
   };
 }
 
-async function fetchServerApplications(retries = 3): Promise<Application[]> {
+async function fetchServerApplications(): Promise<Application[]> {
+  // Паузы ПЕРЕД попытками 1..5 (экспоненциальный backoff). Рассчитано на медленный/
+  // нестабильный интернет: даём каналу восстановиться, не сваливаемся в ошибку сразу.
+  const backoff = [0, 1000, 2000, 4000, 8000];
+  const PER_ATTEMPT_TIMEOUT = 60000; // 60 c на попытку — для 1 Мбит/с с задержками
   let lastError: unknown;
-  for (let attempt = 0; attempt < retries; attempt += 1) {
+
+  for (let attempt = 0; attempt < backoff.length; attempt += 1) {
+    if (backoff[attempt] > 0) {
+      await new Promise((resolve) => setTimeout(resolve, backoff[attempt]));
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PER_ATTEMPT_TIMEOUT);
     try {
-      const response = await fetch(APPLICATIONS_API, { cache: 'no-store' });
+      const response = await fetch(APPLICATIONS_API, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timer);
       if (!response.ok) throw new Error('Не удалось загрузить серверные заявки');
       const data = await response.json();
       const applications = data?.applications;
       return Array.isArray(applications) ? applications.map(normalizeApplication) : [];
     } catch (error) {
+      clearTimeout(timer);
       lastError = error;
-      // Транзиентный сбой (часто — первый запрос после рестарта сервиса):
-      // ждём и пробуем снова, прежде чем показывать ошибку пользователю.
-      if (attempt < retries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
-      }
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Не удалось загрузить серверные заявки');
@@ -148,6 +155,7 @@ interface ApplicationContextValue {
   applications: Application[];
   isLoading: boolean;
   loadError: string | null;
+  reload: () => void;
   currentId: string | null;
   setCurrentId: (id: string | null) => void;
   addApplication: () => Application;
@@ -180,33 +188,35 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const hasErrorRef = useRef(false);
 
-    const loadApplications = async () => {
-      setIsLoading(true);
-      setLoadError(null);
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    hasErrorRef.current = false;
+    try {
       const initial = await fetchServerApplications();
-
-      if (cancelled) return;
-
       setApplications(initial);
       setCurrentId((current) => current || initial[0]?.id || null);
-      setIsLoading(false);
-    };
-
-    void loadApplications().catch((error) => {
-      if (cancelled) return;
+    } catch (error) {
+      hasErrorRef.current = true;
       setApplications([]);
       setCurrentId(null);
-      setIsLoading(false);
       setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить заявки');
-    });
-
-    return () => {
-      cancelled = true;
-    };
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void reload();
+    // Автоповтор при возврате интернета (если предыдущая загрузка упала).
+    const onOnline = () => {
+      if (hasErrorRef.current) void reload();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [reload]);
 
   const updateApp = (id: string, updater: (app: Application) => Application, persist = true) => {
     setApplications((prev) => {
@@ -230,6 +240,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       applications,
       isLoading,
       loadError,
+      reload,
       currentId,
       setCurrentId,
       addApplication: () => {
@@ -378,7 +389,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           status,
         })),
     }),
-    [applications, currentId, isLoading, loadError]
+    [applications, currentId, isLoading, loadError, reload]
   );
 
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>;

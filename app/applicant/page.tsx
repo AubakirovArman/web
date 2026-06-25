@@ -44,7 +44,7 @@ function appSubtype(app: Application): string {
 }
 
 export default function ApplicantPage() {
-  const { applications, isLoading, loadError, createApplication, deleteApplication, setCurrentId } = useApplications();
+  const { applications, isLoading, loadError, reload, createApplication, deleteApplication, setCurrentId } = useApplications();
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all');
   const [creating, setCreating] = useState(false);
@@ -137,7 +137,13 @@ export default function ApplicantPage() {
 
           {loadError && (
             <Card className="mb-4 border-destructive/40">
-              <CardContent className="py-4 text-sm text-destructive">{loadError}</CardContent>
+              <CardContent className="flex flex-col items-start gap-2 py-4 text-sm">
+                <div className="text-destructive">{loadError}</div>
+                <div className="text-xs text-muted-foreground">Проверьте соединение — на медленном интернете загрузка может занять время.</div>
+                <Button variant="outline" size="sm" onClick={() => reload()}>
+                  <Loader2 className="mr-2 h-4 w-4" /> Повторить
+                </Button>
+              </CardContent>
             </Card>
           )}
 
