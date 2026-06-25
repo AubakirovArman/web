@@ -57,10 +57,10 @@ function methodLabel(method: CheckMethod): string {
   return labels[method];
 }
 
-export function StatusBadge({ status }: { status: ReviewStatus }) {
+export function StatusBadge({ status, verbose = false }: { status: ReviewStatus; verbose?: boolean }) {
   const labels = {
-    passed: 'Прошёл',
-    failed: 'Не прошёл',
+    passed: verbose ? 'Проверка пройдена' : 'Прошёл',
+    failed: verbose ? 'Проверка не пройдена' : 'Не прошёл',
     warning: 'Предупреждение',
     skipped: 'Не применимо',
   };

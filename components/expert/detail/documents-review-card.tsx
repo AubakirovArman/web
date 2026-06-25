@@ -119,7 +119,7 @@ export function DocumentsReviewCard({
                     )}
                   </td>
                   <td className="px-2 py-3 align-top">
-                    {loaded ? <StatusBadge status={stageOverall} /> : <span className="text-xs text-muted-foreground">—</span>}
+                    {loaded ? <StatusBadge status={stageOverall} verbose /> : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
                   <td className="px-2 py-3 text-right align-top">
                     <Button variant="outline" size="sm" className="px-2" onClick={() => onOpenRow(row)}>
