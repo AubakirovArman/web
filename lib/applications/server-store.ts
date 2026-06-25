@@ -49,28 +49,18 @@ export async function readApplicationSummaries(): Promise<Application[]> {
 }
 
 function stripApplicationHeavyFields(app: Application): Application {
-  const next: Application = { ...app };
-
-  if (Array.isArray(app.files) && app.files.length > 0) {
-    next.files = app.files.map((file) => {
+  if (!Array.isArray(app.files) || app.files.length === 0) return app;
+  return {
+    ...app,
+    files: app.files.map((file) => {
       // Для списка не нужны тяжёлые поля файла: извлечённый текст, inline-url
       // и результаты NPA-проверок (большие массивы). Полные данные — в detail.
+      // ВАЖНО: findings НЕ урезаем — карточка эксперта рендерит заявку из провайдера
+      // (списка) до подгрузки detail и обращается к finding.documents/evidence.
       const { extracted: _extracted, url: _url, npaRequirementResults: _npa, ...rest } = file;
       return rest;
-    });
-  }
-
-  // Findings — это ВЫХОД проверок (движок пересоздаёт их из файлов, не читает как
-  // вход), поэтому в списке достаточно id + severity (счётчики и фильтр «без замечаний»).
-  // Полный текст/доказательства приходят в detail. Форма массива сохранена → безопасно;
-  // на медленном канале это заметно облегчает список.
-  if (Array.isArray(app.findings) && app.findings.length > 0) {
-    next.findings = app.findings.map(
-      (finding) => ({ id: finding.id, severity: finding.severity }),
-    ) as unknown as Application['findings'];
-  }
-
-  return next;
+    }),
+  };
 }
 
 export async function readApplicationById(id: string): Promise<Application | null> {
