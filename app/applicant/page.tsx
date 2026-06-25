@@ -9,7 +9,8 @@ import { useApplications } from '@/lib/hooks/useApplications';
 import { Application } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusLabels: Record<Application['status'], string> = {
@@ -38,6 +39,10 @@ function appTitle(app: Application): string {
   );
 }
 
+function appSubtype(app: Application): string {
+  return (app.values?.['param-object-type'] as string) === 'MI' ? 'МИ' : 'ЛС';
+}
+
 export default function ApplicantPage() {
   const { applications, isLoading, loadError, createApplication, deleteApplication, setCurrentId } = useApplications();
   const router = useRouter();
@@ -52,7 +57,15 @@ export default function ApplicantPage() {
     [applications, statusFilter],
   );
 
-  const draftCount = applications.filter((a) => a.status === 'draft').length;
+  const metrics = useMemo(() => {
+    const by = (s: Application['status']) => applications.filter((a) => a.status === s).length;
+    return {
+      draft: by('draft'),
+      submitted: by('submitted'),
+      inWork: applications.filter((a) => ['checking', 'checked', 'expert-review'].includes(a.status)).length,
+      total: applications.length,
+    };
+  }, [applications]);
 
   const handleCreate = () => {
     setCreating(true);
@@ -77,26 +90,41 @@ export default function ApplicantPage() {
   return (
     <div className="flex min-h-screen">
       <SiteHeader />
-      <main className="flex-1 bg-muted/20 py-6">
-        <div className="mx-auto w-full max-w-5xl px-3 sm:px-4">
+      <main className="min-w-0 flex-1 bg-muted/20">
+        <div className="w-full px-4 py-4">
           <FadeIn>
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Мои заявки</h1>
+                <h1 className="text-xl font-semibold tracking-tight">Мои заявки</h1>
                 <p className="text-sm text-muted-foreground">
                   Создавайте новые заявки, продолжайте черновики и открывайте отправленные.
                 </p>
               </div>
-              <Button onClick={handleCreate} disabled={creating}>
+              <Button size="sm" onClick={handleCreate} disabled={creating}>
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                 Создать заявку
               </Button>
             </div>
           </FadeIn>
 
-          <div className="mb-4 flex items-center gap-3">
+          {/* KPI */}
+          <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Черновики', value: metrics.draft, tone: '' },
+              { label: 'Поданы', value: metrics.submitted, tone: '' },
+              { label: 'В работе', value: metrics.inWork, tone: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Всего', value: metrics.total, tone: '' },
+            ].map((m) => (
+              <div key={m.label} className="rounded-lg border bg-card px-3 py-2.5">
+                <div className={`text-2xl font-semibold leading-none tabular-nums ${m.tone}`}>{m.value}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{m.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-3 flex items-center gap-3">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as Application['status'] | 'all')}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все статусы ({applications.length})</SelectItem>
                 {Object.entries(statusLabels).map(([value, label]) => (
@@ -104,7 +132,7 @@ export default function ApplicantPage() {
                 ))}
               </SelectContent>
             </Select>
-            {draftCount > 0 && <span className="text-sm text-muted-foreground">Черновиков: {draftCount}</span>}
+            {metrics.draft > 0 && <span className="text-sm text-muted-foreground">Черновиков: {metrics.draft}</span>}
           </div>
 
           {loadError && (
@@ -115,7 +143,7 @@ export default function ApplicantPage() {
 
           {isLoading ? (
             <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />)}
+              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded bg-muted" />)}
             </div>
           ) : rows.length === 0 ? (
             <Card>
@@ -131,40 +159,56 @@ export default function ApplicantPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {rows.map((app) => (
-                <Card key={app.id} className="transition-colors hover:bg-muted/40">
-                  <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 py-3">
-                    <button onClick={() => handleOpen(app)} className="min-w-0 flex-1 text-left">
-                      <CardTitle className="truncate text-base">{appTitle(app)}</CardTitle>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>{(app.values?.['param-object-type'] as string) === 'MI' ? 'МИ' : 'ЛС'}</span>
-                        <span>·</span>
-                        <span>{app.files.length} файлов</span>
-                        <span>·</span>
-                        <span>{new Date(app.createdAt).toLocaleString('ru-KZ')}</span>
-                      </div>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Badge variant={statusVariant[app.status]}>{statusLabels[app.status]}</Badge>
-                      <Button variant="outline" size="sm" onClick={() => handleOpen(app)}>
-                        {app.status === 'draft' ? 'Продолжить' : 'Открыть'}
-                      </Button>
-                      {app.status === 'draft' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(app)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span className="sr-only">Удалить</span>
-                        </Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
+            <div className="overflow-hidden rounded-lg border bg-card">
+              <Table className="text-sm">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-9 px-3">Наименование</TableHead>
+                    <TableHead className="h-9 w-16 px-3">Объект</TableHead>
+                    <TableHead className="h-9 w-20 px-3 text-right">Файлов</TableHead>
+                    <TableHead className="h-9 w-44 px-3">Создана</TableHead>
+                    <TableHead className="h-9 w-52 px-3">Статус</TableHead>
+                    <TableHead className="h-9 w-32 px-3 text-right">Действие</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((app) => (
+                    <TableRow
+                      key={app.id}
+                      className="cursor-pointer"
+                      onClick={() => handleOpen(app)}
+                    >
+                      <TableCell className="px-3 py-2 font-medium">{appTitle(app)}</TableCell>
+                      <TableCell className="px-3 py-2 text-muted-foreground">{appSubtype(app)}</TableCell>
+                      <TableCell className="px-3 py-2 text-right tabular-nums">{app.files.length}</TableCell>
+                      <TableCell className="px-3 py-2 tabular-nums text-muted-foreground">
+                        {new Date(app.createdAt).toLocaleDateString('ru-KZ')}
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <Badge variant={statusVariant[app.status]}>{statusLabels[app.status]}</Badge>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" className="h-7" onClick={() => handleOpen(app)}>
+                            {app.status === 'draft' ? 'Продолжить' : 'Открыть'}
+                          </Button>
+                          {app.status === 'draft' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(app)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="sr-only">Удалить</span>
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
