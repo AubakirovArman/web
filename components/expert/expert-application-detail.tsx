@@ -357,7 +357,7 @@ export function ExpertApplicationDetail() {
 
   if (!app) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen">
         <SiteHeader />
         <main className="flex-1 bg-muted/20 py-6">
           <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4">
@@ -389,7 +389,7 @@ export function ExpertApplicationDetail() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen">
       <SiteHeader />
       <main className="flex-1 bg-muted/20 py-6">
         <div className="mx-auto w-full max-w-[1920px] px-2 sm:px-3 lg:px-4">

@@ -6,7 +6,7 @@ import { FileCheck, BrainCircuit, ShieldCheck, Clock, ArrowRight, FlaskConical }
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen">
       <SiteHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden border-b bg-muted/30 py-24 lg:py-32">

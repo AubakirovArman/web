@@ -96,7 +96,7 @@ export default function ReferencePage() {
   }, [listDocs, domainFilter]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen">
       <SiteHeader />
       <main className="flex-1 bg-[radial-gradient(circle_at_top_left,rgba(13,148,136,0.16),transparent_34%),linear-gradient(180deg,#f8fafc,#e2e8f0)] py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.16),transparent_34%),linear-gradient(180deg,#020617,#0f172a)]">
         <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4">

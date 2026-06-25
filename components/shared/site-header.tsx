@@ -1,24 +1,52 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FlaskConical, LogOut, Moon, Sun } from 'lucide-react';
+import {
+  BookOpen,
+  ClipboardList,
+  FilePlus2,
+  FlaskConical,
+  LogOut,
+  MessageSquare,
+  Microscope,
+  Moon,
+  SlidersHorizontal,
+  Sun,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const NAV: Array<{ href: string; label: string; roles: string[] }> = [
-  { href: '/applicant', label: 'Заявитель', roles: ['applicant', 'admin', 'expert'] },
-  { href: '/expert', label: 'Эксперт', roles: ['expert', 'admin'] },
-  { href: '/reference', label: 'Справочник', roles: ['expert', 'admin'] },
-  { href: '/chat', label: 'Чат', roles: ['applicant', 'expert', 'admin'] },
-  { href: '/admin', label: 'Админ', roles: ['admin'] },
+type NavItem = { href: string; label: string; icon: typeof ClipboardList; roles: string[] };
+
+const NAV_GROUPS: Array<{ group: string; items: NavItem[] }> = [
+  {
+    group: 'Работа',
+    items: [
+      { href: '/applicant', label: 'Мои заявки', icon: ClipboardList, roles: ['applicant', 'admin', 'expert'] },
+      { href: '/wizard', label: 'Создать заявку', icon: FilePlus2, roles: ['applicant', 'admin', 'expert'] },
+      { href: '/expert', label: 'Эксперт', icon: Microscope, roles: ['expert', 'admin'] },
+      { href: '/reference', label: 'Справочник', icon: BookOpen, roles: ['expert', 'admin'] },
+      { href: '/chat', label: 'Чат', icon: MessageSquare, roles: ['applicant', 'expert', 'admin'] },
+    ],
+  },
+  {
+    group: 'Система',
+    items: [{ href: '/admin', label: 'Админ', icon: SlidersHorizontal, roles: ['admin'] }],
+  },
 ];
 
 const roleLabels: Record<string, string> = { applicant: 'Заявитель', expert: 'Эксперт', admin: 'Администратор' };
 
+/**
+ * Боковая навигация приложения (рабочая консоль).
+ * Имя SiteHeader сохранено для обратной совместимости со всеми страницами.
+ */
 export function SiteHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<{ role: string; name: string } | null>(null);
@@ -37,48 +65,81 @@ export function SiteHeader() {
     router.refresh();
   };
 
-  const visibleNav = user ? NAV.filter((item) => item.roles.includes(user.role)) : [];
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <FlaskConical className="h-5 w-5" />
+    <aside className="sticky top-0 z-40 hidden h-screen w-56 shrink-0 flex-col self-start border-r bg-background md:flex">
+      <Link href="/" className="flex items-center gap-2 border-b px-4 py-3 text-base font-semibold tracking-tight">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <FlaskConical className="h-4 w-4" />
+        </div>
+        <span>
+          NDDA <span className="text-primary">AI</span>
+        </span>
+      </Link>
+
+      <nav className="flex-1 overflow-y-auto px-2 py-1">
+        {NAV_GROUPS.map((group) => {
+          const items = user ? group.items.filter((item) => item.roles.includes(user.role)) : [];
+          if (items.length === 0) return null;
+          return (
+            <div key={group.group} className="mb-1">
+              <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.group}
+              </div>
+              {items.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+                      active
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
+      </nav>
+
+      <div className="border-t p-2">
+        {user && (
+          <div className="flex items-center gap-2 px-1 py-1.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              {(user.name || '?').slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium">{user.name}</div>
+              <div className="truncate text-[11px] text-muted-foreground">{roleLabels[user.role] || user.role}</div>
+            </div>
           </div>
-          <span>NDDA AI</span>
-        </Link>
-
-        <nav className="hidden items-center gap-1 md:flex">
-          {visibleNav.map((item) => (
-            <Button key={item.href} variant="ghost" asChild>
-              <Link href={item.href}>{item.label}</Link>
-            </Button>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          {user && (
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {user.name} · {roleLabels[user.role] || user.role}
-            </span>
-          )}
+        )}
+        <div className="mt-1 flex items-center gap-1">
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
+            className="h-8 flex-1 justify-start px-2 text-muted-foreground"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            aria-label="Переключить тему"
           >
-            {mounted && resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {mounted && resolvedTheme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+            Тема
           </Button>
           {user && (
-            <Button variant="ghost" size="sm" onClick={logout} aria-label="Выйти">
-              <LogOut className="mr-1 h-4 w-4" />
-              Выйти
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={logout} aria-label="Выйти">
+              <LogOut className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
-    </header>
+    </aside>
   );
 }
