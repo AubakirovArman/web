@@ -233,7 +233,7 @@ function isContentCheck(check: ReviewCheckCell) {
   return check.id.startsWith('npa-requirement-') || check.id.startsWith('fallback-gemma-');
 }
 
-const GROUP_GRID = 'lg:grid-cols-[minmax(200px,1fr)_110px_minmax(260px,1.2fr)_minmax(240px,1fr)_minmax(300px,1.1fr)]';
+const GROUP_GRID = 'lg:grid-cols-[minmax(200px,1fr)_150px_minmax(260px,1.2fr)_minmax(240px,1fr)_minmax(300px,1.1fr)]';
 
 function ChecksGroup({
   title,
