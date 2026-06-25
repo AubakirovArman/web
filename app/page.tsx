@@ -1,116 +1,91 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/shared/site-header';
 import { FadeIn, SlideIn, Stagger, StaggerItem } from '@/components/shared/motion';
-import { FileCheck, BrainCircuit, ShieldCheck, Clock, ArrowRight, FlaskConical } from 'lucide-react';
+import { FileCheck, BrainCircuit, ShieldCheck, Clock, FlaskConical } from 'lucide-react';
 
 export default function HomePage() {
   return (
     <div className="flex min-h-screen">
       <SiteHeader />
-      <main className="flex-1">
-        <section className="relative overflow-hidden border-b bg-muted/30 py-24 lg:py-32">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl text-center">
-              <FadeIn>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm">
-                  <FlaskConical className="h-4 w-4" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="flex-1">
+          {/* Герой — на всю ширину, выровнен по левому краю */}
+          <section className="border-b bg-muted/30 px-6 py-10 lg:py-14">
+            <FadeIn>
+              <div className="max-w-3xl">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+                  <FlaskConical className="h-3.5 w-3.5 text-primary" />
                   <span>MVP для фармацевтической экспертизы</span>
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
                   Предэкспертиза регистрационного досье с помощью ИИ
                 </h1>
-                <p className="mt-6 text-lg text-muted-foreground">
-                  Автоматическая проверка комплектности документов, выявление расхождений между файлами и ссылками на НПА
-                  до передачи дела эксперту.
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                  Система автоматически проверяет комплектность документов, сверяет данные между файлами и
+                  сопоставляет их с требованиями НПА — выявляя расхождения до передачи дела эксперту.
                 </p>
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                  <Button asChild size="lg">
-                    <Link href="/wizard">
-                      Создать заявку
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild size="lg">
-                    <Link href="/expert">Кабинет эксперта</Link>
-                  </Button>
-                  <Button variant="secondary" asChild size="lg">
-                    <Link href="/demo">Сгенерировать демо и прогнать проверки</Link>
-                  </Button>
-                </div>
-              </FadeIn>
-            </div>
-          </div>
-        </section>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Начните работу через меню слева: <span className="font-medium text-foreground">«Создать заявку»</span> —
+                  для заявителя, <span className="font-medium text-foreground">«Эксперт»</span> — для экспертизы дел.
+                </p>
+              </div>
+            </FadeIn>
+          </section>
 
-        <section className="py-20 lg:py-28">
-          <div className="container mx-auto px-4">
-            <SlideIn className="mb-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tight">Что делает система</h2>
-              <p className="mt-4 text-muted-foreground">Проверяет заявку по правилам, основанным на нормативных актах ЕАЭС и РК</p>
+          {/* Возможности */}
+          <section className="px-6 py-8">
+            <SlideIn className="mb-5">
+              <h2 className="text-lg font-semibold tracking-tight">Что делает система</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Проверяет заявку по правилам на основе нормативных актов ЕАЭС и РК.
+              </p>
             </SlideIn>
-            <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StaggerItem className="h-full">
                 <FeatureCard
-                  icon={<FileCheck className="h-6 w-6" />}
+                  icon={<FileCheck className="h-5 w-5" />}
                   title="Комплектность"
-                  description="Определяет обязательный пакет документов по типу процедуры, продукта и параметрам."
+                  description="Определяет обязательный пакет документов по типу процедуры, продукта и параметрам заявки."
                 />
               </StaggerItem>
               <StaggerItem className="h-full">
                 <FeatureCard
-                  icon={<BrainCircuit className="h-6 w-6" />}
+                  icon={<BrainCircuit className="h-5 w-5" />}
                   title="ИИ-проверка"
-                  description="Извлекает факты из PDF и DOCX, ищет расхождения сроков годности, условий хранения, адресов."
+                  description="Извлекает факты из PDF и DOCX, ищет расхождения сроков годности, условий хранения и адресов."
                 />
               </StaggerItem>
               <StaggerItem className="h-full">
                 <FeatureCard
-                  icon={<ShieldCheck className="h-6 w-6" />}
+                  icon={<ShieldCheck className="h-5 w-5" />}
                   title="НПА-ориентир"
                   description="Каждое замечание сопровождается ссылкой на нормативный документ и рекомендацией."
                 />
               </StaggerItem>
               <StaggerItem className="h-full">
                 <FeatureCard
-                  icon={<Clock className="h-6 w-6" />}
+                  icon={<Clock className="h-5 w-5" />}
                   title="Экономия времени"
                   description="Заявитель видит замечания до подачи, эксперт получает предварительный протокол."
                 />
               </StaggerItem>
             </Stagger>
-          </div>
-        </section>
+          </section>
+        </main>
 
-        <section className="border-t bg-muted/30 py-20">
-          <div className="container mx-auto px-4">
-            <SlideIn className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight">Начните с демо-сценария</h2>
-              <p className="mt-4 text-muted-foreground">
-                Откройте кабинет заявителя и посмотрите, как система проверит generic-препарат в таблетках 500 мг.
-              </p>
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/wizard">Перейти к заявке</Link>
-              </Button>
-            </SlideIn>
-          </div>
-        </section>
-      </main>
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <footer className="border-t px-6 py-4 text-xs text-muted-foreground">
           NDDA AI — MVP предэкспертизы регистрационного досье. Данные хранятся в защищённой базе данных.
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</div>
-      <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{description}</p>
+    <div className="flex h-full flex-col rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
     </div>
   );
 }
