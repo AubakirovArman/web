@@ -271,8 +271,8 @@ export default function WizardPage() {
   return (
     <div className="flex min-h-screen">
       <SiteHeader />
-      <main className="flex-1 bg-muted/20 py-8">
-        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4">
+      <main className="min-w-0 flex-1 bg-muted/20 py-4">
+        <div className="w-full px-4">
           {!app ? (
             <FadeIn>
               <div className="flex min-h-[60vh] items-center justify-center">
@@ -289,9 +289,9 @@ export default function WizardPage() {
           ) : (
             <>
               <FadeIn>
-                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Создание заявки</h1>
+                    <h1 className="text-xl font-semibold tracking-tight">Создание заявки</h1>
                     <p className="text-sm text-muted-foreground">
                       {app.values['param-object-type'] === 'MI'
                         ? 'Медицинское изделие'
@@ -308,7 +308,7 @@ export default function WizardPage() {
                 </div>
               </FadeIn>
 
-              <div className="mb-8 grid grid-cols-3 gap-2">
+              <div className="mb-4 grid grid-cols-3 gap-2">
                 {steps.map((s, i) => {
                   const Icon = s.icon;
                   const active = i === step;
@@ -319,7 +319,7 @@ export default function WizardPage() {
                       data-testid={`wizard-step-${s.id}`}
                       aria-label={`Перейти к разделу ${s.title}`}
                       onClick={() => handleStepChange(i)}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition-colors ${
+                      className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                         active
                           ? 'border-primary bg-primary text-primary-foreground'
                           : done
@@ -378,7 +378,7 @@ export default function WizardPage() {
                 </motion.div>
               </AnimatePresence>
 
-              <div className="mt-8 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between">
                 <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Назад
