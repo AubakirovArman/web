@@ -335,15 +335,69 @@ function DecisionControl({
   decision?: ExpertCheckDecision;
   onChange: (decision: ExpertCheckDecision | null) => void;
 }) {
+  const isBinary = checkStatus === 'passed' || checkStatus === 'failed';
+  // Комментарий обязателен, когда эксперт НЕ согласен с авто-итогом
+  // (binary: выбранный статус ≠ авто-итогу) либо вручную помечает проверку непройденной.
+  const requiresComment = (status: 'passed' | 'failed') =>
+    isBinary ? status !== checkStatus : status === 'failed';
+
   const [comment, setComment] = useState(decision?.comment || '');
+  const [draftStatus, setDraftStatus] = useState<'passed' | 'failed' | null>(null);
   useEffect(() => {
     setComment(decision?.comment || '');
+    setDraftStatus(null);
   }, [decision?.comment, decision?.status]);
 
-  const isBinary = checkStatus === 'passed' || checkStatus === 'failed';
-  const opposite: 'passed' | 'failed' = checkStatus === 'passed' ? 'failed' : 'passed';
-  const apply = (status: 'passed' | 'failed') =>
-    onChange({ status, comment: comment.trim() || undefined, decidedAt: new Date().toISOString() });
+  const options: Array<{ status: 'passed' | 'failed'; label: string }> = isBinary
+    ? [
+        { status: checkStatus, label: 'Согласен' },
+        { status: checkStatus === 'passed' ? 'failed' : 'passed', label: 'Не согласен' },
+      ]
+    : [
+        { status: 'passed', label: 'Прошёл' },
+        { status: 'failed', label: 'Не прошёл' },
+      ];
+
+  const selectedStatus = draftStatus ?? decision?.status ?? null;
+  const showComment = selectedStatus != null && requiresComment(selectedStatus);
+  const commentInvalid = showComment && comment.trim().length === 0;
+
+  const choose = (status: 'passed' | 'failed') => {
+    if (requiresComment(status)) {
+      // «Не согласен»/«Не прошёл» — нужен обязательный комментарий: показываем поле,
+      // сохраняем только если комментарий уже введён.
+      setDraftStatus(status);
+      if (comment.trim()) {
+        onChange({ status, comment: comment.trim(), decidedAt: new Date().toISOString() });
+      }
+    } else {
+      // «Согласен»/«Прошёл» — поле не нужно, сохраняем сразу.
+      setDraftStatus(null);
+      onChange({ status, comment: undefined, decidedAt: new Date().toISOString() });
+    }
+  };
+
+  const save = () => {
+    const status = draftStatus ?? decision?.status;
+    if (!status) return;
+    if (requiresComment(status) && !comment.trim()) return;
+    onChange({
+      status,
+      comment: requiresComment(status) ? comment.trim() : comment.trim() || undefined,
+      decidedAt: new Date().toISOString(),
+    });
+    setDraftStatus(null);
+  };
+
+  const decisionLabel = !decision
+    ? ''
+    : isBinary
+      ? decision.status === checkStatus
+        ? 'Согласен'
+        : 'Не согласен'
+      : decision.status === 'passed'
+        ? 'Прошёл'
+        : 'Не прошёл';
 
   return (
     <div className="space-y-2">
@@ -351,65 +405,48 @@ function DecisionControl({
         <div className="flex items-center gap-2 text-xs">
           <span className="text-muted-foreground">Решение:</span>
           <span className={`font-medium ${decision.status === 'passed' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-            {decision.status === 'passed' ? 'Прошёл' : 'Не прошёл'}
+            {decisionLabel}
           </span>
-          <button type="button" className="ml-auto text-muted-foreground underline hover:text-foreground" onClick={() => onChange(null)}>
+          <button
+            type="button"
+            className="ml-auto text-muted-foreground underline hover:text-foreground"
+            onClick={() => {
+              setDraftStatus(null);
+              setComment('');
+              onChange(null);
+            }}
+          >
             сбросить
           </button>
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        {isBinary ? (
-          <>
-            <Button
-              size="sm"
-              variant={decision?.status === checkStatus ? 'default' : 'outline'}
-              className="h-7 px-2 text-xs"
-              onClick={() => apply(checkStatus)}
-            >
-              Принять
-            </Button>
-            <Button
-              size="sm"
-              variant={decision?.status === opposite ? 'default' : 'outline'}
-              className="h-7 px-2 text-xs"
-              onClick={() => apply(opposite)}
-            >
-              Отменить
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              size="sm"
-              variant={decision?.status === 'passed' ? 'default' : 'outline'}
-              className="h-7 px-2 text-xs"
-              onClick={() => apply('passed')}
-            >
-              Прошёл
-            </Button>
-            <Button
-              size="sm"
-              variant={decision?.status === 'failed' ? 'default' : 'outline'}
-              className="h-7 px-2 text-xs"
-              onClick={() => apply('failed')}
-            >
-              Не прошёл
-            </Button>
-          </>
-        )}
+        {options.map((opt) => (
+          <Button
+            key={opt.status}
+            size="sm"
+            variant={selectedStatus === opt.status ? 'default' : 'outline'}
+            className="h-7 px-2 text-xs"
+            onClick={() => choose(opt.status)}
+          >
+            {opt.label}
+          </Button>
+        ))}
       </div>
-      <Textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Комментарий эксперта"
-        rows={2}
-        className="min-h-0 text-xs"
-      />
-      {decision && comment.trim() !== (decision.comment || '') && (
-        <Button size="sm" variant="secondary" className="h-7 px-2 text-xs" onClick={() => apply(decision.status)}>
-          Сохранить комментарий
-        </Button>
+      {showComment && (
+        <div className="space-y-1">
+          <Textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Причина несогласия (обязательно)"
+            rows={2}
+            className={`min-h-0 text-xs ${commentInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+          />
+          {commentInvalid && <p className="text-[11px] text-destructive">Комментарий обязателен — укажите причину.</p>}
+          <Button size="sm" variant="secondary" className="h-7 px-2 text-xs" disabled={commentInvalid} onClick={save}>
+            Сохранить
+          </Button>
+        </div>
       )}
     </div>
   );
