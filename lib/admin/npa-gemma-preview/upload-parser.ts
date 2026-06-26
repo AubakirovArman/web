@@ -13,12 +13,17 @@ export function stringFormValue(value: FormDataEntryValue | null) {
 export async function parseUploadedNpaFile(buffer: Buffer, fileName: string, metadata: UploadedNpaMetadata = {}): Promise<StructuredNpaDocument> {
   const safeName = path.basename(fileName || 'uploaded-npa.docx');
   const ext = path.extname(safeName).toLowerCase();
-  if (!['.doc', '.docx', '.pdf'].includes(ext)) throw new Error('Поддерживаются только файлы .doc, .docx и .pdf');
+  if (!['.doc', '.docx', '.pdf', '.md', '.markdown', '.txt'].includes(ext)) {
+    throw new Error('Поддерживаются только файлы .doc, .docx, .pdf, .md, .txt');
+  }
 
   let text = '';
   if (ext === '.pdf') {
     const raw = await pdfParse(buffer);
     text = normalizeExtractedText(raw.text || '');
+  } else if (ext === '.md' || ext === '.markdown' || ext === '.txt') {
+    // Уже извлечённый текст/markdown — читаем как есть.
+    text = normalizeExtractedText(buffer.toString('utf8'));
   } else {
     const docxBuffer = ext === '.doc' ? convertDocToDocx(buffer, safeName) : buffer;
     const raw = await mammoth.extractRawText({ buffer: docxBuffer });
