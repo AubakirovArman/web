@@ -1005,6 +1005,9 @@ function extractCheckProfileRequirements(conditionJson: unknown): GemmaCheckRequ
         failureCriteria: s(c?.failure_criteria),
         applicabilityCondition: s(c?.applicability_condition ?? c?.condition),
         sourceReference: s(c?.source_reference),
+        sourceScope: s(c?.source_scope),
+        npaId: s(c?.npa_id),
+        npaRequirementId: s(c?.npa_requirement_id),
         path: { array: `document_check_profile.${arrayName}`, index },
       });
     });

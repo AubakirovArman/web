@@ -26,6 +26,11 @@ export interface GemmaCheckRequirement {
   failureCriteria?: string;
   applicabilityCondition?: string;
   sourceReference?: string;
+  /** 'npa' — требование добавлено привязкой из реестра НПА; иначе родное требование типа документа. */
+  sourceScope?: string;
+  /** id акта НПА, из которого пришло требование (если sourceScope='npa'). */
+  npaId?: string;
+  npaRequirementId?: string;
   /** Путь в condition_json для будущей записи правок. */
   path?: { array: string; index: number };
 }

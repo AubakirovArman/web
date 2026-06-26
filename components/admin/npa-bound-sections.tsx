@@ -99,10 +99,10 @@ export function NpaBoundSections({
           return (
             <div key={id} className="rounded-xl border p-3">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="font-medium">{detail?.name || doc?.name || id}</span>
-                <Badge variant="outline" className="font-mono text-[11px]">
-                  {id}
+                <Badge variant="outline" className="font-mono text-[11px] font-semibold">
+                  {doc?.docCode || id}
                 </Badge>
+                <span className="font-medium">{detail?.name || doc?.name || id}</span>
                 <Badge variant="secondary">{boundCount} привязано из этого НПА</Badge>
               </div>
               {detail ? (

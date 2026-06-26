@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { Link2, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,43 +72,74 @@ export function CheckProfileRequirementsEditor({
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
         Gemma читает загруженный документ и по каждому требованию ставит «пройдено / не пройдено / неприменимо».
-        Текст требования — это инструкция, которую выполняет Gemma. Правки сохраняются в профиль проверки и
+        Текст требования — это инструкция, которую выполняет Gemma. Под каждым требованием показано, к чему оно
+        привязано (источник НПА / пункт, критичность, условие применения). Правки сохраняются в профиль проверки и
         применяются при следующей проверке заявки.
       </p>
 
       <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row._localId} className="flex flex-col gap-2 rounded-lg border bg-card p-2 sm:flex-row sm:items-start">
-            <Select value={row.kind} onValueChange={(value) => update(row._localId, { kind: value as Row['kind'] })}>
-              <SelectTrigger className="h-9 w-full sm:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(KIND_LABEL) as GemmaCheckRequirement['kind'][]).map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {KIND_LABEL[k]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Textarea
-              value={row.text}
-              onChange={(event) => update(row._localId, { text: event.target.value })}
-              rows={2}
-              className="min-h-0 flex-1 text-sm"
-              placeholder="Текст требования (инструкция для Gemma)"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
-              onClick={() => remove(row._localId)}
-              aria-label="Удалить требование"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
+        {rows.map((row) => {
+          const meta = [
+            row.criticality ? { label: 'Критичность', value: row.criticality } : null,
+            row.applicabilityCondition ? { label: 'Когда применяется', value: row.applicabilityCondition } : null,
+            row.sourceReference ? { label: 'Источник (НПА / пункт)', value: row.sourceReference } : null,
+          ].filter(Boolean) as Array<{ label: string; value: string }>;
+          const fromNpa = row.sourceScope === 'npa';
+          return (
+            <div key={row._localId} className="rounded-lg border bg-card p-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <Select value={row.kind} onValueChange={(value) => update(row._localId, { kind: value as Row['kind'] })}>
+                  <SelectTrigger className="h-9 w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(KIND_LABEL) as GemmaCheckRequirement['kind'][]).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {KIND_LABEL[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  value={row.text}
+                  onChange={(event) => update(row._localId, { text: event.target.value })}
+                  rows={2}
+                  className="min-h-0 flex-1 text-sm"
+                  placeholder="Текст требования (инструкция для Gemma)"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                  onClick={() => remove(row._localId)}
+                  aria-label="Удалить требование"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              {(meta.length > 0 || fromNpa) && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-1 text-xs text-muted-foreground sm:pl-[10.5rem]">
+                  {fromNpa && (
+                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                      <Link2 className="h-3.5 w-3.5" />
+                      Привязано из НПА
+                      {row.npaId && (
+                        <Badge variant="outline" className="ml-1 font-mono text-[10px]">
+                          {row.npaId}
+                        </Badge>
+                      )}
+                    </span>
+                  )}
+                  {meta.map((m) => (
+                    <span key={m.label}>
+                      <span className="text-muted-foreground/70">{m.label}:</span> {m.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {rows.length === 0 && (
           <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
             Требований нет. Добавьте первое.

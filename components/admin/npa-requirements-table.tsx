@@ -77,31 +77,52 @@ export function NpaRequirementsTable({
               <td className="px-3 py-3 align-top">
                 {readonly && !editableTarget ? (
                   <div className="text-xs">
-                    <div className="font-medium">{targetDocument?.name || requirement.targetDocumentTypeId || 'Не привязано'}</div>
-                    {requirement.targetDocumentTypeId && (
-                      <div className="mt-1 font-mono text-[11px] text-muted-foreground">{requirement.targetDocumentTypeId}</div>
+                    {requirement.targetDocumentTypeId ? (
+                      <>
+                        <div className="font-mono font-semibold">{targetDocument?.docCode || requirement.targetDocumentTypeId}</div>
+                        {targetDocument?.name && <div className="mt-0.5 line-clamp-2 text-muted-foreground">{targetDocument.name}</div>}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Не привязано</span>
                     )}
                   </div>
                 ) : (
-                  <Select
-                    value={requirement.targetDocumentTypeId || 'none'}
-                    onValueChange={(value) => onTargetDocumentTypeChange?.(requirement.id, value === 'none' ? '' : value)}
-                  >
-                    <SelectTrigger className="h-auto min-h-9 w-full">
-                      <SelectValue placeholder="Выбрать тип" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Не привязывать</SelectItem>
-                      {documentTypes
-                        .filter((doc) => doc.direction === 'LS' || doc.direction === 'MI' || doc.direction === 'both')
-                        .slice(0, 500)
-                        .map((doc) => (
-                          <SelectItem key={doc.id} value={doc.id}>
-                            {doc.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1">
+                    <Select
+                      value={requirement.targetDocumentTypeId || 'none'}
+                      onValueChange={(value) => onTargetDocumentTypeChange?.(requirement.id, value === 'none' ? '' : value)}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <span className="truncate text-left">
+                          {requirement.targetDocumentTypeId ? (
+                            <span className="font-mono font-semibold">{targetDocument?.docCode || requirement.targetDocumentTypeId}</span>
+                          ) : (
+                            <span className="text-muted-foreground">Не привязано</span>
+                          )}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-80">
+                        <SelectItem value="none">Не привязывать</SelectItem>
+                        {documentTypes
+                          .filter((doc) => doc.direction === 'LS' || doc.direction === 'MI' || doc.direction === 'both')
+                          .slice()
+                          .sort((a, b) =>
+                            (a.docCode || a.id).localeCompare(b.docCode || b.id, 'ru', { numeric: true }),
+                          )
+                          .map((doc) => (
+                            <SelectItem key={doc.id} value={doc.id}>
+                              <span className="font-mono font-semibold">{doc.docCode || '—'}</span>
+                              <span className="ml-2 text-muted-foreground">{doc.name.length > 48 ? `${doc.name.slice(0, 48)}…` : doc.name}</span>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {requirement.targetDocumentTypeId && targetDocument?.name && (
+                      <div className="line-clamp-1 text-[11px] text-muted-foreground" title={targetDocument.name}>
+                        {targetDocument.name}
+                      </div>
+                    )}
+                  </div>
                 )}
               </td>
               <td className="px-3 py-3 align-top">
