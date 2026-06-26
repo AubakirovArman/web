@@ -1,17 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import type { DocumentType } from '@/lib/types';
 
 /**
- * Поисковый выбор раздела типа документа по КОДУ (эксперт знает коды наизусть).
- * Построен на Popover + Input + ScrollArea (cmdk в проекте нет).
+ * Выбор раздела типа документа по КОДУ (эксперт знает коды наизусть).
+ * Модальное окно с крупным поиском и прокручиваемым списком — не вылезает за экран.
  */
 export function DocumentTypeCombobox({
   documentTypes,
@@ -65,54 +70,71 @@ export function DocumentTypeCombobox({
     <button
       type="button"
       onClick={() => choose(doc.id)}
-      className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+      className="flex w-full items-start gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
     >
-      <span className="mt-0.5 w-14 shrink-0 font-mono text-xs font-semibold">{doc.docCode || '—'}</span>
+      <span className="mt-0.5 w-16 shrink-0 font-mono text-xs font-semibold">{doc.docCode || '—'}</span>
       <span className="flex-1 leading-snug">{doc.name}</span>
       {value === doc.id && <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />}
     </button>
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-1">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setQuery('');
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8">
           {triggerLabel}
-          <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-[28rem] p-0">
-        <div className="flex items-center gap-2 border-b px-2.5 py-2">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <Input
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Код или название раздела (напр. 1.1)"
-            className="h-7 border-0 px-0 shadow-none focus-visible:ring-0"
-          />
-        </div>
-        <ScrollArea className="max-h-72">
-          <div className="p-1.5">
-            {recent.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Уже привязаны в этом НПА
-                </div>
-                {recent.map((doc) => (
-                  <Row key={`recent-${doc.id}`} doc={doc} />
-                ))}
-                <Separator className="my-1.5" />
-              </>
-            )}
-            {filtered.length === 0 ? (
-              <div className="px-2 py-6 text-center text-sm text-muted-foreground">Ничего не найдено</div>
-            ) : (
-              filtered.slice(0, 300).map((doc) => <Row key={doc.id} doc={doc} />)
-            )}
+      </DialogTrigger>
+      <DialogContent className="max-w-xl gap-0 p-0">
+        <DialogHeader className="border-b p-4">
+          <DialogTitle className="text-base">Выбрать раздел типа документа</DialogTitle>
+          <div className="mt-2 flex items-center gap-2 rounded-md border px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Код или название раздела (напр. 1.1)"
+              className="h-10 border-0 px-0 shadow-none focus-visible:ring-0"
+            />
           </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+        </DialogHeader>
+        <div className="max-h-[55vh] overflow-y-auto p-2">
+          {recent.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Уже привязаны в этом НПА
+              </div>
+              {recent.map((doc) => (
+                <Row key={`recent-${doc.id}`} doc={doc} />
+              ))}
+              <Separator className="my-2" />
+            </>
+          )}
+          {filtered.length === 0 ? (
+            <div className="px-2 py-10 text-center text-sm text-muted-foreground">
+              Ничего не найдено по запросу «{query}»
+            </div>
+          ) : (
+            <>
+              {filtered.slice(0, 400).map((doc) => (
+                <Row key={doc.id} doc={doc} />
+              ))}
+              {filtered.length > 400 && (
+                <div className="px-2 py-2 text-center text-xs text-muted-foreground">
+                  Показаны первые 400 — уточните запрос
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
