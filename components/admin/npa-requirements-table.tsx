@@ -15,12 +15,15 @@ export function NpaRequirementsTable({
   requirements,
   documentTypes,
   readonly = false,
+  editableTarget = false,
   onActionChange,
   onTargetDocumentTypeChange,
 }: {
   requirements: AdminNpaRequirement[];
   documentTypes: DocumentType[];
   readonly?: boolean;
+  /** Разрешить менять привязку к типу документа даже в режиме readonly. */
+  editableTarget?: boolean;
   onActionChange?: (requirementId: string, action: NpaRequirementAction) => void;
   onTargetDocumentTypeChange?: (requirementId: string, targetDocumentTypeId: string) => void;
 }) {
@@ -72,7 +75,7 @@ export function NpaRequirementsTable({
                 </div>
               </td>
               <td className="px-3 py-3 align-top">
-                {readonly ? (
+                {readonly && !editableTarget ? (
                   <div className="text-xs">
                     <div className="font-medium">{targetDocument?.name || requirement.targetDocumentTypeId || 'Не привязано'}</div>
                     {requirement.targetDocumentTypeId && (

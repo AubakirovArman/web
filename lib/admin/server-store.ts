@@ -54,6 +54,8 @@ export interface AdminNpaRequirement {
   condition: string;
   quote: string;
   targetDocumentTypeId?: string;
+  /** id записи в document_check_profile привязанного раздела (для двусторонней связи). */
+  targetRequirementId?: string;
 }
 
 export interface AdminNpaRecord {
@@ -174,6 +176,7 @@ function normalizeNpaRequirement(value: unknown, index: number): AdminNpaRequire
     condition: typeof source.condition === 'string' ? source.condition : '',
     quote: typeof source.quote === 'string' ? source.quote : '',
     targetDocumentTypeId: typeof source.targetDocumentTypeId === 'string' ? source.targetDocumentTypeId : undefined,
+    targetRequirementId: typeof source.targetRequirementId === 'string' ? source.targetRequirementId : undefined,
   };
 }
 
@@ -466,6 +469,157 @@ export async function updateCheckProfileRequirements(
     JSON.stringify(nextCj),
   ]);
   return readAdminDocumentTypeDetail(id);
+}
+
+function normalizeCheckTextForMatch(value: unknown): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[«»"'`.,;:()]/g, '')
+    .trim();
+}
+
+// Найти правило (document_requirement_rules) по id типа документа — та же выборка, что и в updateCheckProfileRequirements.
+async function findRuleRowByDocTypeId(id: string): Promise<{ id: string; condition_json: any } | null> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const { rows } = await pool.query<{ id: string; condition_json: any }>(
+    `SELECT id, condition_json FROM document_requirement_rules
+     WHERE scope_object_type='LS' AND scope_procedure='registration' AND active=true
+       AND (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
+     ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Привязать требование из НПА к разделу типа документа: добавить его текст в
+ * document_check_profile.required_checks этого раздела (то, что читает Gemma).
+ * Текст типа документа — мастер: если уже есть запись с совпадающим текстом — связываемся с ней,
+ * дубликат не создаём. Возвращает id записи в профиле (созданной или существующей) либо null.
+ */
+async function addNpaCheckToProfile(
+  docTypeId: string,
+  entryId: string,
+  text: string,
+  npaId: string,
+  npaReqId: string,
+): Promise<string | null> {
+  const row = await findRuleRowByDocTypeId(docTypeId);
+  if (!row) return null;
+  const pool = getRuntimePool();
+  const cj: Record<string, any> = row.condition_json && typeof row.condition_json === 'object' ? row.condition_json : {};
+  const profile: Record<string, any> = cj.document_check_profile && typeof cj.document_check_profile === 'object' ? cj.document_check_profile : {};
+  const required: any[] = Array.isArray(profile.required_checks) ? profile.required_checks : [];
+  const norm = normalizeCheckTextForMatch(text);
+
+  // Текст типа документа — мастер: при совпадении связываемся с существующей записью, не дублируем.
+  const existing = required.find((c) => normalizeCheckTextForMatch(c?.check_text) === norm);
+  if (existing) {
+    if (!existing.id) existing.id = entryId;
+    await pool.query(`UPDATE document_requirement_rules SET condition_json = $2::jsonb WHERE id = $1`, [
+      row.id,
+      JSON.stringify({ ...cj, document_check_profile: { ...profile, required_checks: required } }),
+    ]);
+    return String(existing.id);
+  }
+
+  // Уже привязано этим же НПА-требованием (повторный bind) — обновим текст.
+  const already = required.find((c) => c?.id === entryId);
+  if (already) {
+    already.check_text = text;
+    already.title = text.slice(0, 80);
+    await pool.query(`UPDATE document_requirement_rules SET condition_json = $2::jsonb WHERE id = $1`, [
+      row.id,
+      JSON.stringify({ ...cj, document_check_profile: { ...profile, required_checks: required } }),
+    ]);
+    return entryId;
+  }
+
+  required.push({
+    id: entryId,
+    title: text.slice(0, 80),
+    check_text: text,
+    source_status: 'npa_binding',
+    source_scope: 'npa',
+    npa_id: npaId,
+    npa_requirement_id: npaReqId,
+  });
+  await pool.query(`UPDATE document_requirement_rules SET condition_json = $2::jsonb WHERE id = $1`, [
+    row.id,
+    JSON.stringify({ ...cj, document_check_profile: { ...profile, required_checks: required } }),
+  ]);
+  return entryId;
+}
+
+/**
+ * Снять привязку: удалить из document_check_profile запись, созданную привязкой НПА.
+ * Удаляются только записи source_scope='npa' (родные требования типа документа не трогаем).
+ */
+async function removeNpaCheckFromProfile(docTypeId: string, entryId: string): Promise<void> {
+  const row = await findRuleRowByDocTypeId(docTypeId);
+  if (!row) return;
+  const pool = getRuntimePool();
+  const cj: Record<string, any> = row.condition_json && typeof row.condition_json === 'object' ? row.condition_json : {};
+  const profile: Record<string, any> = cj.document_check_profile && typeof cj.document_check_profile === 'object' ? cj.document_check_profile : {};
+  const arrays = ['required_checks', 'conditional_checks', 'cross_document_checks'] as const;
+  let changed = false;
+  const nextProfile = { ...profile };
+  for (const key of arrays) {
+    const list: any[] = Array.isArray(profile[key]) ? profile[key] : [];
+    const filtered = list.filter((c) => !(c?.id === entryId && c?.source_scope === 'npa'));
+    if (filtered.length !== list.length) changed = true;
+    nextProfile[key] = filtered;
+  }
+  if (!changed) return;
+  await pool.query(`UPDATE document_requirement_rules SET condition_json = $2::jsonb WHERE id = $1`, [
+    row.id,
+    JSON.stringify({ ...cj, document_check_profile: nextProfile }),
+  ]);
+}
+
+/**
+ * Привязать/перепривязать/отвязать требование НПА к разделу типа документа.
+ * targetDocumentTypeId='' (или undefined) — снять привязку.
+ * Синхронизирует document_check_profile (Gemma) и сохраняет связь в реестре НПА.
+ */
+export async function bindNpaRequirementToDocumentType(
+  npaId: string,
+  requirementId: string,
+  targetDocumentTypeId: string,
+): Promise<AdminNpaRecord | null> {
+  const config = await readAdminRuntimeConfig();
+  const registry: AdminNpaRecord[] = Array.isArray((config as any).npaRegistry) ? (config as any).npaRegistry : [];
+  const record = registry.find((item) => item.id === npaId);
+  if (!record) return null;
+  const requirement = record.requirements.find((req) => req.id === requirementId);
+  if (!requirement) return null;
+
+  const prevTargetId = requirement.targetDocumentTypeId;
+  const prevReqId = requirement.targetRequirementId;
+  const nextTargetId = targetDocumentTypeId && targetDocumentTypeId !== 'none' ? targetDocumentTypeId : '';
+
+  // Снять старую привязку (если была и поменялась/убрана).
+  if (prevTargetId && prevReqId && prevTargetId !== nextTargetId) {
+    await removeNpaCheckFromProfile(prevTargetId, prevReqId);
+  }
+
+  if (nextTargetId) {
+    const entryId = `npa-${npaId}-${requirementId}`;
+    const linkedId = await addNpaCheckToProfile(nextTargetId, entryId, requirement.requirement, npaId, requirementId);
+    requirement.targetDocumentTypeId = nextTargetId;
+    requirement.targetRequirementId = linkedId || entryId;
+  } else {
+    // Полная отвязка: убрать запись из текущего раздела.
+    if (prevTargetId && prevReqId) await removeNpaCheckFromProfile(prevTargetId, prevReqId);
+    requirement.targetDocumentTypeId = undefined;
+    requirement.targetRequirementId = undefined;
+  }
+
+  const nextRegistry = registry.map((item) => (item.id === npaId ? record : item));
+  await writeAdminRuntimeConfig({ ...config, npaRegistry: nextRegistry }, 'admin');
+  return record;
 }
 
 export async function deactivateAdminDocumentType(id: string): Promise<boolean> {

@@ -62,5 +62,12 @@ export default function AdminNpaDetailPage() {
     );
   }
 
-  return <NpaRegistryDetail record={record} documentTypes={documentTypes} onBack={() => router.push('/admin/npa')} />;
+  return (
+    <NpaRegistryDetail
+      record={record}
+      documentTypes={documentTypes}
+      onBack={() => router.push('/admin/npa')}
+      onReload={loadRecord}
+    />
+  );
 }

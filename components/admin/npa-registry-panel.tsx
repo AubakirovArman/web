@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +11,7 @@ import type { AdminNpaRecord } from '@/lib/admin/admin-page-types';
 import { formatFileSize } from '@/lib/admin/npa-logic';
 import { EmptyAdminBlock } from '@/components/admin/empty-admin-block';
 import { NpaRequirementsTable } from '@/components/admin/npa-requirements-table';
+import { NpaBoundSections } from '@/components/admin/npa-bound-sections';
 
 export function NpaRegistryPanel({
   records,
@@ -132,7 +135,43 @@ export function NpaRegistryPanel({
   );
 }
 
-export function NpaRegistryDetail({ record, documentTypes, onBack }: { record: AdminNpaRecord; documentTypes: DocumentType[]; onBack: () => void }) {
+export function NpaRegistryDetail({
+  record,
+  documentTypes,
+  onBack,
+  onReload,
+}: {
+  record: AdminNpaRecord;
+  documentTypes: DocumentType[];
+  onBack: () => void;
+  onReload?: () => void;
+}) {
+  const [binding, setBinding] = useState(false);
+  const boundCount = record.requirements.filter((r) => r.targetDocumentTypeId).length;
+
+  const handleBind = async (requirementId: string, targetDocumentTypeId: string) => {
+    setBinding(true);
+    try {
+      const res = await fetch(`/api/admin/npa/${encodeURIComponent(record.id)}/bind`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId, targetDocumentTypeId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить привязку');
+      toast.success(
+        targetDocumentTypeId
+          ? 'Привязано — требование уйдёт в проверку Gemma этого раздела'
+          : 'Привязка снята — требование убрано из проверки раздела',
+      );
+      onReload?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось сохранить привязку');
+    } finally {
+      setBinding(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card className="border-primary/20">
@@ -152,16 +191,35 @@ export function NpaRegistryDetail({ record, documentTypes, onBack }: { record: A
               </div>
             </div>
             <div className="rounded-xl border bg-muted/30 p-3 text-sm">
-              <div className="font-medium">{record.requirements.length} требований</div>
+              <div className="font-medium">{record.requirements.length} требований · {boundCount} привязано</div>
               <div className="text-xs text-muted-foreground">
                 {record.fileName || 'Файл не сохранен'}{record.fileSize ? ` · ${formatFileSize(record.fileSize)}` : ''}
               </div>
             </div>
           </div>
         </CardHeader>
+        <CardContent className="border-t pt-4 text-sm text-muted-foreground">
+          Привяжите требование к разделу типа документа в столбце «Тип документа системы» — его текст уйдёт в
+          проверку Gemma. Дальше редактируйте требования в блоке ниже{binding ? ' · сохраняем…' : ''}.
+        </CardContent>
       </Card>
 
-      <NpaRequirementsTable requirements={record.requirements} documentTypes={documentTypes} readonly />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Извлечённые требования НПА и привязка</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <NpaRequirementsTable
+            requirements={record.requirements}
+            documentTypes={documentTypes}
+            readonly
+            editableTarget
+            onTargetDocumentTypeChange={handleBind}
+          />
+        </CardContent>
+      </Card>
+
+      <NpaBoundSections record={record} documentTypes={documentTypes} onReload={onReload} />
     </div>
   );
 }

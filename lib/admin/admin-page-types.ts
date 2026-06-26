@@ -90,6 +90,8 @@ export interface AdminNpaRequirement {
   condition: string;
   quote: string;
   targetDocumentTypeId?: string;
+  /** id записи в document_check_profile привязанного раздела (двусторонняя связь). */
+  targetRequirementId?: string;
   // Injected when requirements are listed across the whole registry:
   npaId?: string;
   npaName?: string;
