@@ -108,14 +108,13 @@ export function NpaGemmaPreviewDialog({
                       <div>
                         <p className="text-sm font-medium">Сопоставление с нашими типами документов</p>
                         <p className="text-xs text-muted-foreground">
-                          Выберите, к какому типу документа относится найденный блок, затем нажмите заливку.
+                          Привязки необязательны: НПА сохранится со всеми извлечёнными требованиями.
+                          Привязку к типу документа можно задать здесь или позже в разделе «Требования».
+                          {mappedCount ? ` Выбрано привязок: ${mappedCount}.` : ''}
                         </p>
                       </div>
-                      <Button
-                        disabled={!mappedCount}
-                        onClick={() => preview && onApplyMappings(preview, documentMappings)}
-                      >
-                        Залить выбранное
+                      <Button onClick={() => preview && onApplyMappings(preview, documentMappings)}>
+                        Сохранить в реестр
                       </Button>
                     </div>
                     <GemmaDocumentTypeMappingList

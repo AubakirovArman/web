@@ -62,7 +62,22 @@ export default function AdminNpaPage() {
         job={null}
         preview={preview}
         documentTypes={documentTypes}
-        onApplyMappings={() => toast.info('Это предпросмотр анализа. Запись извлечённых требований в правила пока не выполняется.')}
+        onApplyMappings={async (previewResult, mappings) => {
+          try {
+            const res = await fetch('/api/admin/npa', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ preview: previewResult, mappings }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Не удалось сохранить НПА');
+            toast.success(`НПА добавлен в реестр (${data.record?.requirements?.length || 0} требований)`);
+            setPreview(null);
+            loadRecords();
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Не удалось сохранить НПА');
+          }
+        }}
         onClose={() => setPreview(null)}
       />
     </>
