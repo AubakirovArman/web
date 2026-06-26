@@ -1,5 +1,5 @@
 import type { DocumentType, Rule } from '@/lib/types';
-import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
+import type { GemmaCheckRequirement, NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
 import { ensureRuntimeSchema, getRuntimePool, normalizeRuntimeUserId, sanitizeJsonForPostgres } from '@/lib/db/runtime-postgres';
 import { pickConditionPredicate } from '@/lib/rules/condition-evaluator';
 
@@ -557,6 +557,7 @@ function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrde
     validationChecks: asStringArray(rule.validation_checks).join(' | '),
     npaReferences: rule.source_reference ? [rule.source_reference] : undefined,
     requirementSources,
+    checkProfileRequirements: extractCheckProfileRequirements(rule.condition_json),
     checkIds: ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'],
     linkedApplicationParams: asStringArray(rule.linked_params),
     severityIfMissing: rule.applicability === 'always_required' || rule.applicability === 'conditional_required' ? 'critical' : 'warning',
@@ -734,6 +735,65 @@ function extractRequirementSources(rule: DbDocumentRequirementRule): NewDossierD
     }))
     .filter((source) => source.index > 0 && source.sourceReference);
   return sources.length ? sources : undefined;
+}
+
+/**
+ * Извлекает требования, реально уходящие в Gemma при проверке заявки:
+ *  - document_check_profile.{required_checks, conditional_checks, cross_document_checks} → check_text;
+ *  - checker_routing.requirements → requirement_text.
+ * Возвращает плоский список с путём для будущей записи правок.
+ */
+function extractCheckProfileRequirements(conditionJson: unknown): GemmaCheckRequirement[] {
+  if (!conditionJson || typeof conditionJson !== 'object') return [];
+  const cj = conditionJson as Record<string, any>;
+  const out: GemmaCheckRequirement[] = [];
+  const s = (v: unknown) => {
+    const t = typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim();
+    return t || undefined;
+  };
+
+  const profile = cj.document_check_profile;
+  const pushProfile = (arr: unknown, kind: GemmaCheckRequirement['kind'], arrayName: string) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach((c: any, index: number) => {
+      const text = s(c?.check_text);
+      if (!text) return;
+      out.push({
+        id: s(c?.id) || `${kind}-${index}`,
+        kind,
+        text,
+        title: s(c?.title),
+        passCriteria: s(c?.pass_criteria),
+        failureCriteria: s(c?.failure_criteria),
+        applicabilityCondition: s(c?.applicability_condition ?? c?.condition),
+        sourceReference: s(c?.source_reference),
+        path: { array: `document_check_profile.${arrayName}`, index },
+      });
+    });
+  };
+  if (profile && typeof profile === 'object') {
+    pushProfile(profile.required_checks, 'required', 'required_checks');
+    pushProfile(profile.conditional_checks, 'conditional', 'conditional_checks');
+    pushProfile(profile.cross_document_checks, 'cross_document', 'cross_document_checks');
+  }
+
+  const routing = cj.checker_routing?.requirements;
+  if (Array.isArray(routing)) {
+    routing.forEach((r: any, index: number) => {
+      const text = s(r?.requirement_text);
+      if (!text) return;
+      out.push({
+        id: s(r?.requirement_id) || `routing-${index}`,
+        kind: 'routing',
+        text,
+        criticality: s(r?.criticality),
+        applicabilityCondition: s(r?.decision_logic),
+        path: { array: 'checker_routing.requirements', index },
+      });
+    });
+  }
+
+  return out;
 }
 
 export async function writeAdminRuntimeConfig(config: unknown, userId = 'system'): Promise<AdminRuntimeConfig> {

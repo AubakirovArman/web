@@ -70,6 +70,9 @@ export function NewDossierDocumentTypeDetail({
             <TabsTrigger value="requirements" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               Проверяемые требования ({validationChecks.length})
             </TabsTrigger>
+            <TabsTrigger value="gemma" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              Идёт в Gemma ({item.checkProfileRequirements?.length || 0})
+            </TabsTrigger>
             <TabsTrigger value="requiredness" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               Информация и обязательность
             </TabsTrigger>
@@ -104,6 +107,55 @@ export function NewDossierDocumentTypeDetail({
                     <tr>
                       <td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">
                         Требования пока не привязаны.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="gemma" className="space-y-3 p-4">
+            <p className="text-xs text-muted-foreground">
+              Эти требования реально уходят в Gemma при проверке заявки (из <span className="font-mono">document_check_profile</span> и{' '}
+              <span className="font-mono">checker_routing</span>). Колонка «Текст» — это и есть то, что читает Gemma.
+            </p>
+            <div className="overflow-x-auto rounded-xl border">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="w-28 px-3 py-2">Тип</th>
+                    <th className="px-3 py-2">Текст требования (идёт в Gemma)</th>
+                    <th className="w-28 px-3 py-2">Критичность</th>
+                    <th className="px-3 py-2">Условие применимости</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(item.checkProfileRequirements || []).length > 0 ? (
+                    (item.checkProfileRequirements || []).map((req) => (
+                      <tr key={req.id} className="border-b align-top last:border-b-0">
+                        <td className="px-3 py-3">
+                          <Badge variant="outline">
+                            {{ required: 'Обязательное', conditional: 'Условное', cross_document: 'Сверка', routing: 'Маршрут' }[req.kind] || req.kind}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="font-medium">{req.text}</div>
+                          {req.title && <div className="mt-1 text-xs text-muted-foreground">{req.title}</div>}
+                          {req.sourceReference && (
+                            <div className="mt-1 text-[11px] text-muted-foreground">Источник: {req.sourceReference}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-muted-foreground">{req.criticality || '—'}</td>
+                        <td className="px-3 py-3">
+                          <div className="max-w-sm text-xs text-muted-foreground">{req.applicabilityCondition || '—'}</div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">
+                        Профиль проверки Gemma для этого раздела пуст.
                       </td>
                     </tr>
                   )}

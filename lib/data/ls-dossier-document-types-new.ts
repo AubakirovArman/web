@@ -13,6 +13,23 @@ export interface NewDossierRequirementSource {
   sourceNote?: string;
 }
 
+/** Требование, реально уходящее в Gemma при проверке (из condition_json). */
+export interface GemmaCheckRequirement {
+  id: string;
+  /** required/conditional/cross — из document_check_profile; routing — из checker_routing. */
+  kind: 'required' | 'conditional' | 'cross_document' | 'routing';
+  /** Текст требования (check_text / requirement_text) — то, что читает Gemma. */
+  text: string;
+  title?: string;
+  criticality?: string;
+  passCriteria?: string;
+  failureCriteria?: string;
+  applicabilityCondition?: string;
+  sourceReference?: string;
+  /** Путь в condition_json для будущей записи правок. */
+  path?: { array: string; index: number };
+}
+
 export interface NewDossierDocumentType {
   id: string;
   source: 'appendix-2' | 'appendix-3';
@@ -34,6 +51,8 @@ export interface NewDossierDocumentType {
   validationChecks?: string;
   npaReferences?: string[];
   requirementSources?: NewDossierRequirementSource[];
+  /** Требования, реально уходящие в Gemma (из condition_json.document_check_profile + checker_routing). */
+  checkProfileRequirements?: GemmaCheckRequirement[];
   checkIds?: string[];
   linkedApplicationParams?: string[];
   severityIfMissing?: 'critical' | 'serious' | 'warning' | 'unknown';
