@@ -777,11 +777,17 @@ function extractCheckProfileRequirements(conditionJson: unknown): GemmaCheckRequ
     pushProfile(profile.cross_document_checks, 'cross_document', 'cross_document_checks');
   }
 
+  // Схлопываем дубли: маршрутные требования часто повторяют текст условных/обязательных
+  // (движок их потом мёрджит). Для отображения показываем требование один раз.
+  const norm = (t: string) => t.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  const seen = new Set(out.map((r) => norm(r.text)));
+
   const routing = cj.checker_routing?.requirements;
   if (Array.isArray(routing)) {
     routing.forEach((r: any, index: number) => {
       const text = s(r?.requirement_text);
-      if (!text) return;
+      if (!text || seen.has(norm(text))) return; // дубль — пропускаем
+      seen.add(norm(text));
       out.push({
         id: s(r?.requirement_id) || `routing-${index}`,
         kind: 'routing',
