@@ -384,6 +384,90 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
   return readAdminDocumentTypeDetail(id);
 }
 
+/**
+ * Записывает отредактированный набор требований в condition_json (то, что реально
+ * читает Gemma при проверке): document_check_profile.{required/conditional/cross}.check_text
+ * и checker_routing.requirements.requirement_text. У существующих сохраняем метаданные,
+ * меняем только текст; удалённые — выпадают; новые — добавляются.
+ */
+export async function updateCheckProfileRequirements(
+  id: string,
+  requirements: Array<{ id?: string; kind: GemmaCheckRequirement['kind']; text: string; path?: { array: string; index: number } }>,
+): Promise<NewDossierDocumentType | null> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const { rows } = await pool.query<{ id: string; condition_json: any }>(
+    `SELECT id, condition_json FROM document_requirement_rules
+     WHERE scope_object_type='LS' AND scope_procedure='registration' AND active=true
+       AND (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
+     ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id LIMIT 1`,
+    [id],
+  );
+  if (!rows[0]) return null;
+  const ruleId = rows[0].id;
+  const cj: Record<string, any> = rows[0].condition_json && typeof rows[0].condition_json === 'object' ? rows[0].condition_json : {};
+  const profile: Record<string, any> = cj.document_check_profile && typeof cj.document_check_profile === 'object' ? cj.document_check_profile : {};
+  const routing: Record<string, any> = cj.checker_routing && typeof cj.checker_routing === 'object' ? cj.checker_routing : {};
+
+  const kindToArray: Record<string, string> = {
+    required: 'document_check_profile.required_checks',
+    conditional: 'document_check_profile.conditional_checks',
+    cross_document: 'document_check_profile.cross_document_checks',
+    routing: 'checker_routing.requirements',
+  };
+  const orig: Record<string, any[]> = {
+    'document_check_profile.required_checks': Array.isArray(profile.required_checks) ? profile.required_checks : [],
+    'document_check_profile.conditional_checks': Array.isArray(profile.conditional_checks) ? profile.conditional_checks : [],
+    'document_check_profile.cross_document_checks': Array.isArray(profile.cross_document_checks) ? profile.cross_document_checks : [],
+    'checker_routing.requirements': Array.isArray(routing.requirements) ? routing.requirements : [],
+  };
+  const next: Record<string, any[]> = {
+    'document_check_profile.required_checks': [],
+    'document_check_profile.conditional_checks': [],
+    'document_check_profile.cross_document_checks': [],
+    'checker_routing.requirements': [],
+  };
+
+  let counter = 0;
+  for (const req of requirements) {
+    const text = String(req?.text || '').trim();
+    if (!text) continue;
+    const arrayKey = kindToArray[req?.kind] || 'document_check_profile.required_checks';
+    const isRouting = arrayKey === 'checker_routing.requirements';
+    if (req.path && req.path.array === arrayKey && orig[arrayKey][req.path.index]) {
+      const existing = { ...orig[arrayKey][req.path.index] };
+      if (isRouting) existing.requirement_text = text;
+      else existing.check_text = text;
+      next[arrayKey].push(existing);
+    } else {
+      counter += 1;
+      const genId = `${ruleId}-manual-${counter}`;
+      next[arrayKey].push(
+        isRouting
+          ? { requirement_id: genId, requirement_text: text }
+          : { id: genId, title: text.slice(0, 80), check_text: text, source_status: 'manual', source_scope: 'document_type_rule' },
+      );
+    }
+  }
+
+  const nextCj = {
+    ...cj,
+    document_check_profile: {
+      ...profile,
+      required_checks: next['document_check_profile.required_checks'],
+      conditional_checks: next['document_check_profile.conditional_checks'],
+      cross_document_checks: next['document_check_profile.cross_document_checks'],
+    },
+    checker_routing: { ...routing, requirements: next['checker_routing.requirements'] },
+  };
+
+  await pool.query(`UPDATE document_requirement_rules SET condition_json = $2::jsonb WHERE id = $1`, [
+    ruleId,
+    JSON.stringify(nextCj),
+  ]);
+  return readAdminDocumentTypeDetail(id);
+}
+
 export async function deactivateAdminDocumentType(id: string): Promise<boolean> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();

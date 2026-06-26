@@ -81,6 +81,7 @@ export default function AdminDocumentTypeDetailPage() {
         onBack={() => router.push('/admin/document-types')}
         onEdit={() => setEditorOpen(true)}
         onDelete={deleteItem}
+        onReload={loadItem}
       />
       <NewDossierDocumentTypeEditorDialog
         state={editorOpen ? { mode: 'edit', values: item } : null}

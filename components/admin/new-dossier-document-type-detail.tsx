@@ -9,17 +9,20 @@ import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-type
 import { getLsDocumentRequirementForItem, getLsRequirednessText, getLsValidationChecksText } from '@/lib/data/ls-document-checks-mapping';
 import { extractProcedureHint, extractTypeHint, formatNewDossierSection, splitRequirementText } from '@/lib/admin/new-dossier-document-type-utils';
 import { DetailMeta, RequirednessBadge } from '@/components/admin/new-dossier-document-type-primitives';
+import { CheckProfileRequirementsEditor } from '@/components/admin/check-profile-requirements-editor';
 
 export function NewDossierDocumentTypeDetail({
   item,
   onBack,
   onEdit,
   onDelete,
+  onReload,
 }: {
   item: NewDossierDocumentType;
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onReload?: () => void;
 }) {
   const requirement = getLsDocumentRequirementForItem(item);
   const validationChecks = splitRequirementText(item.validationChecks || getLsValidationChecksText(item));
@@ -76,60 +79,11 @@ export function NewDossierDocumentTypeDetail({
           </TabsList>
 
           <TabsContent value="requirements" className="space-y-3 p-4">
-            <p className="text-xs text-muted-foreground">
-              Gemma читает загруженный документ и по каждому требованию ниже выставляет «пройдено / не пройдено /
-              неприменимо». Текст требования — это инструкция, которую выполняет Gemma.
-            </p>
-            <div className="overflow-x-auto rounded-xl border">
-              <table className="w-full min-w-[820px] text-sm">
-                <thead>
-                  <tr className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="w-32 px-3 py-2">Тип</th>
-                    <th className="px-3 py-2">Требование (что проверяет Gemma)</th>
-                    <th className="w-28 px-3 py-2">Критичность</th>
-                    <th className="px-3 py-2">Когда применяется</th>
-                    <th className="px-3 py-2">Источник</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(item.checkProfileRequirements || []).map((req) => (
-                    <tr key={req.id} className="border-b align-top last:border-b-0">
-                      <td className="px-3 py-3">
-                        <Badge variant="outline">
-                          {{ required: 'Обязательное', conditional: 'Условное', cross_document: 'Сверка', routing: 'Маршрут' }[req.kind] || req.kind}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="font-medium">{req.text}</div>
-                        {req.title && <div className="mt-1 text-xs text-muted-foreground">{req.title}</div>}
-                      </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">{req.criticality || '—'}</td>
-                      <td className="px-3 py-3"><div className="max-w-xs text-xs text-muted-foreground">{req.applicabilityCondition || '—'}</div></td>
-                      <td className="px-3 py-3"><div className="max-w-xs text-xs text-muted-foreground">{req.sourceReference || fallbackSourceReference || '—'}</div></td>
-                    </tr>
-                  ))}
-
-                  {!item.checkProfileRequirements?.length &&
-                    validationChecks.map((check, index) => (
-                      <tr key={`${item.id}-vc-${index}`} className="border-b align-top last:border-b-0">
-                        <td className="px-3 py-3"><Badge variant="outline">Требование</Badge></td>
-                        <td className="px-3 py-3"><div className="font-medium">{check}</div></td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground">—</td>
-                        <td className="px-3 py-3"><div className="max-w-xs text-xs text-muted-foreground">{requiredWhenExpression || '—'}</div></td>
-                        <td className="px-3 py-3"><div className="max-w-xs text-xs text-muted-foreground">{requirementSources[index]?.sourceReference || fallbackSourceReference || '—'}</div></td>
-                      </tr>
-                    ))}
-
-                  {!item.checkProfileRequirements?.length && validationChecks.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
-                        Требования для этого раздела не заданы.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <CheckProfileRequirementsEditor
+              documentTypeId={item.id}
+              initial={item.checkProfileRequirements || []}
+              onSaved={onReload}
+            />
           </TabsContent>
 
           <TabsContent value="requiredness" className="space-y-3 p-4">
