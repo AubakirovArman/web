@@ -388,6 +388,56 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
 }
 
 /**
+ * Создать новый тип документа: INSERT новой строки в document_requirement_rules с
+ * минимальным document_check_profile (требования добавляются потом в карточке).
+ */
+export async function createAdminDocumentType(item: NewDossierDocumentType): Promise<NewDossierDocumentType | null> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 10000)}`;
+  const documentTypeId = `memo-ls-custom-${suffix}`;
+  const ruleId = `MEMO_LS_CUSTOM_${suffix.toUpperCase()}`;
+  const rowType = item.kind === 'section' ? 'Раздел' : item.kind === 'excluded' ? 'Исключен' : 'Документ';
+  const validationChecks = asStringArray(item.validationChecks).length
+    ? asStringArray(item.validationChecks)
+    : String(item.validationChecks || '')
+        .split(/\n|\|/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+  const conditionJson = {
+    document_check_profile: { required_checks: [], conditional_checks: [], cross_document_checks: [] },
+    checker_routing: { requirements: [] },
+  };
+  await pool.query(
+    `INSERT INTO document_requirement_rules
+       (id, scope_object_type, scope_procedure, doc_code, document_type_id, document_name, row_type,
+        source_structure, dossier_variant, module_part, applicability, show_logic, condition_json, condition_text,
+        linked_params, validation_checks, normalization_status, source_reference, active, source,
+        created_by_user_id, updated_by_user_id)
+     VALUES ($1,'LS','registration',$2,$3,$4,$5,$6,$7,$8,'always_required','require_when_condition_true',
+        $9::jsonb,$10,$11::jsonb,$12::jsonb,'document_profile_normalized',$13,$14,'manual','admin','admin')`,
+    [
+      ruleId,
+      item.code || documentTypeId,
+      documentTypeId,
+      item.name || item.code || documentTypeId,
+      rowType,
+      'Ручное добавление (админ)',
+      'ctd_foreign',
+      item.group || item.module || null,
+      JSON.stringify(conditionJson),
+      item.requiredWhenExpression || item.requirednessExplanation || null,
+      JSON.stringify(Array.isArray(item.linkedApplicationParams) ? item.linkedApplicationParams : []),
+      JSON.stringify(validationChecks),
+      item.npaReferences?.[0] || null,
+      item.active !== false,
+    ],
+  );
+  invalidateLsDocTypeCache();
+  return readAdminDocumentTypeDetail(documentTypeId);
+}
+
+/**
  * Записывает отредактированный набор требований в condition_json (то, что реально
  * читает Gemma при проверке): document_check_profile.{required/conditional/cross}.check_text
  * и checker_routing.requirements.requirement_text. У существующих сохраняем метаданные,

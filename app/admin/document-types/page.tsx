@@ -11,6 +11,27 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-types-new';
 import { NewDossierDocumentTypesTable } from '@/components/admin/new-dossier-document-types-table';
+import { NewDossierDocumentTypeEditorDialog } from '@/components/admin/new-dossier-document-type-editor-dialog';
+
+function blankDocumentType(): NewDossierDocumentType {
+  return {
+    id: '',
+    source: 'appendix-3',
+    sourceName: 'Ручное добавление',
+    group: '',
+    groupCode: '',
+    module: '',
+    code: '',
+    name: '',
+    description: '',
+    kind: 'document',
+    direction: 'LS',
+    acceptedFormats: ['pdf'],
+    active: true,
+    sortOrder: 0,
+    checkProfileRequirements: [],
+  };
+}
 
 export default function AdminDocumentTypesPage() {
   const router = useRouter();
@@ -21,6 +42,7 @@ export default function AdminDocumentTypesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -74,6 +96,15 @@ export default function AdminDocumentTypesPage() {
     }
   };
 
+  const createState = useMemo(
+    () => (createOpen ? { mode: 'create' as const, values: blankDocumentType() } : null),
+    [createOpen],
+  );
+  const sectionOptions = useMemo(
+    () => Array.from(new Set(items.map((i) => i.group).filter(Boolean))),
+    [items],
+  );
+
   return (
     <div className="space-y-4">
       <Card>
@@ -90,7 +121,7 @@ export default function AdminDocumentTypesPage() {
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Обновить
               </Button>
-              <Button disabled title="Создание нового типа документа будет добавлено позже">
+              <Button onClick={() => setCreateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Новый тип документа
               </Button>
@@ -150,6 +181,29 @@ export default function AdminDocumentTypesPage() {
           </Button>
         </div>
       </div>
+
+      <NewDossierDocumentTypeEditorDialog
+        state={createState}
+        sections={sectionOptions}
+        onClose={() => setCreateOpen(false)}
+        onSave={async (next) => {
+          try {
+            const response = await fetch('/api/admin/document-types', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ item: next }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || 'Не удалось создать тип документа');
+            setCreateOpen(false);
+            toast.success('Тип документа создан — добавьте требования в карточке');
+            if (payload.item?.id) router.push(`/admin/document-types/${encodeURIComponent(payload.item.id)}`);
+            else loadItems();
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Не удалось создать тип документа');
+          }
+        }}
+      />
     </div>
   );
 }
