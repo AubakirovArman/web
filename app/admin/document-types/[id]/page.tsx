@@ -16,6 +16,14 @@ export default function AdminDocumentTypeDetailPage() {
   const [item, setItem] = useState<NewDossierDocumentType | null>(null);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [sections, setSections] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/admin/document-types/sections', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d.sections) && setSections(d.sections))
+      .catch(() => {});
+  }, []);
 
   const loadItem = useCallback(async () => {
     setLoading(true);
@@ -85,7 +93,7 @@ export default function AdminDocumentTypeDetailPage() {
       />
       <NewDossierDocumentTypeEditorDialog
         state={editorOpen ? { mode: 'edit', values: item } : null}
-        sections={[item.group, item.module].filter(Boolean)}
+        sections={Array.from(new Set([...sections, item.group, item.module].filter(Boolean)))}
         onClose={() => setEditorOpen(false)}
         onSave={async (next) => {
           try {

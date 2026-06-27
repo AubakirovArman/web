@@ -242,6 +242,20 @@ export interface AdminDocumentTypeListResult {
   total: number;
   page: number;
   pageSize: number;
+  /** Все разделы досье (по всей базе, не по странице) — для выбора при создании/редактировании. */
+  sections: string[];
+}
+
+/** Все разделы досье (module_part) по всем активным типам документов ЛС — независимо от пагинации. */
+export async function readAdminDocumentTypeSections(): Promise<string[]> {
+  await ensureRuntimeSchema();
+  const pool = getRuntimePool();
+  const { rows } = await pool.query<{ module_part: string | null }>(
+    `SELECT DISTINCT module_part FROM document_requirement_rules
+     WHERE scope_object_type='LS' AND scope_procedure='registration' AND active=true AND module_part IS NOT NULL
+     ORDER BY module_part`,
+  );
+  return rows.map((r) => String(r.module_part || '').trim()).filter(Boolean);
 }
 
 export async function readAdminDocumentTypesList(params: AdminDocumentTypeListParams = {}): Promise<AdminDocumentTypeListResult> {
@@ -302,11 +316,13 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
   );
 
   const total = Number(rowsResult.rows[0]?._total_count || 0);
+  const sections = await readAdminDocumentTypeSections();
   return {
     items: rowsResult.rows.map((rule, index) => buildAdminDossierDocumentTypeSummary(rule, offset + index + 1)),
     total,
     page,
     pageSize,
+    sections,
   };
 }
 

@@ -43,6 +43,7 @@ export default function AdminDocumentTypesPage() {
   const [pageSize, setPageSize] = useState(25);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [sections, setSections] = useState<string[]>([]);
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -61,6 +62,7 @@ export default function AdminDocumentTypesPage() {
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить типы документов');
       setItems(Array.isArray(payload.items) ? payload.items : []);
       setTotal(Number(payload.total) || 0);
+      if (Array.isArray(payload.sections) && payload.sections.length) setSections(payload.sections);
     } catch (error) {
       setItems([]);
       setTotal(0);
@@ -99,10 +101,6 @@ export default function AdminDocumentTypesPage() {
   const createState = useMemo(
     () => (createOpen ? { mode: 'create' as const, values: blankDocumentType() } : null),
     [createOpen],
-  );
-  const sectionOptions = useMemo(
-    () => Array.from(new Set(items.map((i) => i.group).filter(Boolean))),
-    [items],
   );
 
   return (
@@ -184,7 +182,7 @@ export default function AdminDocumentTypesPage() {
 
       <NewDossierDocumentTypeEditorDialog
         state={createState}
-        sections={sectionOptions}
+        sections={sections}
         onClose={() => setCreateOpen(false)}
         onSave={async (next) => {
           try {
