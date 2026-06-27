@@ -530,6 +530,54 @@ export async function bindNpaRequirementsBulk(
   return applied;
 }
 
+/**
+ * Добавить НОВЫЕ требования в реестр НПА (обратное заполнение из типов документов,
+ * подтверждённое по текстам актов). Каждое требование сразу привязано к своему типу документа.
+ * Возвращает число добавленных.
+ */
+export async function addNpaRequirements(
+  additions: Array<{
+    documentTypeId: string;
+    code?: string;
+    npaId: string;
+    requirement: string;
+    point?: string;
+    quote?: string;
+    kind?: string;
+    documentName?: string;
+    criticality?: string;
+  }>,
+): Promise<number> {
+  const config = await readAdminRuntimeConfig();
+  const registry: AdminNpaRecord[] = Array.isArray((config as any).npaRegistry) ? (config as any).npaRegistry : [];
+  const recById = new Map(registry.map((r) => [r.id, r]));
+  let added = 0;
+  let seq = 0;
+  for (const a of additions) {
+    const rec = recById.get(a.npaId);
+    if (!rec || !a?.requirement || !a?.documentTypeId) continue;
+    seq += 1;
+    rec.requirements.push({
+      id: `synth-${a.documentTypeId}-${seq}`,
+      code: a.code || '',
+      point: a.point || '',
+      requirement: a.requirement,
+      criticality: a.criticality || 'неясно',
+      action: 'accepted',
+      documentCode: a.code || '',
+      documentName: a.documentName || a.code || '',
+      checkType: a.kind === 'conditional' ? 'условная проверка' : 'обязательная проверка',
+      condition: '',
+      quote: a.quote || '',
+      targetDocumentTypeId: a.documentTypeId,
+      targetRequirementId: undefined,
+    });
+    added += 1;
+  }
+  await writeAdminRuntimeConfig({ ...config, npaRegistry: registry }, 'admin');
+  return added;
+}
+
 export async function deactivateAdminDocumentType(id: string): Promise<boolean> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();

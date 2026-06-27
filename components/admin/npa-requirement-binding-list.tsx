@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link2, Link2Off, Quote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,9 @@ export function NpaRequirementBindingList({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [unbindReq, setUnbindReq] = useState<AdminNpaRequirement | null>(null);
+  const PAGE = 60;
+  const [visible, setVisible] = useState(PAGE);
+  useEffect(() => setVisible(PAGE), [query, filter]);
 
   const docById = useMemo(() => new Map(documentTypes.map((d) => [d.id, d])), [documentTypes]);
   const recentIds = useMemo(
@@ -89,7 +92,7 @@ export function NpaRequirementBindingList({
         <EmptyAdminBlock text="Ничего не найдено по фильтру." />
       ) : (
         <div className="space-y-2">
-          {rows.map((req) => {
+          {rows.slice(0, visible).map((req) => {
             const doc = req.targetDocumentTypeId ? docById.get(req.targetDocumentTypeId) : undefined;
             const isBound = Boolean(req.targetDocumentTypeId);
             const from = req.pointLabel || req.point;
@@ -176,6 +179,16 @@ export function NpaRequirementBindingList({
               </div>
             );
           })}
+          {rows.length > visible && (
+            <div className="flex items-center justify-center gap-3 pt-1">
+              <span className="text-xs text-muted-foreground">
+                Показано {visible} из {rows.length}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE)}>
+                Показать ещё {Math.min(PAGE, rows.length - visible)}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
