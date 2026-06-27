@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Plus, Trash2, UserCog } from 'lucide-react';
 
-type Role = 'applicant' | 'expert' | 'admin';
+type Role = string;
 interface AppUser {
   id: string;
   username: string | null;
@@ -19,15 +19,28 @@ interface AppUser {
   role: Role;
   createdAt: string | null;
 }
+interface RoleOption {
+  id: string;
+  name: string;
+}
 
-const roleLabels: Record<Role, string> = { applicant: 'Заявитель', expert: 'Эксперт', admin: 'Администратор' };
-const roleVariant: Record<Role, 'default' | 'secondary' | 'outline'> = { admin: 'default', expert: 'secondary', applicant: 'outline' };
+const roleVariant: Record<string, 'default' | 'secondary' | 'outline'> = { admin: 'default', expert: 'secondary', applicant: 'outline' };
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [creating, setCreating] = useState(false);
+
+  const roleName = (id: string) => roleOptions.find((r) => r.id === id)?.name || id;
+
+  useEffect(() => {
+    fetch('/api/admin/roles', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d.roles) && setRoleOptions(d.roles.map((x: any) => ({ id: x.id, name: x.name }))))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,7 +108,7 @@ export default function AdminUsersPage() {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell>{user.displayName || '—'}</TableCell>
-                    <TableCell><Badge variant={roleVariant[user.role]}>{roleLabels[user.role] || user.role}</Badge></TableCell>
+                    <TableCell><Badge variant={roleVariant[user.role] || 'outline'}>{roleName(user.role)}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-KZ') : '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -120,16 +133,16 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {creating && <UserDialog mode="create" onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load(); }} />}
-      {editing && <UserDialog mode="edit" user={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
+      {creating && <UserDialog mode="create" roles={roleOptions} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load(); }} />}
+      {editing && <UserDialog mode="edit" user={editing} roles={roleOptions} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
     </div>
   );
 }
 
-function UserDialog({ mode, user, onClose, onSaved }: { mode: 'create' | 'edit'; user?: AppUser; onClose: () => void; onSaved: () => void }) {
+function UserDialog({ mode, user, roles, onClose, onSaved }: { mode: 'create' | 'edit'; user?: AppUser; roles: RoleOption[]; onClose: () => void; onSaved: () => void }) {
   const [username, setUsername] = useState(user?.username || '');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [role, setRole] = useState<Role>(user?.role || 'applicant');
+  const [role, setRole] = useState<Role>(user?.role || roles[0]?.id || 'applicant');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,12 +191,12 @@ function UserDialog({ mode, user, onClose, onSaved }: { mode: 'create' | 'edit';
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Роль</label>
-            <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={role} onValueChange={(value) => setRole(value)}>
+              <SelectTrigger><SelectValue placeholder="Выберите роль" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="applicant">Заявитель</SelectItem>
-                <SelectItem value="expert">Эксперт</SelectItem>
-                <SelectItem value="admin">Администратор</SelectItem>
+                {roles.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

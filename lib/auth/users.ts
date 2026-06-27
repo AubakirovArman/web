@@ -59,6 +59,12 @@ export async function countAdmins(): Promise<number> {
   return Number(rows[0]?.n || 0);
 }
 
+export async function countUsersByRole(role: string): Promise<number> {
+  const pool = getRuntimePool();
+  const { rows } = await pool.query(`SELECT count(*)::int AS n FROM app_users WHERE role = $1 AND username IS NOT NULL`, [role]);
+  return Number(rows[0]?.n || 0);
+}
+
 export async function createUser(params: { id: string; username: string; passwordHash: string; role: UserRole; displayName: string }): Promise<void> {
   const pool = getRuntimePool();
   await pool.query(

@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession, SESSION_COOKIE } from '@/lib/auth/session';
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-};
-
-// Кто куда: какие роли допускаются к префиксу пути.
-const ROLE_GATES: Array<{ prefix: string; roles: string[] }> = [
-  { prefix: '/admin', roles: ['admin'] },
-  { prefix: '/api/admin', roles: ['admin'] },
-  { prefix: '/api/seed', roles: ['admin'] },
-  { prefix: '/expert', roles: ['expert', 'admin'] },
-  { prefix: '/reference', roles: ['expert', 'admin'] },
-  { prefix: '/api/reference', roles: ['expert', 'admin'] },
-  { prefix: '/applicant', roles: ['applicant', 'admin', 'expert'] },
-  { prefix: '/wizard', roles: ['applicant', 'admin', 'expert'] },
-];
+import { requiredPermissionFor, hasPermission, LEGACY_ROLE_GATES } from '@/lib/auth/permissions';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -39,16 +24,26 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Ролевые ограничения
-  const gate = ROLE_GATES.find((item) => pathname.startsWith(item.prefix));
-  if (gate && !gate.roles.includes(session.role)) {
-    if (isApi) return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 });
-    return NextResponse.redirect(new URL('/', req.url));
+  // Ролевые ограничения по ПРАВАМ (зашиты в сессии). Для старых сессий без прав — fallback на роли.
+  const required = requiredPermissionFor(pathname);
+  if (required) {
+    const allowed = Array.isArray(session.perms)
+      ? hasPermission(session.perms, required)
+      : (() => {
+          const gate = LEGACY_ROLE_GATES.find((item) => pathname.startsWith(item.prefix));
+          return !gate || gate.roles.includes(session.role);
+        })();
+    if (!allowed) {
+      if (isApi) return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 });
+      return NextResponse.redirect(new URL('/', req.url));
+    }
   }
 
   // Проброс личности в нижестоящие API (вместо подделываемого x-user-id с клиента).
   const headers = new Headers(req.headers);
   headers.set('x-user-id', session.sub);
-  headers.set('x-user-role', session.role);
+  // Заголовки HTTP только Latin-1 — кириллический id роли кодируем, чтобы не падать.
+  headers.set('x-user-role', encodeURIComponent(session.role));
+  if (Array.isArray(session.perms)) headers.set('x-user-perms', session.perms.join(','));
   return NextResponse.next({ request: { headers } });
 }

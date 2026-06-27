@@ -39,7 +39,7 @@ async function createRuntimeSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_users (
       id text PRIMARY KEY,
-      role text NOT NULL CHECK (role IN ('applicant', 'expert', 'admin', 'system')),
+      role text NOT NULL CHECK (length(trim(role)) > 0),
       display_name text,
       email text,
       created_at timestamptz NOT NULL DEFAULT now(),

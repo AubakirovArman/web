@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserById, updateUser, deleteUser, countAdmins, USER_ROLES } from '@/lib/auth/users';
+import { getUserById, updateUser, deleteUser, countAdmins } from '@/lib/auth/users';
+import { readRoles } from '@/lib/auth/roles';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/lib/auth/session';
 
@@ -17,7 +18,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (body.role !== undefined) {
       const role = String(body.role) as UserRole;
-      if (!USER_ROLES.includes(role)) return NextResponse.json({ error: 'Недопустимая роль' }, { status: 400 });
+      const validRoleIds = new Set((await readRoles()).map((r) => r.id));
+      if (!validRoleIds.has(role)) return NextResponse.json({ error: 'Недопустимая роль' }, { status: 400 });
       // Нельзя снять роль с последнего администратора
       if (target.role === 'admin' && role !== 'admin' && (await countAdmins()) <= 1) {
         return NextResponse.json({ error: 'Нельзя снять роль с последнего администратора' }, { status: 409 });

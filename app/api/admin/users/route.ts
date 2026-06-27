@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { listUsers, findUserByUsername, createUser, USER_ROLES } from '@/lib/auth/users';
+import { listUsers, findUserByUsername, createUser } from '@/lib/auth/users';
+import { readRoles } from '@/lib/auth/roles';
 import { hashPassword } from '@/lib/auth/password';
 import type { UserRole } from '@/lib/auth/session';
 
@@ -27,7 +28,8 @@ export async function POST(req: NextRequest) {
     if (!username || !password) return NextResponse.json({ error: 'Укажите логин и пароль' }, { status: 400 });
     if (username.length < 3) return NextResponse.json({ error: 'Логин не короче 3 символов' }, { status: 400 });
     if (password.length < 6) return NextResponse.json({ error: 'Пароль не короче 6 символов' }, { status: 400 });
-    if (!USER_ROLES.includes(role)) return NextResponse.json({ error: 'Недопустимая роль' }, { status: 400 });
+    const validRoleIds = new Set((await readRoles()).map((r) => r.id));
+    if (!validRoleIds.has(role)) return NextResponse.json({ error: 'Недопустимая роль' }, { status: 400 });
     if (await findUserByUsername(username)) return NextResponse.json({ error: 'Логин уже занят' }, { status: 409 });
 
     const passwordHash = await hashPassword(password);

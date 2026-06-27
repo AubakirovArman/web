@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findUserByUsername } from '@/lib/auth/users';
 import { verifyPassword } from '@/lib/auth/password';
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/auth/session';
+import { getPermissionsForRole } from '@/lib/auth/roles';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Неверный логин или пароль' }, { status: 401 });
     }
     const name = user.display_name || user.username || user.id;
-    const token = await signSession({ sub: user.id, role: user.role, name });
+    const perms = await getPermissionsForRole(user.role);
+    const token = await signSession({ sub: user.id, role: user.role, name, perms });
     const response = NextResponse.json({ ok: true, role: user.role, name });
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

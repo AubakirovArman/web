@@ -1,12 +1,15 @@
 // Сессия на подписанном cookie (HMAC-SHA256 через Web Crypto — доступно и в
 // middleware (Edge), и в Node-роутах). Без внешних зависимостей.
 
-export type UserRole = 'applicant' | 'expert' | 'admin';
+// Встроенные роли как литералы (для подсказок), плюс любые кастомные id ролей.
+export type UserRole = 'applicant' | 'expert' | 'admin' | (string & {});
 
 export interface SessionUser {
   sub: string;
   role: UserRole;
   name: string;
+  /** Права доступа роли, зашитые в подписанный cookie (источник для middleware). */
+  perms?: string[];
 }
 
 export const SESSION_COOKIE = 'ndda_session';

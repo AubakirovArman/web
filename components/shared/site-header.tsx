@@ -18,23 +18,24 @@ import {
   Sun,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hasPermission } from '@/lib/auth/permissions';
 
-type NavItem = { href: string; label: string; icon: typeof ClipboardList; roles: string[] };
+type NavItem = { href: string; label: string; icon: typeof ClipboardList; roles: string[]; perm: string };
 
 const NAV_GROUPS: Array<{ group: string; items: NavItem[] }> = [
   {
     group: 'Работа',
     items: [
-      { href: '/applicant', label: 'Мои заявки', icon: ClipboardList, roles: ['applicant', 'admin', 'expert'] },
-      { href: '/wizard', label: 'Создать заявку', icon: FilePlus2, roles: ['applicant', 'admin', 'expert'] },
-      { href: '/expert', label: 'Эксперт', icon: Microscope, roles: ['expert', 'admin'] },
-      { href: '/reference', label: 'Справочник', icon: BookOpen, roles: ['expert', 'admin'] },
-      { href: '/chat', label: 'Чат', icon: MessageSquare, roles: ['applicant', 'expert', 'admin'] },
+      { href: '/applicant', label: 'Мои заявки', icon: ClipboardList, roles: ['applicant', 'admin', 'expert'], perm: 'applicant' },
+      { href: '/wizard', label: 'Создать заявку', icon: FilePlus2, roles: ['applicant', 'admin', 'expert'], perm: 'wizard' },
+      { href: '/expert', label: 'Эксперт', icon: Microscope, roles: ['expert', 'admin'], perm: 'expert' },
+      { href: '/reference', label: 'Справочник', icon: BookOpen, roles: ['expert', 'admin'], perm: 'reference' },
+      { href: '/chat', label: 'Чат', icon: MessageSquare, roles: ['applicant', 'expert', 'admin'], perm: 'chat' },
     ],
   },
   {
     group: 'Система',
-    items: [{ href: '/admin', label: 'Админ', icon: SlidersHorizontal, roles: ['admin'] }],
+    items: [{ href: '/admin', label: 'Админ', icon: SlidersHorizontal, roles: ['admin'], perm: 'admin' }],
   },
 ];
 
@@ -49,7 +50,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<{ role: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ role: string; name: string; perms?: string[] | null } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -80,7 +81,11 @@ export function SiteHeader() {
 
       <nav className="flex-1 overflow-y-auto px-2 py-1">
         {NAV_GROUPS.map((group) => {
-          const items = user ? group.items.filter((item) => item.roles.includes(user.role)) : [];
+          const items = user
+            ? group.items.filter((item) =>
+                user.perms == null ? item.roles.includes(user.role) : hasPermission(user.perms, item.perm),
+              )
+            : [];
           if (items.length === 0) return null;
           return (
             <div key={group.group} className="mb-1">
