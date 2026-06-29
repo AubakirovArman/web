@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
       pageSize: Number(searchParams.get('pageSize') || 25),
       query: searchParams.get('query') || '',
       source: (searchParams.get('source') || 'all') as 'all' | 'appendix-2' | 'appendix-3',
+      objectType: searchParams.get('objectType') || 'LS',
+      procedure: searchParams.get('procedure') || 'registration',
     });
     return NextResponse.json(data);
   } catch (error: any) {

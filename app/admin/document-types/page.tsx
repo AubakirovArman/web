@@ -13,7 +13,7 @@ import type { NewDossierDocumentType } from '@/lib/data/ls-dossier-document-type
 import { NewDossierDocumentTypesTable } from '@/components/admin/new-dossier-document-types-table';
 import { NewDossierDocumentTypeEditorDialog } from '@/components/admin/new-dossier-document-type-editor-dialog';
 
-function blankDocumentType(): NewDossierDocumentType {
+function blankDocumentType(objectType = 'LS', procedure = 'registration'): NewDossierDocumentType {
   return {
     id: '',
     source: 'appendix-3',
@@ -25,12 +25,14 @@ function blankDocumentType(): NewDossierDocumentType {
     name: '',
     description: '',
     kind: 'document',
-    direction: 'LS',
+    direction: objectType === 'MI' ? 'MI' : 'LS',
     acceptedFormats: ['pdf'],
     active: true,
     sortOrder: 0,
     checkProfileRequirements: [],
-  };
+    // scope-процедура для бэкенда (createAdminDocumentType читает item.scopeProcedure)
+    scopeProcedure: procedure,
+  } as NewDossierDocumentType;
 }
 
 export default function AdminDocumentTypesPage() {
@@ -44,6 +46,8 @@ export default function AdminDocumentTypesPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [sections, setSections] = useState<string[]>([]);
+  const [objectType, setObjectType] = useState('LS');
+  const [procedure, setProcedure] = useState('registration');
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -56,13 +60,15 @@ export default function AdminDocumentTypesPage() {
         pageSize: String(pageSize),
         query,
         source: sourceFilter,
+        objectType,
+        procedure,
       });
       const response = await fetch(`/api/admin/document-types?${search.toString()}`, { cache: 'no-store' });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить типы документов');
       setItems(Array.isArray(payload.items) ? payload.items : []);
       setTotal(Number(payload.total) || 0);
-      if (Array.isArray(payload.sections) && payload.sections.length) setSections(payload.sections);
+      setSections(Array.isArray(payload.sections) ? payload.sections : []);
     } catch (error) {
       setItems([]);
       setTotal(0);
@@ -70,7 +76,7 @@ export default function AdminDocumentTypesPage() {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, query, safePage, sourceFilter]);
+  }, [pageSize, query, safePage, sourceFilter, objectType, procedure]);
 
   useEffect(() => {
     loadItems();
@@ -78,7 +84,7 @@ export default function AdminDocumentTypesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [query, sourceFilter, pageSize]);
+  }, [query, sourceFilter, pageSize, objectType, procedure]);
 
   const rangeText = useMemo(() => {
     if (loading) return 'Загрузка данных...';
@@ -99,8 +105,8 @@ export default function AdminDocumentTypesPage() {
   };
 
   const createState = useMemo(
-    () => (createOpen ? { mode: 'create' as const, values: blankDocumentType() } : null),
-    [createOpen],
+    () => (createOpen ? { mode: 'create' as const, values: blankDocumentType(objectType, procedure) } : null),
+    [createOpen, objectType, procedure],
   );
 
   return (
@@ -131,6 +137,27 @@ export default function AdminDocumentTypesPage() {
             <Badge variant="secondary">{loading ? 'Загрузка типов документов' : `${total} типов документов`}</Badge>
             <Badge variant="outline">Источник: Postgres</Badge>
             <Badge variant="outline">Постранично: {pageSize}</Badge>
+          </div>
+          {/* Выбор scope: область × процедура (документы и правила свои для каждой комбинации) */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Область:</span>
+            <Select value={objectType} onValueChange={setObjectType}>
+              <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LS">ЛС</SelectItem>
+                <SelectItem value="MI">МИ</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-muted-foreground">Процедура:</span>
+            <Select value={procedure} onValueChange={setProcedure}>
+              <SelectTrigger className="h-9 w-52"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="registration">Регистрация</SelectItem>
+                <SelectItem value="re-registration">Перерегистрация</SelectItem>
+                <SelectItem value="variation">Внесение изменений</SelectItem>
+              </SelectContent>
+            </Select>
+            <Badge variant="outline" className="ml-auto">{objectType} · {total} типов</Badge>
           </div>
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px]">
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск по коду, названию или разделу досье" />

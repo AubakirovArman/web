@@ -235,6 +235,16 @@ export interface AdminDocumentTypeListParams {
   pageSize?: number;
   query?: string;
   source?: 'all' | 'appendix-2' | 'appendix-3';
+  /** Область и процедура (scope). По умолчанию ЛС/registration. */
+  objectType?: string;
+  procedure?: string;
+}
+
+/** Нормализованный scope для админ-выборок. */
+function adminScope(objectType?: string, procedure?: string): { objectType: string; procedure: string } {
+  const ot = String(objectType || 'LS').toUpperCase() === 'MI' ? 'MI' : 'LS';
+  const p = String(procedure || 'registration').trim() || 'registration';
+  return { objectType: ot, procedure: p };
 }
 
 export interface AdminDocumentTypeListResult {
@@ -247,13 +257,15 @@ export interface AdminDocumentTypeListResult {
 }
 
 /** Все разделы досье (module_part) по всем активным типам документов ЛС — независимо от пагинации. */
-export async function readAdminDocumentTypeSections(): Promise<string[]> {
+export async function readAdminDocumentTypeSections(objectType?: string, procedure?: string): Promise<string[]> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
+  const s = adminScope(objectType, procedure);
   const { rows } = await pool.query<{ module_part: string | null }>(
     `SELECT DISTINCT module_part FROM document_requirement_rules
-     WHERE scope_object_type='LS' AND scope_procedure='registration' AND active=true AND module_part IS NOT NULL
+     WHERE scope_object_type=$1 AND scope_procedure=$2 AND active=true AND module_part IS NOT NULL
      ORDER BY module_part`,
+    [s.objectType, s.procedure],
   );
   return rows.map((r) => String(r.module_part || '').trim()).filter(Boolean);
 }
@@ -263,10 +275,11 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = Math.min(100, Math.max(10, Number(params.pageSize) || 25));
   const offset = (page - 1) * pageSize;
-  const values: unknown[] = [];
+  const scope = adminScope(params.objectType, params.procedure);
+  const values: unknown[] = [scope.objectType, scope.procedure];
   const where = [
-    `scope_object_type = 'LS'`,
-    `scope_procedure = 'registration'`,
+    `scope_object_type = $1`,
+    `scope_procedure = $2`,
     `active = true`,
     `COALESCE(row_type, 'Документ') IN ('document', 'Документ')`,
   ];
@@ -290,6 +303,7 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
         id,
         doc_code,
         document_type_id,
+        scope_object_type,
         document_name,
         row_type,
         source_structure,
@@ -316,7 +330,7 @@ export async function readAdminDocumentTypesList(params: AdminDocumentTypeListPa
   );
 
   const total = Number(rowsResult.rows[0]?._total_count || 0);
-  const sections = await readAdminDocumentTypeSections();
+  const sections = await readAdminDocumentTypeSections(scope.objectType, scope.procedure);
   return {
     items: rowsResult.rows.map((rule, index) => buildAdminDossierDocumentTypeSummary(rule, offset + index + 1)),
     total,
@@ -335,6 +349,7 @@ export async function readAdminDocumentTypeDetail(id: string): Promise<NewDossie
         id,
         doc_code,
         document_type_id,
+        scope_object_type,
         document_name,
         row_type,
         source_structure,
@@ -351,9 +366,7 @@ export async function readAdminDocumentTypeDetail(id: string): Promise<NewDossie
         source_reference,
         active
       FROM document_requirement_rules
-      WHERE scope_object_type = 'LS'
-        AND scope_procedure = 'registration'
-        AND active = true
+      WHERE active = true
         AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
       ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id
       LIMIT 1
@@ -381,8 +394,7 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
   if (item.requiredWhenCondition !== undefined) {
     const cur = await pool.query<{ condition_json: any }>(
       `SELECT condition_json FROM document_requirement_rules
-       WHERE scope_object_type='LS' AND scope_procedure='registration'
-         AND (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
+       WHERE (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
        ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id LIMIT 1`,
       [id],
     );
@@ -408,9 +420,7 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
         source_reference = $7,
         active = $8,
         condition_json = COALESCE($9::jsonb, condition_json)
-      WHERE scope_object_type = 'LS'
-        AND scope_procedure = 'registration'
-        AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
+      WHERE (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
     `,
     [
       id,
@@ -435,9 +445,11 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
 export async function createAdminDocumentType(item: NewDossierDocumentType): Promise<NewDossierDocumentType | null> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
+  const objectType = item.direction === 'MI' ? 'MI' : 'LS';
+  const procedure = String((item as any).scopeProcedure || 'registration').trim() || 'registration';
   const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 10000)}`;
-  const documentTypeId = `memo-ls-custom-${suffix}`;
-  const ruleId = `MEMO_LS_CUSTOM_${suffix.toUpperCase()}`;
+  const documentTypeId = `memo-${objectType.toLowerCase()}-custom-${suffix}`;
+  const ruleId = `MEMO_${objectType}_CUSTOM_${suffix.toUpperCase()}`;
   const rowType = item.kind === 'section' ? 'Раздел' : item.kind === 'excluded' ? 'Исключен' : 'Документ';
   const validationChecks = asStringArray(item.validationChecks).length
     ? asStringArray(item.validationChecks)
@@ -455,7 +467,7 @@ export async function createAdminDocumentType(item: NewDossierDocumentType): Pro
         source_structure, dossier_variant, module_part, applicability, show_logic, condition_json, condition_text,
         linked_params, validation_checks, normalization_status, source_reference, active, source,
         created_by_user_id, updated_by_user_id)
-     VALUES ($1,'LS','registration',$2,$3,$4,$5,$6,$7,$8,'always_required','require_when_condition_true',
+     VALUES ($1,$15,$16,$2,$3,$4,$5,$6,$7,$8,'always_required','require_when_condition_true',
         $9::jsonb,$10,$11::jsonb,$12::jsonb,'document_profile_normalized',$13,$14,'manual','admin','admin')`,
     [
       ruleId,
@@ -464,7 +476,7 @@ export async function createAdminDocumentType(item: NewDossierDocumentType): Pro
       item.name || item.code || documentTypeId,
       rowType,
       'Ручное добавление (админ)',
-      'ctd_foreign',
+      null, // dossier_variant — организационное поле, для кастомных оставляем пустым
       item.group || item.module || null,
       JSON.stringify(conditionJson),
       item.requiredWhenExpression || item.requirednessExplanation || null,
@@ -472,6 +484,8 @@ export async function createAdminDocumentType(item: NewDossierDocumentType): Pro
       JSON.stringify(validationChecks),
       item.npaReferences?.[0] || null,
       item.active !== false,
+      objectType,
+      procedure,
     ],
   );
   invalidateLsDocTypeCache();
@@ -492,7 +506,7 @@ export async function updateCheckProfileRequirements(
   const pool = getRuntimePool();
   const { rows } = await pool.query<{ id: string; condition_json: any }>(
     `SELECT id, condition_json FROM document_requirement_rules
-     WHERE scope_object_type='LS' AND scope_procedure='registration' AND active=true
+     WHERE active=true
        AND (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
      ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id LIMIT 1`,
     [id],
@@ -677,9 +691,7 @@ export async function deactivateAdminDocumentType(id: string): Promise<boolean> 
     `
       UPDATE document_requirement_rules
       SET active = false
-      WHERE scope_object_type = 'LS'
-        AND scope_procedure = 'registration'
-        AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
+      WHERE (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
     `,
     [id]
   );
@@ -758,6 +770,7 @@ interface DbDocumentRequirementRule {
   doc_code: string;
   document_type_id: string | null;
   document_name: string;
+  scope_object_type?: string;
   row_type: string | null;
   source_structure: string | null;
   dossier_variant: string | null;
@@ -834,7 +847,7 @@ function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrde
     name,
     description: rule.document_name || name,
     kind: rule.row_type === 'section' ? 'section' : 'document',
-    direction: 'LS',
+    direction: rule.scope_object_type === 'MI' ? 'MI' : 'LS',
     acceptedFormats: inferAcceptedFormats(rule),
     active: rule.active,
     sortOrder,
@@ -874,7 +887,7 @@ function buildAdminDocumentType(rule: DbDocumentRequirementRule): DocumentType {
     sourceStructure: rule.source_structure || undefined,
     dossierVariant: rule.dossier_variant || undefined,
     acceptedFormats: inferAcceptedFormats(rule),
-    direction: 'LS',
+    direction: rule.scope_object_type === 'MI' ? 'MI' : 'LS',
     needsOcr: true,
     checkIds: ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'],
     npaReferences: rule.source_reference ? [rule.source_reference] : [],
