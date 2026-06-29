@@ -18,6 +18,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'admin:fields', label: 'Поля', group: 'Админка' },
   { key: 'admin:users', label: 'Пользователи', group: 'Админка' },
   { key: 'admin:roles', label: 'Роли', group: 'Админка' },
+  { key: 'admin:tests', label: 'Тесты (форензика)', group: 'Админка' },
 ];
 
 export const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
@@ -36,6 +37,8 @@ const GATES: Array<{ prefix: string; perm: string }> = [
   { prefix: '/api/admin/users', perm: 'admin:users' },
   { prefix: '/admin/roles', perm: 'admin:roles' },
   { prefix: '/api/admin/roles', perm: 'admin:roles' },
+  { prefix: '/admin/tests', perm: 'admin:tests' },
+  { prefix: '/api/admin/tests', perm: 'admin:tests' },
   // зонтичные admin (общие ресурсы) — ПОСЛЕ специфичных
   { prefix: '/api/admin/config', perm: 'admin' },
   { prefix: '/api/seed', perm: 'admin' },

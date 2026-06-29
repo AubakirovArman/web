@@ -9,6 +9,7 @@ const ADMIN_SECTIONS: Array<{ href: string; perm: string }> = [
   { href: '/admin/fields', perm: 'admin:fields' },
   { href: '/admin/users', perm: 'admin:users' },
   { href: '/admin/roles', perm: 'admin:roles' },
+  { href: '/admin/tests', perm: 'admin:tests' },
 ];
 
 export default async function AdminPage() {
