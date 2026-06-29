@@ -374,6 +374,28 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
         .filter(Boolean);
   const linkedParams = Array.isArray(item.linkedApplicationParams) ? item.linkedApplicationParams : [];
   const sourceReference = item.npaReferences?.[0] || null;
+
+  // Если передан предикат обязательности (requiredWhenCondition) — переписать его в condition_json
+  // ВЕРХНЕГО уровня, сохранив document_check_profile/checker_routing (они лежат рядом с предикатом).
+  let conditionJsonParam: string | null = null;
+  if (item.requiredWhenCondition !== undefined) {
+    const cur = await pool.query<{ condition_json: any }>(
+      `SELECT condition_json FROM document_requirement_rules
+       WHERE scope_object_type='LS' AND scope_procedure='registration'
+         AND (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
+       ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id LIMIT 1`,
+      [id],
+    );
+    const cj: Record<string, any> =
+      cur.rows[0]?.condition_json && typeof cur.rows[0].condition_json === 'object' ? { ...cur.rows[0].condition_json } : {};
+    for (const k of ['all', 'any', 'not', 'eq', 'neq', 'in', 'contains', 'not_empty', 'empty', 'manual']) delete cj[k];
+    const pred = item.requiredWhenCondition as Record<string, any> | null;
+    if (pred && typeof pred === 'object') Object.assign(cj, pred);
+    // null = «применяется всегда»: пустой all → evaluateCondition вернёт true (а не false на profile-only).
+    else cj.all = [];
+    conditionJsonParam = JSON.stringify(cj);
+  }
+
   await pool.query(
     `
       UPDATE document_requirement_rules
@@ -384,7 +406,8 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
         linked_params = $5::jsonb,
         validation_checks = $6::jsonb,
         source_reference = $7,
-        active = $8
+        active = $8,
+        condition_json = COALESCE($9::jsonb, condition_json)
       WHERE scope_object_type = 'LS'
         AND scope_procedure = 'registration'
         AND (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
@@ -398,8 +421,10 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
       JSON.stringify(validationChecks),
       sourceReference,
       item.active !== false,
+      conditionJsonParam,
     ]
   );
+  invalidateLsDocTypeCache();
   return readAdminDocumentTypeDetail(id);
 }
 
@@ -534,6 +559,7 @@ export async function updateCheckProfileRequirements(
     ruleId,
     JSON.stringify(nextCj),
   ]);
+  invalidateLsDocTypeCache();
   return readAdminDocumentTypeDetail(id);
 }
 
@@ -657,6 +683,7 @@ export async function deactivateAdminDocumentType(id: string): Promise<boolean> 
     `,
     [id]
   );
+  invalidateLsDocTypeCache();
   return Number(result.rowCount || 0) > 0;
 }
 

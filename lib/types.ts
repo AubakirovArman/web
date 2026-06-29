@@ -92,14 +92,22 @@ export interface DocumentType {
  * not_empty (поле заполнено), contains (поле содержит подстроку/значение).
  * Узлы: all (И), any (ИЛИ).
  */
-export type ConditionNode =
-  | { all: ConditionNode[] }
-  | { any: ConditionNode[] }
+// Синхронизировано с исполнителем lib/rules/condition-evaluator.ts
+// (all/any/not · eq/neq/in/contains/not_empty/empty/manual). contains — массивная или объектная форма.
+export type ConditionLeaf =
   | { eq: [string, string] }
   | { neq: [string, string] }
   | { in: [string, string[]] }
   | { not_empty: [string] }
-  | { contains: [string, string] };
+  | { empty: [string] }
+  | { contains: [string, string] | { param: string; where?: { field: string; eq?: string; value?: string } } }
+  | { manual: string | true };
+
+export type ConditionNode =
+  | { all: ConditionNode[] }
+  | { any: ConditionNode[] }
+  | { not: ConditionNode[] }
+  | ConditionLeaf;
 
 export interface Parameter {
   id: string;

@@ -12,6 +12,7 @@ import type { Severity } from '@/lib/types';
 import { severityLabels, type NewDossierDocumentTypeEditorState } from '@/lib/admin/admin-page-types';
 import { parseListInput } from '@/lib/admin/document-type-logic';
 import { AdminField } from '@/components/admin/admin-field';
+import { ConditionBuilder } from '@/components/admin/condition-builder';
 
 export function NewDossierDocumentTypeEditorDialog({
   state,
@@ -89,11 +90,17 @@ export function NewDossierDocumentTypeEditorDialog({
                 </p>
               </div>
               <div className="space-y-4">
-                <AdminField label="Условие обязательности" hint='Например: param-object-type = "LS" AND param-procedure = "registration"'>
+                <AdminField label="Когда документ обязателен" hint="Визуальный конструктор. Пусто = обязателен всегда. Документ требуется, если условие истинно для параметров заявки.">
+                  <ConditionBuilder
+                    value={draft.requiredWhenCondition}
+                    onChange={(next) => update({ requiredWhenCondition: next as never })}
+                  />
+                </AdminField>
+                <AdminField label="Условие обязательности (текстом, опционально)" hint="Свободное пояснение/легаси-выражение; машинно исполняется конструктор выше.">
                   <Textarea
                     value={draft.requiredWhenExpression || ''}
                     onChange={(event) => update({ requiredWhenExpression: event.target.value })}
-                    className="min-h-20 font-mono text-xs"
+                    className="min-h-16 font-mono text-xs"
                   />
                 </AdminField>
                 <AdminField label="Пояснение обязательности">
