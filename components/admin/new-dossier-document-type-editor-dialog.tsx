@@ -13,6 +13,23 @@ import { severityLabels, type NewDossierDocumentTypeEditorState } from '@/lib/ad
 import { parseListInput } from '@/lib/admin/document-type-logic';
 import { AdminField } from '@/components/admin/admin-field';
 import { ConditionBuilder } from '@/components/admin/condition-builder';
+import { LabeledMultiSelect } from '@/components/admin/labeled-multi-select';
+import { parameters } from '@/lib/data/seed';
+import { checkDefinitions } from '@/lib/checks/registry';
+
+const PARAM_OPTIONS = (() => {
+  const seen = new Set<string>();
+  const out: { value: string; label: string }[] = [];
+  for (const p of parameters) {
+    if (!p?.id || seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push({ value: p.id, label: p.label || p.id });
+  }
+  return out.sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+})();
+const CHECK_OPTIONS = checkDefinitions
+  .map((c) => ({ value: c.id, label: c.name }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
 
 export function NewDossierDocumentTypeEditorDialog({
   state,
@@ -126,16 +143,22 @@ export function NewDossierDocumentTypeEditorDialog({
                       </SelectContent>
                     </Select>
                   </AdminField>
-                  <AdminField label="Связанные параметры" hint="param-* через запятую">
-                    <Input
-                      value={(draft.linkedApplicationParams || []).join(', ')}
-                      onChange={(event) => update({ linkedApplicationParams: parseListInput(event.target.value) })}
+                  <AdminField label="Поля заявки, связанные с документом" hint="Выберите из списка по названию — какие данные заявки относятся к этому документу.">
+                    <LabeledMultiSelect
+                      options={PARAM_OPTIONS}
+                      value={draft.linkedApplicationParams || []}
+                      onChange={(next) => update({ linkedApplicationParams: next })}
+                      placeholder="Добавить поле"
+                      emptyText="Поля не выбраны"
                     />
                   </AdminField>
-                  <AdminField label="Checks" hint="ID проверок через запятую">
-                    <Input
-                      value={(draft.checkIds || []).join(', ')}
-                      onChange={(event) => update({ checkIds: parseListInput(event.target.value) })}
+                  <AdminField label="Автоматические проверки" hint="Какие автоматические проверки применяются к документу.">
+                    <LabeledMultiSelect
+                      options={CHECK_OPTIONS}
+                      value={draft.checkIds || []}
+                      onChange={(next) => update({ checkIds: next })}
+                      placeholder="Добавить проверку"
+                      emptyText="Проверки не выбраны"
                     />
                   </AdminField>
                 </div>
