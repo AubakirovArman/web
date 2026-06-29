@@ -4,12 +4,12 @@ import type { DocumentTypesLoadInput, DocumentTypesLoadResult } from './types';
 
 export async function loadDocumentTypesForApplication(input: DocumentTypesLoadInput): Promise<DocumentTypesLoadResult> {
   const { app, adminDocumentTypes } = input;
-  const isLsRegistration = app.values['param-object-type'] === 'LS' && app.values['param-procedure'] === 'registration';
-  if (!isLsRegistration) return { source: 'admin', documentTypes: adminDocumentTypes };
 
+  // Резолвим по scope заявки (object_type × procedure). Если для scope нет правил в БД —
+  // используем admin-набор (fallback), не падаем. ЛС/registration → 175 правил → postgres.
   const resolved = await resolveLsRegistrationRequiredDocuments(app.values);
   if (resolved.databaseRulesCount === 0) {
-    throw new Error('Postgres document_requirement_rules has no LS/registration rules. Local fallback is disabled.');
+    return { source: 'admin', documentTypes: adminDocumentTypes };
   }
 
   return {

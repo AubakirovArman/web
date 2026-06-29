@@ -99,9 +99,29 @@ export interface ResolvedDocumentRequirements {
   diagnostics: string[];
 }
 
+/** Нормализует процедуру из заявки к коду scope_procedure (registration/re-registration/variation). */
+export function normalizeScopeProcedure(value: unknown): string {
+  const lower = String(value ?? '').trim().toLowerCase();
+  if (['registration', 'регистрация'].includes(lower)) return 'registration';
+  if (['re-registration', 'reregistration', 'перерегистрация'].includes(lower)) return 're-registration';
+  if (['variation', 'изменения', 'внесение изменений'].includes(lower)) return 'variation';
+  return lower || 'registration';
+}
+
+export function resolveScope(values: ApplicationValues): { objectType: string; procedure: string } {
+  const objectType = String(values['param-object-type'] || '').toUpperCase() === 'MI' ? 'MI' : 'LS';
+  return { objectType, procedure: normalizeScopeProcedure(values['param-procedure']) };
+}
+
+/**
+ * Резолвер обязательных документов по scope заявки (object_type × procedure).
+ * Для ЛС/registration поведение прежнее; для МИ/перерегистрации/изменений — по соответствующим
+ * правилам (если их нет в БД, вернёт databaseRulesCount=0, и вызывающий код использует fallback).
+ */
 export async function resolveLsRegistrationRequiredDocuments(values: ApplicationValues): Promise<ResolvedDocumentRequirements> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
+  const { objectType, procedure } = resolveScope(values);
   const { rows } = await pool.query<DbRequirementRuleRow>(`
     SELECT
       id,
@@ -127,10 +147,10 @@ export async function resolveLsRegistrationRequiredDocuments(values: Application
       confidence
     FROM document_requirement_rules
     WHERE active = true
-      AND scope_object_type = 'LS'
-      AND scope_procedure = 'registration'
+      AND scope_object_type = $1
+      AND scope_procedure = $2
     ORDER BY dossier_variant NULLS LAST, module_part NULLS LAST, doc_code NULLS LAST, id
-  `);
+  `, [objectType, procedure]);
 
   const requiredByDocumentType = new Map<string, RequiredDoc>();
   const documentTypesById = new Map<string, DocumentType>();

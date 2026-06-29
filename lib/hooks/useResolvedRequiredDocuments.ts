@@ -21,7 +21,9 @@ export function useResolvedRequiredDocuments(
   const [loading, setLoading] = useState(false);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const valuesSignature = useMemo(() => JSON.stringify(app?.values || {}), [app?.values]);
-  const shouldResolveFromDb = app?.values['param-object-type'] === 'LS' && app.values['param-procedure'] === 'registration';
+  // Резолвим по scope любой заявки; если правил нет — ответ databaseRulesCount=0 и ниже fallback
+  // (поведение для scope без правил сохраняется).
+  const shouldResolveFromDb = Boolean(app?.values['param-object-type']);
 
   useEffect(() => {
     if (!app || !shouldResolveFromDb) {
