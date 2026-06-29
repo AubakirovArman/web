@@ -39,6 +39,8 @@ interface DocumentCheckProfileItem {
   pass_criteria?: string;
   failure_criteria?: string;
   applicability_condition?: string;
+  /** Структурное условие применимости требования (ConditionNode) — pre-gate перед Gemma. */
+  applicability_node?: unknown;
   source_fragment?: string;
 }
 
@@ -69,6 +71,8 @@ interface CheckerRoutingRequirement {
   implementation_buckets?: string[];
   decision_logic?: string;
   current_problem_from_audit?: string;
+  /** Структурное условие применимости требования (ConditionNode) — pre-gate перед Gemma. */
+  applicability_node?: unknown;
 }
 
 interface CheckerRoutingProfile {
@@ -181,7 +185,7 @@ export async function resolveLsRegistrationRequiredDocuments(values: Application
     }
 
     if (!documentTypesById.has(documentTypeId)) {
-      documentTypesById.set(documentTypeId, buildRuntimeDocumentType(rule, documentTypeId, validationChecks, linkedParams, checkIds));
+      documentTypesById.set(documentTypeId, buildRuntimeDocumentType(rule, documentTypeId, validationChecks, linkedParams, checkIds, values));
     }
 
     resolvedRules.push({
@@ -220,6 +224,7 @@ function buildRuntimeDocumentType(
   validationChecks: string[],
   linkedParams: string[],
   checkIds: string[],
+  values: ApplicationValues,
 ): DocumentType {
   return {
     id: documentTypeId,
@@ -240,11 +245,11 @@ function buildRuntimeDocumentType(
     linkedApplicationParams: linkedParams,
     severityIfMissing: severityForRule(rule),
     validationChecksText: validationChecks.join('\n'),
-    importedRequirements: buildImportedRequirements(rule, validationChecks),
+    importedRequirements: buildImportedRequirements(rule, validationChecks, values),
   };
 }
 
-function buildImportedRequirements(rule: DbRequirementRuleRow, validationChecks: string[]) {
+function buildImportedRequirements(rule: DbRequirementRuleRow, validationChecks: string[], values: ApplicationValues) {
   const profile = getDocumentCheckProfile(rule.condition_json);
   const routedRequirements = buildCheckerRoutingRequirements(rule);
   const baseRequirements = profile
@@ -255,7 +260,13 @@ function buildImportedRequirements(rule: DbRequirementRuleRow, validationChecks:
       ]
     : buildFallbackImportedRequirements(rule, validationChecks);
 
-  return mergeImportedRequirements(baseRequirements, routedRequirements);
+  const merged = mergeImportedRequirements(baseRequirements, routedRequirements);
+  // Pre-gate: требование с заданным структурным условием уходит в проверку только если оно истинно
+  // для параметров заявки (иначе не применимо — в Gemma не отправляется).
+  return merged.filter((req) => {
+    const node = (req as { applicabilityNode?: unknown }).applicabilityNode;
+    return !node || evaluateCondition(node, values);
+  });
 }
 
 function buildFallbackImportedRequirements(rule: DbRequirementRuleRow, validationChecks: string[]) {
@@ -304,6 +315,7 @@ function buildCheckerRoutingRequirements(rule: DbRequirementRuleRow) {
         applicabilityCondition: item.applicability_gate_required
           ? item.decision_logic || rule.condition_text || 'Сначала проверить применимость требования.'
           : rule.condition_text || undefined,
+        applicabilityNode: item.applicability_node,
         sourcePoint: item.source_point || rule.source_reference || rule.doc_code,
         quote: item.current_problem_from_audit || text,
         importedAt: new Date().toISOString(),
@@ -388,6 +400,7 @@ function buildProfileRequirements(
         applicabilityCondition: checkType === 'conditional' || checkType === 'cross_document'
           ? check.applicability_condition || 'Применяется только при выполнении условия из профиля проверки.'
           : undefined,
+        applicabilityNode: check.applicability_node,
         sourcePoint: `${rule.doc_code}${check.title ? ` / ${check.title}` : ''}`,
         quote: check.source_fragment || check.pass_criteria || check.failure_criteria || text,
         importedAt: new Date().toISOString(),

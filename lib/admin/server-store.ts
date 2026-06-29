@@ -500,7 +500,7 @@ export async function createAdminDocumentType(item: NewDossierDocumentType): Pro
  */
 export async function updateCheckProfileRequirements(
   id: string,
-  requirements: Array<{ id?: string; kind: GemmaCheckRequirement['kind']; text: string; path?: { array: string; index: number } }>,
+  requirements: Array<{ id?: string; kind: GemmaCheckRequirement['kind']; text: string; path?: { array: string; index: number }; applicabilityNode?: unknown }>,
 ): Promise<NewDossierDocumentType | null> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
@@ -542,18 +542,23 @@ export async function updateCheckProfileRequirements(
     if (!text) continue;
     const arrayKey = kindToArray[req?.kind] || 'document_check_profile.required_checks';
     const isRouting = arrayKey === 'checker_routing.requirements';
+    const node = req.applicabilityNode && typeof req.applicabilityNode === 'object' ? req.applicabilityNode : undefined;
     if (req.path && req.path.array === arrayKey && orig[arrayKey][req.path.index]) {
       const existing = { ...orig[arrayKey][req.path.index] };
       if (isRouting) existing.requirement_text = text;
       else existing.check_text = text;
+      if (req.applicabilityNode !== undefined) {
+        if (node) existing.applicability_node = node;
+        else delete existing.applicability_node;
+      }
       next[arrayKey].push(existing);
     } else {
       counter += 1;
       const genId = `${ruleId}-manual-${counter}`;
       next[arrayKey].push(
         isRouting
-          ? { requirement_id: genId, requirement_text: text }
-          : { id: genId, title: text.slice(0, 80), check_text: text, source_status: 'manual', source_scope: 'document_type_rule' },
+          ? { requirement_id: genId, requirement_text: text, ...(node ? { applicability_node: node } : {}) }
+          : { id: genId, title: text.slice(0, 80), check_text: text, source_status: 'manual', source_scope: 'document_type_rule', ...(node ? { applicability_node: node } : {}) },
       );
     }
   }
@@ -1066,6 +1071,7 @@ function extractCheckProfileRequirements(conditionJson: unknown): GemmaCheckRequ
         passCriteria: s(c?.pass_criteria),
         failureCriteria: s(c?.failure_criteria),
         applicabilityCondition: s(c?.applicability_condition ?? c?.condition),
+        applicabilityNode: c?.applicability_node && typeof c.applicability_node === 'object' ? c.applicability_node : undefined,
         sourceReference: s(c?.source_reference),
         sourceScope: s(c?.source_scope),
         npaId: s(c?.npa_id),

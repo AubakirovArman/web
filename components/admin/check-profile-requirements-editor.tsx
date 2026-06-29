@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { GemmaCheckRequirement } from '@/lib/data/ls-dossier-document-types-new';
+import { ConditionBuilder } from '@/components/admin/condition-builder';
+import { describeCondition } from '@/lib/admin/condition-attributes';
 
 const KIND_LABEL: Record<GemmaCheckRequirement['kind'], string> = {
   required: 'Обязательное',
@@ -46,7 +48,7 @@ export function CheckProfileRequirementsEditor({
   const save = async () => {
     const payload = rows
       .filter((r) => r.text.trim())
-      .map((r) => ({ id: r.id || undefined, kind: r.kind, text: r.text.trim(), path: r.path }));
+      .map((r) => ({ id: r.id || undefined, kind: r.kind, text: r.text.trim(), path: r.path, applicabilityNode: r.applicabilityNode ?? null }));
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/document-types/${encodeURIComponent(documentTypeId)}/requirements`, {
@@ -137,6 +139,18 @@ export function CheckProfileRequirementsEditor({
                   ))}
                 </div>
               )}
+              {/* Условие применимости требования (pre-gate перед Gemma) */}
+              <details className="mt-2 sm:pl-[10.5rem]">
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                  Когда проверять: {row.applicabilityNode ? describeCondition(row.applicabilityNode) : 'всегда'}
+                </summary>
+                <div className="mt-2 rounded-lg border bg-muted/10 p-2">
+                  <ConditionBuilder
+                    value={row.applicabilityNode}
+                    onChange={(next) => update(row._localId, { applicabilityNode: next as never })}
+                  />
+                </div>
+              </details>
             </div>
           );
         })}

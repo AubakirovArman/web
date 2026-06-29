@@ -25,6 +25,8 @@ export interface GemmaCheckRequirement {
   passCriteria?: string;
   failureCriteria?: string;
   applicabilityCondition?: string;
+  /** Структурное условие применимости (ConditionNode) — pre-gate перед Gemma. */
+  applicabilityNode?: ConditionNode;
   sourceReference?: string;
   /** 'npa' — требование добавлено привязкой из реестра НПА; иначе родное требование типа документа. */
   sourceScope?: string;
