@@ -1,0 +1,150 @@
+{
+  "capturedAt": "2026-06-24T11:08:28.904Z",
+  "base": "http://127.0.0.1:8040",
+  "screenshots": [
+    {
+      "step": 1,
+      "name": "home",
+      "url": "http://127.0.0.1:8040/",
+      "file": "01-home.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/01-home.png",
+      "title": "",
+      "h1": "",
+      "notes": "Входная/главная поверхность продукта",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 2,
+      "name": "wizard-params",
+      "url": "http://127.0.0.1:8040/wizard",
+      "file": "02-wizard-params.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/02-wizard-params.png",
+      "title": "",
+      "h1": "",
+      "notes": "Создание заявки: параметры",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 3,
+      "name": "expert-list",
+      "url": "http://127.0.0.1:8040/expert",
+      "file": "03-expert-list.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/03-expert-list.png",
+      "title": "",
+      "h1": "",
+      "notes": "Кабинет эксперта: список заявок",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 4,
+      "name": "admin-document-types",
+      "url": "http://127.0.0.1:8040/admin/document-types",
+      "file": "04-admin-document-types.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/04-admin-document-types.png",
+      "title": "",
+      "h1": "",
+      "notes": "Админка: типы документов",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 5,
+      "name": "admin-npa",
+      "url": "http://127.0.0.1:8040/admin/npa",
+      "file": "05-admin-npa.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/05-admin-npa.png",
+      "title": "",
+      "h1": "",
+      "notes": "Админка: НПА и требования",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 6,
+      "name": "admin-requirements",
+      "url": "http://127.0.0.1:8040/admin/requirements",
+      "file": "06-admin-requirements.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/06-admin-requirements.png",
+      "title": "",
+      "h1": "",
+      "notes": "Админка: требования",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 7,
+      "name": "admin-fields",
+      "url": "http://127.0.0.1:8040/admin/fields",
+      "file": "07-admin-fields.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/07-admin-fields.png",
+      "title": "",
+      "h1": "",
+      "notes": "Админка: поля заявки",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 8,
+      "name": "reference",
+      "url": "http://127.0.0.1:8040/reference",
+      "file": "08-reference.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/08-reference.png",
+      "title": "",
+      "h1": "",
+      "notes": "Справочник",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    },
+    {
+      "step": 9,
+      "name": "demo",
+      "url": "http://127.0.0.1:8040/demo",
+      "file": "09-demo.png",
+      "path": "/mnt/models/NDDA_AI/8040/web/docs/design-audit-2026-06-24/09-demo.png",
+      "title": "",
+      "h1": "",
+      "notes": "Демо/служебная страница",
+      "bytes": 18385,
+      "viewport": {
+        "width": 1440,
+        "height": 1024
+      },
+      "textSample": "NDDA AI — вход\n\nАвторизуйтесь, чтобы продолжить\n\nЛогин\nПароль\nВойти"
+    }
+  ]
+}
