@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/admin/searchable-select';
 import type { ConditionNode } from '@/lib/types';
 import {
   getConditionAttributes,
@@ -64,9 +65,32 @@ export function ConditionBuilder({
   onChange: (next: ConditionNode | null) => void;
 }) {
   const attrs = useMemo(() => getConditionAttributes(), []);
-  const { rows, join, complex } = useMemo(() => parse(value), [value]);
+  const attrOptions = useMemo(() => attrs.map((a) => ({ value: a.key, label: a.label })), [attrs]);
+  const parsed = useMemo(() => parse(value), [value]);
+  const complex = parsed.complex;
 
-  const emit = (nextRows: Row[], nextJoin: Join) => onChange(build(nextRows, nextJoin));
+  // Локальное состояние строк — иначе свежая строка без значения отбрасывается build()
+  // и «Добавить условие» визуально ничего не делает (на слабом устройстве — как «думает минуту»).
+  // Наверх (onChange) эмитим только валидные условия; черновая строка живёт в редакторе.
+  const [rows, setRows] = useState<Row[]>(parsed.rows);
+  const [join, setJoin] = useState<Join>(parsed.join);
+  // Запоминаем, что сами отдали наверх, чтобы отличить внешнее изменение value от своего.
+  const lastEmitted = useRef<ConditionNode | null | undefined>(value);
+  useEffect(() => {
+    if (JSON.stringify(value ?? null) !== JSON.stringify(lastEmitted.current ?? null)) {
+      setRows(parsed.rows);
+      setJoin(parsed.join);
+      lastEmitted.current = value;
+    }
+  }, [value, parsed]);
+
+  const emit = (nextRows: Row[], nextJoin: Join) => {
+    setRows(nextRows);
+    setJoin(nextJoin);
+    const built = build(nextRows, nextJoin);
+    lastEmitted.current = built;
+    onChange(built);
+  };
 
   if (complex) {
     return (
@@ -114,13 +138,14 @@ export function ConditionBuilder({
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2">
-              {/* поле */}
-              <Select value={row.attr} onValueChange={(v) => updateRow(i, { attr: v, op: (getConditionAttribute(v)?.operators[0] || 'eq'), val: [] })}>
-                <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Поле" /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {attrs.map((a) => <SelectItem key={a.key} value={a.key}>{a.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {/* поле — поисковый select (не рендерит все ~200 опций разом) */}
+              <SearchableSelect
+                options={attrOptions}
+                value={row.attr}
+                onChange={(v) => updateRow(i, { attr: v, op: (getConditionAttribute(v)?.operators[0] || 'eq'), val: [] })}
+                placeholder="Поле"
+                className="w-56"
+              />
               {/* оператор */}
               <Select value={row.op} onValueChange={(v) => updateRow(i, { op: v as ConditionOp, val: [] })}>
                 <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
