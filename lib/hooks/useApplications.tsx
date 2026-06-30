@@ -210,12 +210,17 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void reload();
-    // Автоповтор при возврате интернета (если предыдущая загрузка упала).
-    const onOnline = () => {
+    // Автоповтор, если предыдущая загрузка упала: при возврате интернета и при возврате
+    // фокуса на вкладку (страховка от транзиентных сбоёв без ручного F5).
+    const retryIfErrored = () => {
       if (hasErrorRef.current) void reload();
     };
-    window.addEventListener('online', onOnline);
-    return () => window.removeEventListener('online', onOnline);
+    window.addEventListener('online', retryIfErrored);
+    window.addEventListener('focus', retryIfErrored);
+    return () => {
+      window.removeEventListener('online', retryIfErrored);
+      window.removeEventListener('focus', retryIfErrored);
+    };
   }, [reload]);
 
   const updateApp = (id: string, updater: (app: Application) => Application, persist = true) => {

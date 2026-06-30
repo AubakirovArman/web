@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,6 @@ const roleHome: Record<string, string> = {
 };
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,8 +36,12 @@ function LoginForm() {
         return;
       }
       const next = searchParams.get('next');
-      router.replace(next && next.startsWith('/') ? next : roleHome[data.role] || '/');
-      router.refresh();
+      const target = next && next.startsWith('/') ? next : roleHome[data.role] || '/';
+      // ПОЛНАЯ навигация (а не client-side): провайдеры (в т.ч. список заявок) монтируются
+      // заново уже с установленной сессией. Иначе на свежей сессии «Мои заявки» пусты до F5,
+      // т.к. ApplicationProvider стартовал на /login без cookie и не перезагружается.
+      window.location.assign(target);
+      return;
     } catch {
       setError('Сеть недоступна. Повторите попытку.');
     } finally {
