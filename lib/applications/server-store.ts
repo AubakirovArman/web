@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { Application } from '@/lib/types';
-import { ensureRuntimeSchema, getRuntimePool, normalizeRuntimeUserId, sanitizeJsonForPostgres } from '@/lib/db/runtime-postgres';
+import { ensureRuntimeSchema, getRuntimePool, runtimeQuery, normalizeRuntimeUserId, sanitizeJsonForPostgres } from '@/lib/db/runtime-postgres';
 
 let writeQueue: Promise<unknown> = Promise.resolve();
 
@@ -74,8 +74,9 @@ export async function readApplicationById(id: string): Promise<Application | nul
 
 async function readApplicationsFromPostgres(): Promise<Application[]> {
   await ensureRuntimeSchema();
-  const pool = getRuntimePool();
-  const result = await pool.query(
+  // runtimeQuery повторит запрос на свежем коннекте, если первый упал из-за мёртвого
+  // соединения после простоя (устраняет «первый раз не загрузилось, refresh лечит»).
+  const result = await runtimeQuery(
     `
       SELECT data
       FROM runtime_applications

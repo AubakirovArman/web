@@ -13,12 +13,61 @@ export function getRuntimeDatabaseUrl() {
 
 export function getRuntimePool() {
   if (!globalForRuntimeDb.runtimePool) {
-    globalForRuntimeDb.runtimePool = new Pool({
+    const pool = new Pool({
       connectionString: getRuntimeDatabaseUrl(),
       max: 8,
+      // Закрывать простаивающие коннекты ЧЕРЕЗ 30с — раньше, чем их тихо прибьёт БД/файрвол.
+      // Это устраняет «первый запрос после простоя падает, refresh лечит»: после долгого
+      // простоя пул пуст → берётся свежий коннект, а не мёртвый.
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
     });
+    // БЕЗ этого обработчика ошибка на простаивающем клиенте роняет процесс Node.
+    pool.on('error', (err) => {
+      console.error('[runtime-postgres] idle client error:', err?.message || err);
+    });
+    globalForRuntimeDb.runtimePool = pool;
   }
   return globalForRuntimeDb.runtimePool;
+}
+
+/** Признак «коннект умер» — такие ошибки безопасно повторить на свежем коннекте. */
+function isConnectionError(error: unknown): boolean {
+  const msg = String((error as { message?: string })?.message || error || '').toLowerCase();
+  const code = String((error as { code?: string })?.code || '');
+  return (
+    msg.includes('connection terminated') ||
+    msg.includes('connection ended') ||
+    msg.includes('server closed the connection') ||
+    msg.includes('terminating connection') ||
+    msg.includes('econnreset') ||
+    msg.includes('epipe') ||
+    msg.includes('socket hang up') ||
+    code === 'ECONNRESET' ||
+    code === 'EPIPE' ||
+    code === '57P01' || // admin_shutdown
+    code === '57P02' || // crash_shutdown
+    code === '08006' || // connection_failure
+    code === '08003' // connection_does_not_exist
+  );
+}
+
+/**
+ * Выполнить запрос с одной повторной попыткой на свежем коннекте, если первый
+ * упал из-за мёртвого/закрытого соединения (страховка от гонок при простое).
+ */
+export async function runtimeQuery<T = any>(text: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number | null }> {
+  const pool = getRuntimePool();
+  try {
+    return (await pool.query(text, params as any)) as any;
+  } catch (error) {
+    if (!isConnectionError(error)) throw error;
+    console.warn('[runtime-postgres] connection error, retrying on fresh connection:', String((error as any)?.message || error));
+    await new Promise((r) => setTimeout(r, 150));
+    return (await pool.query(text, params as any)) as any;
+  }
 }
 
 export async function ensureRuntimeSchema() {
