@@ -70,3 +70,7 @@ next-env.d.ts
 *.log
 .playwright-cli/
 output/
+
+# Локальные файлы с секретами/реквизитами (НЕ коммитить)
+*.secret.md
+docs/GEMMA-CONNECTION.md
