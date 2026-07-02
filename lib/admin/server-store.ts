@@ -419,7 +419,8 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
         validation_checks = $6::jsonb,
         source_reference = $7,
         active = $8,
-        condition_json = COALESCE($9::jsonb, condition_json)
+        condition_json = COALESCE($9::jsonb, condition_json),
+        module_part = COALESCE($10, module_part)
       WHERE (document_type_id = $1 OR ('db-rule-' || id) = $1 OR id = $1 OR doc_code = $1)
     `,
     [
@@ -432,6 +433,7 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
       sourceReference,
       item.active !== false,
       conditionJsonParam,
+      (item.group || item.module || '').trim() || null,
     ]
   );
   invalidateLsDocTypeCache();
@@ -500,7 +502,7 @@ export async function createAdminDocumentType(item: NewDossierDocumentType): Pro
  */
 export async function updateCheckProfileRequirements(
   id: string,
-  requirements: Array<{ id?: string; kind: GemmaCheckRequirement['kind']; text: string; path?: { array: string; index: number }; applicabilityNode?: unknown }>,
+  requirements: Array<{ id?: string; kind: GemmaCheckRequirement['kind']; text: string; path?: { array: string; index: number }; applicabilityNode?: unknown; sourceReference?: string; criticality?: string }>,
 ): Promise<NewDossierDocumentType | null> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();
@@ -543,6 +545,20 @@ export async function updateCheckProfileRequirements(
     const arrayKey = kindToArray[req?.kind] || 'document_check_profile.required_checks';
     const isRouting = arrayKey === 'checker_routing.requirements';
     const node = req.applicabilityNode && typeof req.applicabilityNode === 'object' ? req.applicabilityNode : undefined;
+    const sourceRef = typeof req.sourceReference === 'string' ? req.sourceReference.trim() : undefined;
+    const crit = typeof req.criticality === 'string' ? req.criticality.trim() : undefined;
+    // Проставить/снять обоснование (источник НПА / критичность) на элементе профиля.
+    const applyMeta = (obj: Record<string, any>) => {
+      if (req.sourceReference !== undefined) {
+        if (sourceRef) obj.source_reference = sourceRef;
+        else delete obj.source_reference;
+      }
+      if (req.criticality !== undefined) {
+        if (crit) obj.criticality = crit;
+        else delete obj.criticality;
+      }
+      return obj;
+    };
     if (req.path && req.path.array === arrayKey && orig[arrayKey][req.path.index]) {
       const existing = { ...orig[arrayKey][req.path.index] };
       if (isRouting) existing.requirement_text = text;
@@ -551,14 +567,17 @@ export async function updateCheckProfileRequirements(
         if (node) existing.applicability_node = node;
         else delete existing.applicability_node;
       }
+      applyMeta(existing);
       next[arrayKey].push(existing);
     } else {
       counter += 1;
       const genId = `${ruleId}-manual-${counter}`;
       next[arrayKey].push(
-        isRouting
-          ? { requirement_id: genId, requirement_text: text, ...(node ? { applicability_node: node } : {}) }
-          : { id: genId, title: text.slice(0, 80), check_text: text, source_status: 'manual', source_scope: 'document_type_rule', ...(node ? { applicability_node: node } : {}) },
+        applyMeta(
+          isRouting
+            ? { requirement_id: genId, requirement_text: text, ...(node ? { applicability_node: node } : {}) }
+            : { id: genId, title: text.slice(0, 80), check_text: text, source_status: 'manual', source_scope: 'document_type_rule', ...(node ? { applicability_node: node } : {}) },
+        ),
       );
     }
   }
@@ -1068,6 +1087,7 @@ function extractCheckProfileRequirements(conditionJson: unknown): GemmaCheckRequ
         kind,
         text,
         title: s(c?.title),
+        criticality: s(c?.criticality),
         passCriteria: s(c?.pass_criteria),
         failureCriteria: s(c?.failure_criteria),
         applicabilityCondition: s(c?.applicability_condition ?? c?.condition),

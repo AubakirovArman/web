@@ -83,17 +83,19 @@ export function NewDossierDocumentTypeEditorDialog({
                   </SelectContent>
                 </Select>
               </AdminField>
-              <AdminField label="Раздел досье" hint="где документ размещается в структуре досье">
-                <Select value={draft.group} onValueChange={(group) => update({ group, module: group })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sections.map((section) => (
-                      <SelectItem key={section} value={section}>{section.replace(/\*/g, '')}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <AdminField label="Раздел досье" hint="выберите существующий или ВВЕДИТЕ НОВЫЙ раздел — он создастся при сохранении">
+                <input
+                  list="dossier-sections"
+                  value={draft.group}
+                  onChange={(e) => update({ group: e.target.value, module: e.target.value })}
+                  placeholder="напр. Модуль 1 или свой раздел"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                />
+                <datalist id="dossier-sections">
+                  {sections.map((section) => (
+                    <option key={section} value={section.replace(/\*/g, '')} />
+                  ))}
+                </datalist>
               </AdminField>
             </div>
             <AdminField label="Описание">

@@ -48,7 +48,15 @@ export function CheckProfileRequirementsEditor({
   const save = async () => {
     const payload = rows
       .filter((r) => r.text.trim())
-      .map((r) => ({ id: r.id || undefined, kind: r.kind, text: r.text.trim(), path: r.path, applicabilityNode: r.applicabilityNode ?? null }));
+      .map((r) => ({
+        id: r.id || undefined,
+        kind: r.kind,
+        text: r.text.trim(),
+        path: r.path,
+        applicabilityNode: r.applicabilityNode ?? null,
+        sourceReference: r.sourceReference?.trim() || undefined,
+        criticality: r.criticality || undefined,
+      }));
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/document-types/${encodeURIComponent(documentTypeId)}/requirements`, {
@@ -81,12 +89,9 @@ export function CheckProfileRequirementsEditor({
 
       <div className="space-y-2">
         {rows.map((row) => {
-          const meta = [
-            row.criticality ? { label: 'Критичность', value: row.criticality } : null,
-            row.applicabilityCondition ? { label: 'Когда применяется', value: row.applicabilityCondition } : null,
-            row.sourceReference ? { label: 'Источник (НПА / пункт)', value: row.sourceReference } : null,
-          ].filter(Boolean) as Array<{ label: string; value: string }>;
           const fromNpa = row.sourceScope === 'npa';
+          const critValue = row.criticality || '';
+          const critKnown = ['critical', 'warning', 'info'].includes(critValue);
           return (
             <div key={row._localId} className="rounded-lg border bg-card p-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
@@ -119,26 +124,42 @@ export function CheckProfileRequirementsEditor({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              {(meta.length > 0 || fromNpa) && (
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-1 text-xs text-muted-foreground sm:pl-[10.5rem]">
-                  {fromNpa && (
-                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                      <Link2 className="h-3.5 w-3.5" />
-                      Привязано из НПА
-                      {row.npaId && (
-                        <Badge variant="outline" className="ml-1 font-mono text-[10px]">
-                          {row.npaId}
-                        </Badge>
-                      )}
-                    </span>
-                  )}
-                  {meta.map((m) => (
-                    <span key={m.label}>
-                      <span className="text-muted-foreground/70">{m.label}:</span> {m.value}
-                    </span>
-                  ))}
+              {/* Обоснование по НПА — теперь редактируемое (источник/пункт + критичность) */}
+              <div className="mt-2 space-y-2 pl-1 sm:pl-[10.5rem]">
+                {fromNpa && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+                    <Link2 className="h-3.5 w-3.5" />
+                    Привязано из НПА
+                    {row.npaId && <Badge variant="outline" className="ml-1 font-mono text-[10px]">{row.npaId}</Badge>}
+                  </span>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <label className="flex-1 text-xs text-muted-foreground">
+                    Источник (НПА / пункт)
+                    <input
+                      value={row.sourceReference || ''}
+                      onChange={(e) => update(row._localId, { sourceReference: e.target.value })}
+                      placeholder="напр. Решение № 78, п. 12"
+                      className="mt-0.5 h-9 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                    />
+                  </label>
+                  <label className="text-xs text-muted-foreground sm:w-52">
+                    Критичность
+                    <Select value={critValue} onValueChange={(v) => update(row._localId, { criticality: v })}>
+                      <SelectTrigger className="mt-0.5 h-9 w-full"><SelectValue placeholder="не задана" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="critical">Критично</SelectItem>
+                        <SelectItem value="warning">Предупреждение</SelectItem>
+                        <SelectItem value="info">Информационно</SelectItem>
+                        {critValue && !critKnown && <SelectItem value={critValue}>{critValue}</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  </label>
                 </div>
-              )}
+                {row.applicabilityCondition && (
+                  <div className="text-xs text-muted-foreground"><span className="text-muted-foreground/70">Когда применяется:</span> {row.applicabilityCondition}</div>
+                )}
+              </div>
               {/* Условие применимости требования (pre-gate перед Gemma) */}
               <details className="mt-2 sm:pl-[10.5rem]">
                 <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
