@@ -16,6 +16,7 @@ export function DocsStep({
   app,
   requiredDocs,
   documentTypesCatalog,
+  requirementsLoading,
   onUpload,
   onRemove,
 }: {
@@ -206,13 +207,22 @@ export function DocsStep({
             </CardContent>
           </Card>
         )}
-        {visibleRequiredDocs.length === 0 && (
-          <Card>
-            <CardContent className="py-6 text-sm text-muted-foreground">
-              Для выбранных параметров заявки обязательные типы документов пока не определены.
-            </CardContent>
-          </Card>
-        )}
+        {visibleRequiredDocs.length === 0 && (() => {
+          const objectType = app.values['param-object-type'] === 'MI' ? 'MI' : 'LS';
+          const procedure = String(app.values['param-procedure'] || 'registration');
+          const scopeUnfilled = objectType === 'MI' || procedure !== 'registration';
+          return (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                {requirementsLoading
+                  ? 'Определяем необходимые документы…'
+                  : scopeUnfilled
+                    ? 'Для этой области/процедуры перечень документов ещё не заведён администратором. Обратитесь к администратору или выберите ЛС / Регистрация.'
+                    : 'Для выбранных параметров заявки обязательные типы документов пока не определены.'}
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
     </div>
   );

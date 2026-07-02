@@ -1,7 +1,7 @@
 'use client';
 
 import { Application } from '@/lib/types';
-import { getVisibleParameterIds, parameters } from '@/lib/data/seed';
+import { getVisibleParameterIds, getRequiredParameterIds, parameters } from '@/lib/data/seed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,12 @@ export function ParamsStep({
     values as Record<string, string>
   );
   const visibleParams = parameters.filter((p) => visibleParamIds.includes(p.id) && shouldShowWizardParameter(p.id, values, objectType));
+  const requiredIds = new Set(
+    getRequiredParameterIds(
+      objectType === 'MI' ? 'MI' : 'LS',
+      procedure === 're-registration' || procedure === 'variation' ? procedure : 'registration',
+    ),
+  );
   const parameterGroups = objectType === 'MI' ? getMiParameterGroups(procedure) : getLsParameterGroups(procedure);
   const activeParameterGroups = parameterGroups
     .map((group) => ({
@@ -103,7 +109,7 @@ export function ParamsStep({
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2">
             {sectionParams.map((param) => (
-              <ParameterField key={param.id} param={param} values={values} onChange={onChange} />
+              <ParameterField key={param.id} param={param} values={values} onChange={onChange} required={requiredIds.has(param.id)} />
             ))}
           </CardContent>
         </Card>
@@ -116,17 +122,19 @@ function ParameterField({
   param,
   values,
   onChange,
+  required,
 }: {
   param: typeof parameters[number];
   values: Application['values'];
   onChange: (id: string, value: string | string[]) => void;
+  required?: boolean;
 }) {
   const custom = renderCustomParameter(param.id, values, onChange);
   if (custom) return custom;
 
   return (
     <div className={param.type === 'textarea' ? 'space-y-2 sm:col-span-2' : 'space-y-2'}>
-      <ParameterLabel param={param} />
+      <ParameterLabel param={param} required={required} />
       {param.type === 'select' ? (
         <Select value={getStringValue(values[param.id])} onValueChange={(v) => onChange(param.id, v)}>
           <SelectTrigger id={param.id} className="w-full">
@@ -162,10 +170,13 @@ function ParameterField({
   );
 }
 
-function ParameterLabel({ param }: { param: typeof parameters[number] }) {
+function ParameterLabel({ param, required }: { param: typeof parameters[number]; required?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor={param.id}>{param.label}</Label>
+      <Label htmlFor={param.id}>
+        {param.label}
+        {required && <span className="ml-0.5 text-destructive" title="Обязательное поле" aria-hidden>*</span>}
+      </Label>
       {param.sourceFieldRef && (
         <span
           className="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] text-muted-foreground"
