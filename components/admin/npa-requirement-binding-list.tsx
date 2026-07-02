@@ -28,14 +28,24 @@ export function NpaRequirementBindingList({
   record,
   documentTypes,
   onBind,
+  onAdd,
+  onUpdate,
+  onDelete,
 }: {
   record: { requirements: AdminNpaRequirement[] };
   documentTypes: DocumentType[];
   onBind: (requirementId: string, targetDocumentTypeId: string) => void;
+  onAdd?: (fields: { requirement: string; point?: string; criticality?: string; quote?: string }) => void;
+  onUpdate?: (reqId: string, fields: Record<string, string>) => void;
+  onDelete?: (reqId: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [unbindReq, setUnbindReq] = useState<AdminNpaRequirement | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addDraft, setAddDraft] = useState({ requirement: '', point: '', criticality: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ requirement: '', point: '', quote: '' });
   const PAGE = 60;
   const [visible, setVisible] = useState(PAGE);
   useEffect(() => setVisible(PAGE), [query, filter]);
@@ -85,8 +95,44 @@ export function NpaRequirementBindingList({
           <Chip value="all" label={`Все · ${total}`} />
           <Chip value="bound" label={`Привязаны · ${boundCount}`} />
           <Chip value="unbound" label={`Не привязаны · ${unboundCount}`} />
+          {onAdd && (
+            <Button size="sm" className="h-8" onClick={() => setShowAdd((v) => !v)}>
+              + Требование
+            </Button>
+          )}
         </div>
       </div>
+
+      {showAdd && onAdd && (
+        <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">Добавить требование вручную (например, пункт, который пропустила Gemma)</p>
+          <textarea
+            value={addDraft.requirement}
+            onChange={(e) => setAddDraft((d) => ({ ...d, requirement: e.target.value }))}
+            rows={2}
+            placeholder="Текст требования"
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          />
+          <div className="flex flex-wrap gap-2">
+            <input value={addDraft.point} onChange={(e) => setAddDraft((d) => ({ ...d, point: e.target.value }))} placeholder="Пункт (напр. п. 12)" className="h-9 flex-1 rounded-md border bg-background px-3 text-sm" />
+            <input value={addDraft.criticality} onChange={(e) => setAddDraft((d) => ({ ...d, criticality: e.target.value }))} placeholder="Критичность (critical/warning)" className="h-9 flex-1 rounded-md border bg-background px-3 text-sm" />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!addDraft.requirement.trim()) return;
+                onAdd({ requirement: addDraft.requirement.trim(), point: addDraft.point.trim() || undefined, criticality: addDraft.criticality.trim() || undefined });
+                setAddDraft({ requirement: '', point: '', criticality: '' });
+                setShowAdd(false);
+              }}
+            >
+              Добавить
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Отмена</Button>
+          </div>
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <EmptyAdminBlock text="Ничего не найдено по фильтру." />
@@ -99,12 +145,28 @@ export function NpaRequirementBindingList({
             const npaDoc = [req.documentName, req.documentCode, cleanCheckType(req.checkType)].filter(Boolean).join(' · ');
             return (
               <div key={req.id} className="rounded-xl border bg-card p-3">
-                {/* Требование + откуда */}
-                <div className="text-sm leading-6">{req.requirement}</div>
-                {from && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    <span className="text-muted-foreground/70">Из пункта:</span> {from}
+                {/* Требование + откуда (с inline-правкой) */}
+                {editingId === req.id && onUpdate ? (
+                  <div className="space-y-2">
+                    <textarea value={editDraft.requirement} onChange={(e) => setEditDraft((d) => ({ ...d, requirement: e.target.value }))} rows={2} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+                    <div className="flex flex-wrap gap-2">
+                      <input value={editDraft.point} onChange={(e) => setEditDraft((d) => ({ ...d, point: e.target.value }))} placeholder="Пункт" className="h-8 flex-1 rounded-md border bg-background px-2 text-sm" />
+                      <input value={editDraft.quote} onChange={(e) => setEditDraft((d) => ({ ...d, quote: e.target.value }))} placeholder="Цитата" className="h-8 flex-1 rounded-md border bg-background px-2 text-sm" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => { if (editDraft.requirement.trim()) { onUpdate(req.id, { requirement: editDraft.requirement.trim(), point: editDraft.point.trim(), quote: editDraft.quote.trim() }); setEditingId(null); } }}>Сохранить</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Отмена</Button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="text-sm leading-6">{req.requirement}</div>
+                    {from && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        <span className="text-muted-foreground/70">Из пункта:</span> {from}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Зона привязки: статус-бейдж + название + действия */}
@@ -145,6 +207,16 @@ export function NpaRequirementBindingList({
                         onClick={() => setUnbindReq(req)}
                       >
                         Отвязать
+                      </Button>
+                    )}
+                    {onUpdate && (
+                      <Button variant="ghost" size="sm" className="h-8" onClick={() => { setEditingId(req.id); setEditDraft({ requirement: req.requirement, point: req.point || '', quote: req.quote || '' }); }}>
+                        Изменить
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => onDelete(req.id)}>
+                        Удалить
                       </Button>
                     )}
                   </div>

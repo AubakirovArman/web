@@ -719,6 +719,73 @@ export async function addNpaRequirements(
   return added;
 }
 
+/** Добавить одно требование в акт НПА вручную (self-service ведения реестра). */
+export async function addNpaRequirement(
+  npaId: string,
+  fields: Partial<AdminNpaRequirement> & { requirement: string },
+): Promise<{ requirement?: AdminNpaRequirement; error?: string }> {
+  const config = await readAdminRuntimeConfig();
+  const registry: AdminNpaRecord[] = Array.isArray((config as any).npaRegistry) ? (config as any).npaRegistry : [];
+  const rec = registry.find((r) => r.id === npaId);
+  if (!rec) return { error: 'Акт НПА не найден' };
+  const text = String(fields.requirement || '').trim();
+  if (!text) return { error: 'Укажите текст требования' };
+  const req: AdminNpaRequirement = {
+    id: `manual-${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`,
+    code: String(fields.code || '').trim(),
+    point: String(fields.point || '').trim(),
+    requirement: text,
+    criticality: String(fields.criticality || 'неясно').trim() || 'неясно',
+    action: 'accepted',
+    documentCode: String(fields.documentCode || fields.code || '').trim(),
+    documentName: String(fields.documentName || '').trim(),
+    checkType: String(fields.checkType || 'обязательная проверка').trim(),
+    condition: String(fields.condition || '').trim(),
+    quote: String(fields.quote || '').trim(),
+    targetDocumentTypeId: fields.targetDocumentTypeId || undefined,
+    targetRequirementId: undefined,
+  };
+  rec.requirements = Array.isArray(rec.requirements) ? [...rec.requirements, req] : [req];
+  await writeAdminRuntimeConfig({ ...config, npaRegistry: registry }, 'admin');
+  return { requirement: req };
+}
+
+/** Изменить требование НПА (текст/пункт/цитата/критичность и т.д.). */
+export async function updateNpaRequirement(
+  npaId: string,
+  reqId: string,
+  patch: Partial<AdminNpaRequirement>,
+): Promise<{ requirement?: AdminNpaRequirement; error?: string }> {
+  const config = await readAdminRuntimeConfig();
+  const registry: AdminNpaRecord[] = Array.isArray((config as any).npaRegistry) ? (config as any).npaRegistry : [];
+  const rec = registry.find((r) => r.id === npaId);
+  if (!rec) return { error: 'Акт НПА не найден' };
+  const idx = (rec.requirements || []).findIndex((r) => r.id === reqId);
+  if (idx < 0) return { error: 'Требование не найдено' };
+  const editable: (keyof AdminNpaRequirement)[] = ['requirement', 'code', 'point', 'quote', 'criticality', 'checkType', 'condition', 'documentCode', 'documentName'];
+  const next = { ...rec.requirements[idx] };
+  for (const k of editable) {
+    if (patch[k] !== undefined) (next as any)[k] = typeof patch[k] === 'string' ? String(patch[k]).trim() : patch[k];
+  }
+  if (!next.requirement) return { error: 'Текст требования не может быть пустым' };
+  rec.requirements[idx] = next;
+  await writeAdminRuntimeConfig({ ...config, npaRegistry: registry }, 'admin');
+  return { requirement: next };
+}
+
+/** Удалить требование из акта НПА. */
+export async function deleteNpaRequirement(npaId: string, reqId: string): Promise<boolean> {
+  const config = await readAdminRuntimeConfig();
+  const registry: AdminNpaRecord[] = Array.isArray((config as any).npaRegistry) ? (config as any).npaRegistry : [];
+  const rec = registry.find((r) => r.id === npaId);
+  if (!rec || !Array.isArray(rec.requirements)) return false;
+  const before = rec.requirements.length;
+  rec.requirements = rec.requirements.filter((r) => r.id !== reqId);
+  if (rec.requirements.length === before) return false;
+  await writeAdminRuntimeConfig({ ...config, npaRegistry: registry }, 'admin');
+  return true;
+}
+
 export async function deactivateAdminDocumentType(id: string): Promise<boolean> {
   await ensureRuntimeSchema();
   const pool = getRuntimePool();

@@ -150,6 +150,51 @@ export function NpaRegistryDetail({
   const [binding, setBinding] = useState(false);
   const boundCount = record.requirements.filter((r) => r.targetDocumentTypeId).length;
 
+  const handleAddRequirement = async (fields: { requirement: string; point?: string; criticality?: string; quote?: string }) => {
+    try {
+      const res = await fetch(`/api/admin/npa/${encodeURIComponent(record.id)}/requirements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось добавить требование');
+      toast.success('Требование добавлено в реестр');
+      onReload?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось добавить требование');
+    }
+  };
+
+  const handleUpdateRequirement = async (reqId: string, fields: Record<string, string>) => {
+    try {
+      const res = await fetch(`/api/admin/npa/${encodeURIComponent(record.id)}/requirements/${encodeURIComponent(reqId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить требование');
+      toast.success('Требование обновлено');
+      onReload?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось сохранить требование');
+    }
+  };
+
+  const handleDeleteRequirement = async (reqId: string) => {
+    if (!window.confirm('Удалить это требование из реестра НПА?')) return;
+    try {
+      const res = await fetch(`/api/admin/npa/${encodeURIComponent(record.id)}/requirements/${encodeURIComponent(reqId)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось удалить требование');
+      toast.success('Требование удалено');
+      onReload?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось удалить требование');
+    }
+  };
+
   const handleBind = async (requirementId: string, targetDocumentTypeId: string) => {
     setBinding(true);
     try {
@@ -226,7 +271,7 @@ export function NpaRegistryDetail({
         </TabsList>
 
         <TabsContent value="binding" className="mt-3">
-          <NpaRequirementBindingList record={record} documentTypes={documentTypes} onBind={handleBind} />
+          <NpaRequirementBindingList record={record} documentTypes={documentTypes} onBind={handleBind} onAdd={handleAddRequirement} onUpdate={handleUpdateRequirement} onDelete={handleDeleteRequirement} />
         </TabsContent>
 
         <TabsContent value="gemma" className="mt-3">
