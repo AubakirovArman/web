@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readRoles, writeRoles } from '@/lib/auth/roles';
 import { countUsersByRole } from '@/lib/auth/users';
 import { findEscalatedPermissions } from '@/lib/auth/permissions';
+import { logAudit } from '@/lib/admin/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body?.name === 'string' && body.name.trim()) role.name = body.name.trim();
     if (typeof body?.description === 'string') role.description = body.description;
     const next = await writeRoles(roles);
+    void logAudit({ actorUserId: request.headers.get('x-user-id'), action: 'role.update', entity: 'role', entityId: roleId, summary: `Изменена роль «${role.name}»` });
     return NextResponse.json({ role: next.find((r) => r.id === roleId), roles: next });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось сохранить роль' }, { status: 500 });
@@ -53,6 +55,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
     const next = await writeRoles(roles.filter((r) => r.id !== roleId));
+    void logAudit({ actorUserId: request.headers.get('x-user-id'), action: 'role.delete', entity: 'role', entityId: roleId, summary: `Удалена роль «${role.name}»` });
     return NextResponse.json({ ok: true, roles: next });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось удалить роль' }, { status: 500 });

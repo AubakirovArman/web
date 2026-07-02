@@ -128,6 +128,18 @@ async function createRuntimeSchema() {
     CREATE INDEX IF NOT EXISTS runtime_applications_applicant_user_idx ON runtime_applications(applicant_user_id);
     CREATE INDEX IF NOT EXISTS runtime_applications_expert_user_idx ON runtime_applications(assigned_expert_user_id);
 
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id bigserial PRIMARY KEY,
+      actor_user_id text NOT NULL DEFAULT 'system',
+      action text NOT NULL,
+      entity text,
+      entity_id text,
+      summary text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC);
+
     CREATE TABLE IF NOT EXISTS runtime_dictionaries (
       key text PRIMARY KEY,
       data jsonb NOT NULL,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readRoles, writeRoles, type AppRole } from '@/lib/auth/roles';
 import { PERMISSIONS, findEscalatedPermissions } from '@/lib/auth/permissions';
+import { logAudit } from '@/lib/admin/audit-log';
 
 /** Права запрашивающего (из подписанной сессии через middleware x-user-perms). */
 function requesterPerms(request: NextRequest): string[] {
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       builtin: false,
     };
     const next = await writeRoles([...roles, role]);
+    void logAudit({ actorUserId: request.headers.get('x-user-id'), action: 'role.create', entity: 'role', entityId: id, summary: `Создана роль «${name}» (${role.permissions.length} прав)` });
     return NextResponse.json({ role: next.find((r) => r.id === id), roles: next });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось создать роль' }, { status: 500 });

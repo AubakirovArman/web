@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateCheckProfileRequirements } from '@/lib/admin/server-store';
+import { logAudit } from '@/lib/admin/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     const item = await updateCheckProfileRequirements(decodeURIComponent(id), requirements);
     if (!item) return NextResponse.json({ error: 'Document type not found' }, { status: 404 });
+    void logAudit({
+      actorUserId: request.headers.get('x-user-id'),
+      action: 'requirements.update',
+      entity: 'document-type',
+      entityId: decodeURIComponent(id),
+      summary: `Обновлены требования (${requirements.length})`,
+    });
     return NextResponse.json({ item });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось сохранить требования' }, { status: 500 });

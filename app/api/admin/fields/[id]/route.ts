@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { upsertCustomParameter, deleteCustomParameter, readCustomParameters } from '@/lib/admin/custom-fields-store';
+import { logAudit } from '@/lib/admin/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       userId,
     );
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    void logAudit({ actorUserId: userId, action: 'field.update', entity: 'field', entityId: fieldId, summary: `Изменено поле «${label}»` });
     return NextResponse.json({ parameter: result.parameter });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось сохранить поле' }, { status: 500 });
@@ -45,6 +47,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const userId = request.headers.get('x-user-id') || 'system';
     const ok = await deleteCustomParameter(fieldId, userId);
     if (!ok) return NextResponse.json({ error: 'Кастомное поле не найдено' }, { status: 404 });
+    void logAudit({ actorUserId: userId, action: 'field.delete', entity: 'field', entityId: fieldId, summary: `Удалено поле ${fieldId}` });
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось удалить поле' }, { status: 500 });

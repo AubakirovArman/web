@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequiredParameterIds, getVisibleParameterIds, parameters } from '@/lib/data/seed';
 import { readAdminApplicationFieldsView } from '@/lib/admin/server-store';
 import { readCustomParameters, upsertCustomParameter } from '@/lib/admin/custom-fields-store';
+import { logAudit } from '@/lib/admin/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
       userId,
     );
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    void logAudit({ actorUserId: userId, action: 'field.create', entity: 'field', entityId: result.parameter?.id, summary: `Создано поле «${label}»` });
     return NextResponse.json({ parameter: result.parameter });
   } catch (error: any) {
     return NextResponse.json({ error: 'Не удалось создать поле' }, { status: 500 });

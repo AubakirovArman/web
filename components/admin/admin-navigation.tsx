@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, FileText, ShieldCheck, ShieldQuestion, SlidersHorizontal, Users } from 'lucide-react';
+import { BookOpen, FileText, History, ShieldCheck, ShieldQuestion, SlidersHorizontal, Users } from 'lucide-react';
 import { hasPermission } from '@/lib/auth/permissions';
 
 const adminNavItems = [
@@ -13,6 +13,7 @@ const adminNavItems = [
   { href: '/admin/users', label: 'Пользователи', icon: Users, perm: 'admin:users' },
   { href: '/admin/roles', label: 'Роли', icon: ShieldCheck, perm: 'admin:roles' },
   { href: '/admin/tests', label: 'Тесты', icon: ShieldQuestion, perm: 'admin:tests' },
+  { href: '/admin/audit', label: 'Журнал', icon: History, perm: 'admin' },
 ];
 
 export function AdminNavigation() {
