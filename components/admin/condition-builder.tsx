@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/admin/searchable-select';
+import { useCustomAttributesReady } from '@/lib/admin/custom-attributes-client';
 import type { ConditionNode } from '@/lib/types';
 import {
   getConditionAttributes,
@@ -261,7 +262,8 @@ export function ConditionBuilder({
   value: ConditionNode | null | undefined;
   onChange: (next: ConditionNode | null) => void;
 }) {
-  const attrs = useMemo(() => getConditionAttributes(), []);
+  const customReady = useCustomAttributesReady();
+  const attrs = useMemo(() => getConditionAttributes(), [customReady]);
   const attrOptions = useMemo(() => attrs.map((a) => ({ value: a.key, label: a.label })), [attrs]);
   const parsed = useMemo(() => parseTop(value), [value]);
 

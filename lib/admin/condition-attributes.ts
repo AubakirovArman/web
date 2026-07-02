@@ -74,30 +74,51 @@ function dedupedParameters(): Parameter[] {
   return Array.from(byId.values());
 }
 
+function toConditionAttribute(p: Parameter): ConditionAttribute {
+  return {
+    key: p.id,
+    label: p.label || p.id,
+    type: p.type,
+    options:
+      p.type === 'boolean'
+        ? [
+            { value: 'yes', label: 'Да' },
+            { value: 'no', label: 'Нет' },
+          ]
+        : p.options || [],
+    operators: operatorsForType(p.type),
+    boolean: p.type === 'boolean',
+  };
+}
+
+// Кастомные атрибуты (поля, заведённые админом) регистрируются в рантайме.
+const extraAttrs: ConditionAttribute[] = [];
+
 export function getConditionAttributes(): ConditionAttribute[] {
-  return dedupedParameters()
+  const base = dedupedParameters()
     .filter((p) => p.type !== 'textarea') // длинный свободный текст не годится для условий
-    .map((p) => ({
-      key: p.id,
-      label: p.label || p.id,
-      type: p.type,
-      options:
-        p.type === 'boolean'
-          ? [
-              { value: 'yes', label: 'Да' },
-              { value: 'no', label: 'Нет' },
-            ]
-          : p.options || [],
-      operators: operatorsForType(p.type),
-      boolean: p.type === 'boolean',
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+    .map(toConditionAttribute);
+  return [...base, ...extraAttrs].sort((a, b) => a.label.localeCompare(b.label, 'ru'));
 }
 
 const ATTR_INDEX = new Map(getConditionAttributes().map((a) => [a.key, a]));
 
 export function getConditionAttribute(key: string): ConditionAttribute | undefined {
   return ATTR_INDEX.get(key);
+}
+
+/**
+ * Зарегистрировать кастомные поля (из БД) как атрибуты конструктора — чтобы
+ * созданное админом поле сразу было выбираемо в условиях и корректно проходило
+ * валидацию/превью. Идемпотентно (по ключу).
+ */
+export function registerConditionAttributes(params: Parameter[]): void {
+  for (const p of params) {
+    if (!p?.id || p.type === 'textarea' || ATTR_INDEX.has(p.id)) continue;
+    const attr = toConditionAttribute(p);
+    ATTR_INDEX.set(attr.key, attr);
+    extraAttrs.push(attr);
+  }
 }
 
 /** Человекочитаемое превью условия («Тип ЛС равно Генерик И …»). */

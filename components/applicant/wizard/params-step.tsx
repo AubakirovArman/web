@@ -1,6 +1,7 @@
 'use client';
 
-import { Application } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { Application, Parameter } from '@/lib/types';
 import { getVisibleParameterIds, getRequiredParameterIds, parameters } from '@/lib/data/seed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,25 @@ export function ParamsStep({
 }) {
   const procedure = values['param-procedure'] as string;
   const objectType = values['param-object-type'] as string;
+
+  // Кастомные поля (заведённые админом) — показываем отдельной секцией для текущей области.
+  const [customParams, setCustomParams] = useState<Parameter[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/custom-fields', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { customFields: [] }))
+      .then((d) => {
+        if (alive) setCustomParams(Array.isArray(d.customFields) ? d.customFields : []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const scopeCustomParams = customParams.filter((p: any) => {
+    const s = p.scopeObjectType || 'LS';
+    return s === 'both' || s === (objectType === 'MI' ? 'MI' : 'LS');
+  });
   const visibleParamIds = getVisibleParameterIds(
     objectType === 'MI' ? 'MI' : 'LS',
     procedure === 're-registration' || procedure === 'variation' ? procedure : 'registration',
@@ -114,6 +134,20 @@ export function ParamsStep({
           </CardContent>
         </Card>
       ))}
+
+      {scopeCustomParams.length > 0 && (safeSubStep >= activeParameterGroups.length - 1) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Дополнительные поля</CardTitle>
+            <p className="text-sm text-muted-foreground">Поля, добавленные администратором.</p>
+          </CardHeader>
+          <CardContent className="grid gap-6 sm:grid-cols-2">
+            {scopeCustomParams.map((param) => (
+              <ParameterField key={param.id} param={param as typeof parameters[number]} values={values} onChange={onChange} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

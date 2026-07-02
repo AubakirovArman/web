@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CustomFieldDialog, type EditableCustomField } from '@/components/admin/custom-field-dialog';
 
 type FieldRow = {
   id: string;
@@ -20,6 +22,8 @@ type FieldRow = {
   usageLabel: string;
   optionsText: string;
   relatedDocuments: Array<{ code: string; name: string }>;
+  isCustom?: boolean;
+  scopeObjectType?: 'LS' | 'MI' | 'both';
 };
 
 export default function AdminFieldsPage() {
@@ -29,6 +33,9 @@ export default function AdminFieldsPage() {
   const [usageFilter, setUsageFilter] = useState<'all' | FieldRow['usage']>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<EditableCustomField | null>(null);
+  const [customById, setCustomById] = useState<Record<string, EditableCustomField>>({});
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -37,6 +44,9 @@ export default function AdminFieldsPage() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить поля');
       setRows(Array.isArray(payload.rows) ? payload.rows : []);
+      const map: Record<string, EditableCustomField> = {};
+      for (const cf of payload.customFields || []) map[cf.id] = cf;
+      setCustomById(map);
     } catch (error) {
       setRows([]);
       toast.error(error instanceof Error ? error.message : 'Не удалось загрузить поля');
@@ -48,6 +58,21 @@ export default function AdminFieldsPage() {
   useEffect(() => {
     loadRows();
   }, [loadRows]);
+
+  const openCreate = () => { setEditing(null); setDialogOpen(true); };
+  const openEdit = (row: FieldRow) => { setEditing(customById[row.id] || { id: row.id, label: row.label, type: row.type }); setDialogOpen(true); };
+  const deleteField = async (row: FieldRow) => {
+    if (!window.confirm(`Удалить поле «${row.label}»? Условия, которые на него ссылаются, перестанут срабатывать.`)) return;
+    try {
+      const res = await fetch(`/api/admin/fields/${encodeURIComponent(row.id)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось удалить поле');
+      toast.success('Поле удалено');
+      loadRows();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось удалить поле');
+    }
+  };
 
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(() => rows.filter((row) => {
@@ -81,8 +106,13 @@ export default function AdminFieldsPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Поля заявки: ЛС / регистрация</CardTitle>
-          <p className="text-sm text-muted-foreground">Поля и связанные коды документов грузятся отдельным быстрым endpoint из Postgres.</p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle className="text-base">Поля заявки</CardTitle>
+              <p className="text-sm text-muted-foreground">Базовые поля (ЛС/регистрация) — только чтение. Кастомные поля можно создавать, они сразу доступны в конструкторе условий.</p>
+            </div>
+            <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" />Новое поле</Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2 text-xs">
@@ -121,16 +151,20 @@ export default function AdminFieldsPage() {
                   <th className="border-b px-3 py-2 font-semibold">Коды разделов</th>
                   <th className="border-b px-3 py-2 font-semibold">Значения</th>
                   <th className="border-b px-3 py-2 font-semibold">Раздел / источник</th>
+                  <th className="border-b px-3 py-2 font-semibold text-right">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && Array.from({ length: 8 }).map((_, index) => (
-                  <tr key={index}>{Array.from({ length: 8 }).map((__, cell) => <td key={cell} className="border-b px-3 py-2"><div className="h-4 animate-pulse bg-muted" /></td>)}</tr>
+                  <tr key={index}>{Array.from({ length: 9 }).map((__, cell) => <td key={cell} className="border-b px-3 py-2"><div className="h-4 animate-pulse bg-muted" /></td>)}</tr>
                 ))}
                 {!loading && pageItems.map((row) => (
                   <tr key={row.id} className="align-top hover:bg-muted/30">
                     <td className="border-b px-3 py-2 font-mono text-xs">{row.id}</td>
-                    <td className="border-b px-3 py-2 font-medium">{row.label}</td>
+                    <td className="border-b px-3 py-2 font-medium">
+                      {row.label}
+                      {row.isCustom && <Badge variant="outline" className="ml-2 border-primary/40 text-[10px] text-primary">кастом</Badge>}
+                    </td>
                     <td className="border-b px-3 py-2">{row.type}</td>
                     <td className="border-b px-3 py-2">{row.required ? 'Да' : 'Нет'}</td>
                     <td className="border-b px-3 py-2">{row.usageLabel}</td>
@@ -154,11 +188,21 @@ export default function AdminFieldsPage() {
                     <td className="border-b px-3 py-2 text-xs text-muted-foreground">
                       {[row.section, row.sourceFieldRef, row.sourceNpa].filter(Boolean).join(' / ') || 'Не указано'}
                     </td>
+                    <td className="border-b px-3 py-2 text-right">
+                      {row.isCustom ? (
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(row)} aria-label="Изменить поле"><Pencil className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteField(row)} aria-label="Удалить поле"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">базовое</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td className="px-3 py-8 text-center text-muted-foreground" colSpan={8}>Поля не найдены</td>
+                    <td className="px-3 py-8 text-center text-muted-foreground" colSpan={9}>Поля не найдены</td>
                   </tr>
                 )}
               </tbody>
@@ -196,6 +240,8 @@ export default function AdminFieldsPage() {
           </Button>
         </div>
       </div>
+
+      <CustomFieldDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editing} onSaved={loadRows} />
     </div>
   );
 }

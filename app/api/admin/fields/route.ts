@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getRequiredParameterIds, getVisibleParameterIds, parameters } from '@/lib/data/seed';
 import { readAdminApplicationFieldsView } from '@/lib/admin/server-store';
+import { readCustomParameters, upsertCustomParameter } from '@/lib/admin/custom-fields-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -66,10 +67,56 @@ export async function GET() {
           usageLabel: usageLabels[usage as keyof typeof usageLabels],
           optionsText: renderOptions(param),
           relatedDocuments,
+          isCustom: false,
         };
       });
-    return NextResponse.json({ rows });
+
+    // Кастомные поля (self-service) — показываем ниже, с флагом isCustom для CRUD в UI.
+    const customFields = await readCustomParameters();
+    const customRows = customFields.map((param) => ({
+      id: param.id,
+      label: param.label,
+      type: param.type,
+      section: param.section,
+      sourceFieldRef: param.sourceFieldRef,
+      sourceNpa: param.sourceNpa,
+      required: false,
+      usage: 'condition_for_document_upload' as const,
+      usageLabel: usageLabels.condition_for_document_upload,
+      optionsText: renderOptions(param),
+      relatedDocuments: relatedByParam.get(param.id) || [],
+      isCustom: true,
+      scopeObjectType: param.scopeObjectType,
+    }));
+
+    return NextResponse.json({ rows: [...rows, ...customRows], customFields });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to read fields' }, { status: 500 });
+  }
+}
+
+// Создать кастомное поле заявки.
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const label = String(body?.label || '').trim();
+    if (!label) return NextResponse.json({ error: 'Укажите название поля' }, { status: 400 });
+    const userId = request.headers.get('x-user-id') || 'system';
+    const result = await upsertCustomParameter(
+      {
+        label,
+        type: body?.type,
+        options: body?.options,
+        section: body?.section,
+        scopeObjectType: body?.scopeObjectType,
+        sourceNpa: body?.sourceNpa,
+        sourceFieldRef: body?.sourceFieldRef,
+      },
+      userId,
+    );
+    if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ parameter: result.parameter });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Не удалось создать поле' }, { status: 500 });
   }
 }
