@@ -23,6 +23,22 @@ export const PERMISSIONS: PermissionDef[] = [
 
 export const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
 
+/** Полный админ (может выдавать любые права). */
+export function isFullAdmin(perms: string[] | undefined | null): boolean {
+  return Array.isArray(perms) && (perms.includes('*') || perms.includes('admin'));
+}
+
+/**
+ * Защита от эскалации привилегий: тот, кто раздаёт права, не должен уметь выдать
+ * право выше своих. Полный админ может всё; остальные — только те права, что держат
+ * сами, и никогда '*' / 'admin'. Возвращает список недопустимо запрошенных прав.
+ */
+export function findEscalatedPermissions(requested: string[], requesterPerms: string[] | undefined | null): string[] {
+  if (isFullAdmin(requesterPerms)) return [];
+  const held = new Set(requesterPerms || []);
+  return requested.filter((p) => p === '*' || p === 'admin' || !held.has(p));
+}
+
 /** Префикс пути → требуемое право. Специфичные префиксы ПЕРЕД зонтичными. */
 const GATES: Array<{ prefix: string; perm: string }> = [
   { prefix: '/admin/document-types', perm: 'admin:document-types' },

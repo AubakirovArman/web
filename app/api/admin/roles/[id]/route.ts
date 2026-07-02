@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readRoles, writeRoles } from '@/lib/auth/roles';
 import { countUsersByRole } from '@/lib/auth/users';
+import { findEscalatedPermissions } from '@/lib/auth/permissions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (roleId === 'admin') {
       return NextResponse.json({ error: 'Права роли «Администратор» нельзя ограничить' }, { status: 400 });
     }
+    if (Array.isArray(body?.permissions)) {
+      const requested = body.permissions.map(String);
+      const perms = (request.headers.get('x-user-perms') || '').split(',').map((s) => s.trim()).filter(Boolean);
+      const escalated = findEscalatedPermissions(requested, perms);
+      if (escalated.length) {
+        return NextResponse.json({ error: `Нельзя выдать права выше своих: ${escalated.join(', ')}` }, { status: 403 });
+      }
+      role.permissions = requested;
+    }
     if (typeof body?.name === 'string' && body.name.trim()) role.name = body.name.trim();
     if (typeof body?.description === 'string') role.description = body.description;
-    if (Array.isArray(body?.permissions)) role.permissions = body.permissions.map(String);
     const next = await writeRoles(roles);
     return NextResponse.json({ role: next.find((r) => r.id === roleId), roles: next });
   } catch (error: any) {
