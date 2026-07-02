@@ -388,10 +388,13 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
   const linkedParams = Array.isArray(item.linkedApplicationParams) ? item.linkedApplicationParams : [];
   const sourceReference = item.npaReferences?.[0] || null;
 
-  // Если передан предикат обязательности (requiredWhenCondition) — переписать его в condition_json
-  // ВЕРХНЕГО уровня, сохранив document_check_profile/checker_routing (они лежат рядом с предикатом).
+  // Если передан предикат обязательности (requiredWhenCondition) и/или список авто-проверок
+  // (checkIds) — переписать condition_json ВЕРХНЕГО уровня, сохранив document_check_profile/
+  // checker_routing (они лежат рядом с предикатом).
   let conditionJsonParam: string | null = null;
-  if (item.requiredWhenCondition !== undefined) {
+  const wantsPredicate = item.requiredWhenCondition !== undefined;
+  const wantsCheckIds = Array.isArray(item.checkIds);
+  if (wantsPredicate || wantsCheckIds) {
     const cur = await pool.query<{ condition_json: any }>(
       `SELECT condition_json FROM document_requirement_rules
        WHERE (document_type_id=$1 OR ('db-rule-'||id)=$1 OR id=$1 OR doc_code=$1)
@@ -400,11 +403,19 @@ export async function updateAdminDocumentTypeDetail(id: string, item: NewDossier
     );
     const cj: Record<string, any> =
       cur.rows[0]?.condition_json && typeof cur.rows[0].condition_json === 'object' ? { ...cur.rows[0].condition_json } : {};
-    for (const k of ['all', 'any', 'not', 'eq', 'neq', 'in', 'contains', 'not_empty', 'empty', 'manual']) delete cj[k];
-    const pred = item.requiredWhenCondition as Record<string, any> | null;
-    if (pred && typeof pred === 'object') Object.assign(cj, pred);
-    // null = «применяется всегда»: пустой all → evaluateCondition вернёт true (а не false на profile-only).
-    else cj.all = [];
+    if (wantsPredicate) {
+      for (const k of ['all', 'any', 'not', 'eq', 'neq', 'in', 'gt', 'lt', 'gte', 'lte', 'between', 'contains', 'not_empty', 'empty', 'manual']) delete cj[k];
+      const pred = item.requiredWhenCondition as Record<string, any> | null;
+      if (pred && typeof pred === 'object') Object.assign(cj, pred);
+      // null = «применяется всегда»: пустой all → evaluateCondition вернёт true (а не false на profile-only).
+      else cj.all = [];
+    }
+    if (wantsCheckIds) {
+      const profile: Record<string, any> =
+        cj.document_check_profile && typeof cj.document_check_profile === 'object' ? { ...cj.document_check_profile } : {};
+      profile.auto_check_ids = (item.checkIds as string[]).filter(Boolean);
+      cj.document_check_profile = profile;
+    }
     conditionJsonParam = JSON.stringify(cj);
   }
 
@@ -853,6 +864,14 @@ async function readLsRegistrationDocumentTypesFromPostgres(): Promise<{
   return result;
 }
 
+const DEFAULT_AUTO_CHECK_IDS = ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'];
+/** Авто-проверки документа: из condition_json.document_check_profile.auto_check_ids, иначе дефолт. */
+function readAutoCheckIds(conditionJson: unknown): string[] {
+  const cj = conditionJson && typeof conditionJson === 'object' ? (conditionJson as Record<string, any>) : {};
+  const stored = cj.document_check_profile?.auto_check_ids;
+  return Array.isArray(stored) ? stored.filter((x) => typeof x === 'string' && x) : DEFAULT_AUTO_CHECK_IDS;
+}
+
 function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrder: number): NewDossierDocumentType {
   const source = inferNewDossierSource(rule);
   const module = rule.module_part || moduleFromCode(rule.doc_code) || (source === 'appendix-2' ? 'Приложение 2' : 'Приложение 3');
@@ -882,7 +901,7 @@ function buildAdminDossierDocumentType(rule: DbDocumentRequirementRule, sortOrde
     npaReferences: rule.source_reference ? [rule.source_reference] : undefined,
     requirementSources,
     checkProfileRequirements: extractCheckProfileRequirements(rule.condition_json),
-    checkIds: ['required_document_presence_check', 'file_format_check', 'ocr_quality_check'],
+    checkIds: readAutoCheckIds(rule.condition_json),
     linkedApplicationParams: asStringArray(rule.linked_params),
     severityIfMissing: rule.applicability === 'always_required' || rule.applicability === 'conditional_required' ? 'critical' : 'warning',
   };

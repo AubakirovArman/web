@@ -92,7 +92,9 @@ export function NewDossierDocumentTypesTable({
                     className="h-8 w-8"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onDelete(item.id);
+                      if (window.confirm(`Удалить тип документа «${item.name || item.code}»? Он привязан к НПА и проверкам заявок. Действие необратимо.`)) {
+                        onDelete(item.id);
+                      }
                     }}
                     aria-label="Удалить тип документа"
                   >

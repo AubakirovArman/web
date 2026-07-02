@@ -122,9 +122,21 @@ function ExpertListPage() {
     }
   };
 
-  const handleQuickCheck = (app: Application) => {
-    runCheck(app.id);
-    toast.success('Проверка заявки обновлена');
+  const handleQuickCheck = async (app: Application) => {
+    // Та же серверная проверка, что и на детали (комплектность/форматы/OCR/содержательные) —
+    // чтобы счётчики в списке совпадали с детальной страницей, а не расходились (была быстрая клиентская эвристика).
+    const toastId = toast.loading('Проверяю заявку…');
+    try {
+      const response = await fetch(`/api/applications/${app.id}/check`, { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || 'Не удалось выполнить проверку');
+      if (data.application) importApplication(data.application);
+      toast.success(`Проверка выполнена: ${data.findings?.length ?? 0} замечаний`, { id: toastId });
+    } catch (err: any) {
+      // Фолбэк на быструю клиентскую проверку, если сервер недоступен.
+      runCheck(app.id);
+      toast.error(err?.message || 'Серверная проверка недоступна — показана быстрая оценка', { id: toastId });
+    }
   };
 
   const handleDeleteApplication = async (app: Application) => {
