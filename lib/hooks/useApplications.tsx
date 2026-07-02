@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Application, ExpertCheckDecision, Finding, UploadedFile } from '@/lib/types';
+import { Application, ExpertCheckDecision, ExpertConclusion, Finding, UploadedFile } from '@/lib/types';
 import { defaultApplicationValues } from '@/lib/data/seed';
 import { demoFiles } from '@/lib/data/demoFiles';
 import { runPreCheck, runSubmissionValidation } from '@/lib/checks';
@@ -77,6 +77,10 @@ function normalizeApplication(app: Partial<Application>): Application {
     expertCheckDecisions: app.expertCheckDecisions && typeof app.expertCheckDecisions === 'object'
       ? app.expertCheckDecisions
       : {},
+    expertConclusion:
+      app.expertConclusion && typeof app.expertConclusion === 'object' && app.expertConclusion.verdict
+        ? app.expertConclusion
+        : undefined,
   };
 }
 
@@ -171,6 +175,7 @@ interface ApplicationContextValue {
   runCheck: (id: string) => void;
   updateFinding: (id: string, findingId: string, patch: Partial<Finding>) => void;
   setCheckDecision: (id: string, checkKey: string, decision: ExpertCheckDecision | null) => void;
+  setExpertConclusion: (id: string, conclusion: ExpertConclusion | null) => void;
   submitApplication: (id: string) => {
     success: boolean;
     findings: Finding[];
@@ -337,6 +342,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           }
           return { ...app, expertCheckDecisions: current };
         }),
+      setExpertConclusion: (id, conclusion) =>
+        updateApp(id, (app) => ({ ...app, expertConclusion: conclusion || undefined })),
       updateFinding: (id, findingId, patch) =>
         {
           updateApp(id, (app) => ({

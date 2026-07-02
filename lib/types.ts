@@ -341,6 +341,15 @@ export interface ExpertCheckDecision {
   decidedAt?: string;
 }
 
+/** Итоговое заключение эксперта по заявке (конечный результат экспертизы). */
+export type ExpertVerdict = 'approve' | 'revision' | 'reject';
+export interface ExpertConclusion {
+  verdict: ExpertVerdict;
+  note?: string;
+  decidedBy?: string;
+  decidedAt?: string;
+}
+
 export interface Application {
   id: string;
   createdAt: string;
@@ -351,6 +360,8 @@ export interface Application {
   findings: Finding[];
   // Решения эксперта по отдельным проверкам: ключ = `${rowKey}::${checkId}`
   expertCheckDecisions?: Record<string, ExpertCheckDecision>;
+  // Итоговое заключение эксперта (вердикт + примечание).
+  expertConclusion?: ExpertConclusion;
 }
 
 export interface ChecklistItem {

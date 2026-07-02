@@ -30,6 +30,10 @@ function normalizeApplications(value: unknown): Application[] {
         item.expertCheckDecisions && typeof item.expertCheckDecisions === 'object'
           ? item.expertCheckDecisions
           : {},
+      expertConclusion:
+        item.expertConclusion && typeof item.expertConclusion === 'object' && (item.expertConclusion as { verdict?: string }).verdict
+          ? item.expertConclusion
+          : undefined,
     })) as Application[];
 }
 

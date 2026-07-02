@@ -21,6 +21,7 @@ import { ApplicationSidePanel } from '@/components/expert/detail/application-sid
 import { DocumentsReviewCard } from '@/components/expert/detail/documents-review-card';
 import { ExpertHeader } from '@/components/expert/detail/expert-header';
 import { ExpertMetricsGrid } from '@/components/expert/detail/expert-metrics-grid';
+import { ExpertConclusionPanel } from '@/components/expert/detail/expert-conclusion-panel';
 import { FileProcessingProgressCard } from '@/components/expert/detail/file-processing-progress-card';
 import { FindingsPanel } from '@/components/expert/detail/findings-panel';
 import { NpaGemmaSummaryCard } from '@/components/expert/detail/npa-gemma-summary-card';
@@ -70,7 +71,7 @@ const statusLabels: Record<Application['status'], string> = {
 export function ExpertApplicationDetail() {
   const params = useParams<{ id: string }>();
   const applicationId = params.id;
-  const { applications, importApplication, updateFinding, updateStatus, setCurrentId, setCheckDecision } = useApplications();
+  const { applications, importApplication, updateFinding, updateStatus, setCurrentId, setCheckDecision, setExpertConclusion } = useApplications();
   const { rules, importRules } = useRules();
   const { store, setDocumentTypes } = useStore();
   const [viewingRow, setViewingRow] = useState<DocumentReviewRow | null>(null);
@@ -404,6 +405,8 @@ export function ExpertApplicationDetail() {
           <ServerTaskCard serverTask={serverTask} taskResult={taskResult} taskMessage={taskMessage} taskElapsed={taskElapsed} />
           <FileProcessingProgressCard app={app} />
           {summary && <ExpertMetricsGrid summary={summary} dossierFilesCount={dossierFiles.length} npaGemmaSummary={npaGemmaSummary} />}
+
+          <ExpertConclusionPanel app={app} onSave={(c) => setExpertConclusion(app.id, c)} />
 
           <Tabs defaultValue="documents" className="mt-4 min-w-0">
             <TabsList className="grid h-auto w-full grid-cols-3 rounded-none bg-transparent p-0">
