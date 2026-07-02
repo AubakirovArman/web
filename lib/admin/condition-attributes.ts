@@ -8,7 +8,7 @@ import type { Parameter } from '@/lib/types';
  * Это устраняет класс «молча-ложных» условий (рассинхрон attr/val).
  */
 
-export type ConditionOp = 'eq' | 'neq' | 'in' | 'contains' | 'not_empty' | 'empty';
+export type ConditionOp = 'eq' | 'neq' | 'in' | 'gt' | 'lt' | 'gte' | 'lte' | 'between' | 'contains' | 'not_empty' | 'empty';
 
 export interface ConditionAttribute {
   key: string;
@@ -24,23 +24,36 @@ export const OP_LABELS: Record<ConditionOp, string> = {
   eq: 'равно',
   neq: 'не равно',
   in: 'одно из',
+  gt: 'больше',
+  lt: 'меньше',
+  gte: 'не менее',
+  lte: 'не более',
+  between: 'в диапазоне',
   contains: 'содержит',
   not_empty: 'заполнено',
   empty: 'не заполнено',
 };
+
+/** Операторы, требующие два значения (границы диапазона). */
+export const RANGE_OPS: ConditionOp[] = ['between'];
+/** Операторы порядкового сравнения (числа/даты) — свободный ввод значения. */
+export const ORDER_OPS: ConditionOp[] = ['gt', 'lt', 'gte', 'lte', 'between'];
 
 function operatorsForType(type: Parameter['type']): ConditionOp[] {
   switch (type) {
     case 'boolean':
       return ['eq'];
     case 'select':
-    case 'date':
       return ['eq', 'neq', 'in', 'not_empty', 'empty'];
+    case 'date':
+      // даты сравнимы порядково (в пределах/после/до)
+      return ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'between', 'not_empty', 'empty'];
     case 'multiselect':
       // массив хранится JSON-строкой → eq/in по нему молча ложны; безопасно только contains/наличие
       return ['contains', 'not_empty', 'empty'];
     case 'number':
-      return ['eq', 'neq', 'not_empty', 'empty'];
+      // числовые пороги НПА: «не менее 5», «в течение 3 лет», диапазоны
+      return ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'between', 'not_empty', 'empty'];
     case 'text':
     case 'textarea':
     default:
@@ -95,7 +108,7 @@ export function describeCondition(node: unknown): string {
   if (Array.isArray(n.all)) return join(n.all, ' И ');
   if (Array.isArray(n.any)) return '(' + join(n.any, ' ИЛИ ') + ')';
   if (Array.isArray(n.not)) return 'НЕ (' + join(n.not, ' И ') + ')';
-  const leafOps: ConditionOp[] = ['eq', 'neq', 'in', 'contains', 'not_empty', 'empty'];
+  const leafOps: ConditionOp[] = ['eq', 'neq', 'in', 'gt', 'lt', 'gte', 'lte', 'between', 'contains', 'not_empty', 'empty'];
   for (const op of leafOps) {
     if (op in n) {
       const expr = n[op];
@@ -105,6 +118,10 @@ export function describeCondition(node: unknown): string {
       if (op === 'not_empty') return `${label} заполнено`;
       if (op === 'empty') return `${label} не заполнено`;
       const raw = Array.isArray(expr) ? expr[1] : '';
+      if (op === 'between') {
+        const [lo, hi] = Array.isArray(raw) ? raw : ['', ''];
+        return `${label} ${OP_LABELS[op]} ${lo}…${hi}`;
+      }
       const valText = Array.isArray(raw)
         ? raw.map((v) => attr?.options.find((o) => o.value === v)?.label || v).join(', ')
         : attr?.options.find((o) => o.value === raw)?.label || String(raw);
@@ -121,7 +138,7 @@ export function validateCondition(node: unknown): string[] {
   const walk = (n: any) => {
     if (!n || typeof n !== 'object') return;
     for (const k of ['all', 'any', 'not'] as const) if (Array.isArray(n[k])) n[k].forEach(walk);
-    for (const op of ['eq', 'neq', 'in', 'contains', 'not_empty', 'empty'] as const) {
+    for (const op of ['eq', 'neq', 'in', 'gt', 'lt', 'gte', 'lte', 'between', 'contains', 'not_empty', 'empty'] as const) {
       if (op in n) {
         const expr = n[op];
         const attrKey = Array.isArray(expr) ? expr[0] : expr?.param;
@@ -133,6 +150,16 @@ export function validateCondition(node: unknown): string[] {
         if ((op === 'eq' || op === 'neq') && attr.options.length && !attr.boolean) {
           const v = Array.isArray(expr) ? expr[1] : '';
           if (v && !attr.options.some((o) => o.value === v)) problems.push(`Значение «${v}» вне списка для «${attr.label}»`);
+        }
+        if (['gt', 'lt', 'gte', 'lte'].includes(op)) {
+          const v = Array.isArray(expr) ? expr[1] : '';
+          if (v === '' || v === undefined || v === null) problems.push(`Не задано значение для «${attr.label}»`);
+        }
+        if (op === 'between') {
+          const raw = Array.isArray(expr) ? expr[1] : null;
+          if (!Array.isArray(raw) || raw[0] === '' || raw[1] === '' || raw[0] == null || raw[1] == null) {
+            problems.push(`Не заданы обе границы диапазона для «${attr.label}»`);
+          }
         }
       }
     }

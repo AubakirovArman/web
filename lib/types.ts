@@ -98,6 +98,11 @@ export type ConditionLeaf =
   | { eq: [string, string] }
   | { neq: [string, string] }
   | { in: [string, string[]] }
+  | { gt: [string, string | number] }
+  | { lt: [string, string | number] }
+  | { gte: [string, string | number] }
+  | { lte: [string, string | number] }
+  | { between: [string, [string | number, string | number]] }
   | { not_empty: [string] }
   | { empty: [string] }
   | { contains: [string, string] | { param: string; where?: { field: string; eq?: string; value?: string } } }

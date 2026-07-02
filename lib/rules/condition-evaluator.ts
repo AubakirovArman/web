@@ -25,6 +25,11 @@ export function evaluateCondition(condition: unknown, values: ConditionValues): 
   if ('eq' in node) return compareBinary(node.eq, values, (actual, expected, paramId) => equalsValue(actual, expected, paramId));
   if ('neq' in node) return compareBinary(node.neq, values, (actual, expected, paramId) => hasValue(actual) && hasValue(expected) && !equalsValue(actual, expected, paramId));
   if ('in' in node) return compareBinary(node.in, values, (actual, expected, paramId) => valueIn(actual, expected, paramId));
+  if ('gt' in node) return compareBinary(node.gt, values, (actual, expected) => orderCompare(actual, expected, (c) => c > 0));
+  if ('lt' in node) return compareBinary(node.lt, values, (actual, expected) => orderCompare(actual, expected, (c) => c < 0));
+  if ('gte' in node) return compareBinary(node.gte, values, (actual, expected) => orderCompare(actual, expected, (c) => c >= 0));
+  if ('lte' in node) return compareBinary(node.lte, values, (actual, expected) => orderCompare(actual, expected, (c) => c <= 0));
+  if ('between' in node) return compareBetween(node.between, values);
   if ('contains' in node) return compareContains(node.contains, values);
   if ('not_empty' in node) return compareUnary(node.not_empty, values, (actual) => hasValue(actual));
   if ('empty' in node) return compareUnary(node.empty, values, (actual) => !hasValue(actual));
@@ -36,7 +41,7 @@ export function evaluateCondition(condition: unknown, values: ConditionValues): 
 /** Распознаётся ли объект как узел condition_json (есть ли исполняемый предикат). */
 export function hasCondition(node: unknown): node is ConditionNode {
   if (!node || typeof node !== 'object') return false;
-  const keys = ['all', 'any', 'not', 'eq', 'neq', 'in', 'contains', 'not_empty', 'empty', 'manual'];
+  const keys = ['all', 'any', 'not', 'eq', 'neq', 'in', 'gt', 'lt', 'gte', 'lte', 'between', 'contains', 'not_empty', 'empty', 'manual'];
   return keys.some((key) => key in (node as Record<string, unknown>));
 }
 
@@ -51,7 +56,7 @@ export function pickConditionPredicate(json: unknown): ConditionNode | undefined
   if (Array.isArray(obj.all)) return { all: obj.all as ConditionNode[] };
   if (Array.isArray(obj.any)) return { any: obj.any as ConditionNode[] };
   if (Array.isArray(obj.not)) return { not: obj.not } as unknown as ConditionNode;
-  for (const key of ['eq', 'neq', 'in', 'contains', 'not_empty', 'empty', 'manual'] as const) {
+  for (const key of ['eq', 'neq', 'in', 'gt', 'lt', 'gte', 'lte', 'between', 'contains', 'not_empty', 'empty', 'manual'] as const) {
     if (key in obj) return { [key]: obj[key] } as ConditionNode;
   }
   return undefined;
@@ -157,6 +162,58 @@ function equalsValue(actual: unknown, expected: unknown, paramId: string): boole
 function valueIn(actual: unknown, expected: unknown, paramId: string): boolean {
   const expectedItems = Array.isArray(expected) ? expected : [expected];
   return expectedItems.some((item) => equalsValue(actual, item, paramId));
+}
+
+/**
+ * Порядковое сравнение (числа → даты → строки). Возвращает -1/0/1 или null,
+ * если значения несравнимы (одно из них пустое). test получает знак сравнения.
+ */
+function orderCompare(actual: unknown, expected: unknown, test: (sign: number) => boolean): boolean {
+  if (!hasValue(actual) || !hasValue(expected)) return false;
+  const sign = compareOrder(actual, expected);
+  return sign === null ? false : test(sign);
+}
+
+function compareOrder(a: unknown, b: unknown): number | null {
+  const na = toNumberOrNull(a);
+  const nb = toNumberOrNull(b);
+  if (na !== null && nb !== null) return na < nb ? -1 : na > nb ? 1 : 0;
+  const ta = toTimeOrNull(a);
+  const tb = toTimeOrNull(b);
+  if (ta !== null && tb !== null) return ta < tb ? -1 : ta > tb ? 1 : 0;
+  const sa = String(a ?? '').trim().toLowerCase();
+  const sb = String(b ?? '').trim().toLowerCase();
+  if (!sa || !sb) return null;
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const text = String(value ?? '').replace(',', '.').trim();
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toTimeOrNull(value: unknown): number | null {
+  const text = String(value ?? '').trim();
+  if (!/\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}/.test(text)) return null;
+  const t = Date.parse(text);
+  return Number.isNaN(t) ? null : t;
+}
+
+function compareBetween(expression: unknown, values: ConditionValues): boolean {
+  if (!Array.isArray(expression) || expression.length < 2) return false;
+  const paramId = String(expression[0] || '');
+  const bounds = expression[1];
+  if (!Array.isArray(bounds) || bounds.length < 2) return false;
+  const actual = getParamValue(paramId, values);
+  if (!hasValue(actual)) return false;
+  const lo = resolveOperand(bounds[0], values);
+  const hi = resolveOperand(bounds[1], values);
+  const lowSign = compareOrder(actual, lo);
+  const highSign = compareOrder(actual, hi);
+  return lowSign !== null && highSign !== null && lowSign >= 0 && highSign <= 0;
 }
 
 function containsValue(actual: unknown, expected: unknown, paramId: string): boolean {
